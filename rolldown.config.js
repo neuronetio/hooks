@@ -1,4 +1,3 @@
-import babel from "@rolldown/plugin-babel";
 import { defineConfig } from "rolldown";
 import { dts } from "rolldown-plugin-dts";
 
