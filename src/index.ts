@@ -209,7 +209,9 @@ export function hook<A extends any[] = any[], R = any, F extends (...args: A) =>
     if (key instanceof HookKeyComposite) {
       const keyComposite = key as HookKeyComposite;
       if (keyComposite.keys.length === 0) {
-        const result = _hookData.origin(...(argsOverride || (args as any as A)));
+        const callArgs = (argsOverride || (args as any as A)) as unknown as A;
+        const originalFn = _hookData.origin as unknown as (...args: any[]) => R;
+        const result = originalFn.apply(this, callArgs as unknown as any[]);
         currentHookKey = oldHookKey;
         return result;
       }
@@ -218,13 +220,13 @@ export function hook<A extends any[] = any[], R = any, F extends (...args: A) =>
       key = flat[0]!;
       next = (...args: A) => {
         if (i < keyComposite.keys.length) {
-          return runMiddleware(flat[i++]!, _hookData.name, next, ...args);
+          return runMiddleware(flat[i++]!, _hookData.name, next, this, ...args);
         } else {
-          return _hookData.origin(...args);
+          return _hookData.origin.apply(this, args);
         }
       };
     }
-    const result = runMiddleware(key, _hookData.name, next, ...(argsOverride || (args as any as A)));
+    const result = runMiddleware(key, _hookData.name, next, this, ...(argsOverride || (args as any as A)));
     currentHookKey = oldHookKey;
     return result;
   }
@@ -368,7 +370,11 @@ export function hookDecorator(
   };
 }
 
-export type MiddlewareMethod<A extends any[] = any[], R = any> = (next: (...args: A) => R, ...args: A) => R;
+export type MiddlewareMethod<A extends any[] = any[], R = any, TThis = unknown> = (
+  this: TThis,
+  next: (...args: A) => R,
+  ...args: A
+) => R;
 
 type HookNamePropertyKey<N extends HookName> = N extends `get ${infer P}`
   ? P & PropertyKey
@@ -414,6 +420,12 @@ type InferHookSignature<TObject, TName extends HookName> = TName extends string
 
 type InferMiddlewareArgs<TObject, TName extends HookName> = InferHookSignature<TObject, TName>[0];
 type InferMiddlewareResult<TObject, TName extends HookName> = InferHookSignature<TObject, TName>[1];
+type InferMiddlewareThis<TObject, TName extends HookName> =
+  ResolveMemberValue<TObject, HookNamePropertyKey<TName>> extends infer Member
+    ? Member extends (this: infer ThisArg, ...args: any[]) => any
+      ? ThisArg
+      : unknown
+    : unknown;
 
 export interface IMiddlewareMethods {
   [key: string | symbol]: MiddlewareMethod[];
@@ -429,7 +441,11 @@ export function attach<A extends any[] = any[], R = any>(key: HookKey, fn: Middl
 export function attach<TObject, TName extends HookName>(
   key: TObject,
   name: TName,
-  fn: MiddlewareMethod<InferMiddlewareArgs<TObject, TName>, InferMiddlewareResult<TObject, TName>>,
+  fn: MiddlewareMethod<
+    InferMiddlewareArgs<TObject, TName>,
+    InferMiddlewareResult<TObject, TName>,
+    InferMiddlewareThis<TObject, TName>
+  >,
 ): () => void;
 export function attach(key: HookKey, name: HookName, fn: MiddlewareMethod<any[], unknown>): () => void;
 
@@ -487,6 +503,33 @@ export function attach<A extends any[] = any[], R = any>(
   return () => detach(key, name, fn);
 }
 
+export interface IHookInspection {
+  key: HookKey;
+  name: HookName;
+  middlewareCount: number;
+  middlewareNames: HookName[];
+}
+
+export function inspectHook(hookFn: IHookFn<any, any>): IHookInspection {
+  const maybeHook = (hookFn as IHookFn<any, any>)[HOOK];
+  if (!maybeHook) {
+    throw new Error(`${PREFIX}[inspectHook] Hook function metadata not found.`);
+  }
+
+  const methods = middlewares.get(maybeHook.key);
+  const middlewareNames = Object.keys(methods || {}) as HookName[];
+  const middlewareCount = middlewareNames.reduce((count, methodName) => {
+    return count + (methods?.[methodName]?.length || 0);
+  }, 0);
+
+  return {
+    key: maybeHook.key,
+    name: maybeHook.name,
+    middlewareCount,
+    middlewareNames,
+  };
+}
+
 export function detach(key: HookKey, name: HookName, fn: MiddlewareMethod): void {
   const methods = middlewares.get(key);
   if (!methods) {
@@ -516,19 +559,22 @@ function runMiddleware<A extends any[] = any[], R = any>(
   key: HookKeySingle,
   name: HookName,
   next: MiddlewareNext<A, R>,
+  thisArg: any,
   ...args: A
 ): R {
   const actualNext = next || noop;
+  const oldHookKey = currentHookKey;
   const methods = middlewares.get(key);
   if (!methods) {
-    return actualNext(...args);
+    currentHookKey = oldHookKey;
+    return actualNext.apply(thisArg, args as any);
   }
 
   const method = methods[name];
   if (!method) {
-    return actualNext(...args);
+    currentHookKey = oldHookKey;
+    return actualNext.apply(thisArg, args as any);
   }
-  const oldHookKey = currentHookKey;
   // we need to switch to key from current middleware, because middlewares may call hooks too (or even save them somewhere)
   // if we rely on currentHookKey from running context, then running with different composites will create hooks differently each time
   // additionally, it is not intuitive that when you declare middleware with specific key, other key will be used instead (composite)
@@ -538,10 +584,10 @@ function runMiddleware<A extends any[] = any[], R = any>(
   const runner = (...runnerArgs: A): R => {
     if (index < method.length) {
       const fn = method[index++]!;
-      return fn(runner, ...runnerArgs);
+      return fn.call(thisArg, runner, ...runnerArgs);
     } else {
       currentHookKey = oldHookKey; // restore original hook key, and leave it as it was before entering middlewares
-      return actualNext(...runnerArgs);
+      return actualNext.apply(thisArg, runnerArgs);
     }
   };
 

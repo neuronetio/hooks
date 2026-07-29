@@ -100,7 +100,8 @@ function hook(arg1, arg2, arg3, arg4) {
 		if (key instanceof HookKeyComposite) {
 			const keyComposite = key;
 			if (keyComposite.keys.length === 0) {
-				const result = _hookData.origin(...argsOverride || args);
+				const callArgs = argsOverride || args;
+				const result = _hookData.origin.apply(this, callArgs);
 				currentHookKey = oldHookKey;
 				return result;
 			}
@@ -108,11 +109,11 @@ function hook(arg1, arg2, arg3, arg4) {
 			let i = 1;
 			key = flat[0];
 			next = (...args) => {
-				if (i < keyComposite.keys.length) return runMiddleware(flat[i++], _hookData.name, next, ...args);
-				else return _hookData.origin(...args);
+				if (i < keyComposite.keys.length) return runMiddleware(flat[i++], _hookData.name, next, this, ...args);
+				else return _hookData.origin.apply(this, args);
 			};
 		}
-		const result = runMiddleware(key, _hookData.name, next, ...argsOverride || args);
+		const result = runMiddleware(key, _hookData.name, next, this, ...argsOverride || args);
 		currentHookKey = oldHookKey;
 		return result;
 	}
@@ -214,6 +215,21 @@ function attach(arg1, arg2, arg3) {
 	method.push(fn);
 	return () => detach(key, name, fn);
 }
+function inspectHook(hookFn) {
+	const maybeHook = hookFn[HOOK];
+	if (!maybeHook) throw new Error(`${PREFIX}[inspectHook] Hook function metadata not found.`);
+	const methods = middlewares.get(maybeHook.key);
+	const middlewareNames = Object.keys(methods || {});
+	const middlewareCount = middlewareNames.reduce((count, methodName) => {
+		return count + (methods?.[methodName]?.length || 0);
+	}, 0);
+	return {
+		key: maybeHook.key,
+		name: maybeHook.name,
+		middlewareCount,
+		middlewareNames
+	};
+}
 function detach(key, name, fn) {
 	const methods = middlewares.get(key);
 	if (!methods) return;
@@ -228,27 +244,31 @@ function detach(key, name, fn) {
 		}
 	}
 }
-function runMiddleware(key, name, next, ...args) {
+function runMiddleware(key, name, next, thisArg, ...args) {
 	const actualNext = next || noop;
-	const methods = middlewares.get(key);
-	if (!methods) return actualNext(...args);
-	const method = methods[name];
-	if (!method) return actualNext(...args);
 	const oldHookKey = currentHookKey;
+	const methods = middlewares.get(key);
+	if (!methods) {
+		currentHookKey = oldHookKey;
+		return actualNext.apply(thisArg, args);
+	}
+	const method = methods[name];
+	if (!method) {
+		currentHookKey = oldHookKey;
+		return actualNext.apply(thisArg, args);
+	}
 	currentHookKey = key;
 	let index = 0;
 	const runner = (...runnerArgs) => {
-		if (index < method.length) {
-			const fn = method[index++];
-			return fn(runner, ...runnerArgs);
-		} else {
+		if (index < method.length) return method[index++].call(thisArg, runner, ...runnerArgs);
+		else {
 			currentHookKey = oldHookKey;
-			return actualNext(...runnerArgs);
+			return actualNext.apply(thisArg, runnerArgs);
 		}
 	};
 	return runner(...args);
 }
 
 //#endregion
-export { DEFAULT_HOOK_NAME, HOOK, Hook, attach, composeHookKeys, detach, dynamicHookKey, getCurrentHookKeyContext, hook, hookDecorator, middlewares };
+export { DEFAULT_HOOK_NAME, HOOK, Hook, attach, composeHookKeys, detach, dynamicHookKey, getCurrentHookKeyContext, hook, hookDecorator, inspectHook, middlewares };
 //# sourceMappingURL=index.js.map

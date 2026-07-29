@@ -5,6 +5,10 @@ class Example {
     return String(x);
   }
 
+  withThis(this: Example, x: number): string {
+    return String(this.myMethod(x));
+  }
+
   get value(): number {
     return 1;
   }
@@ -22,6 +26,10 @@ const instance = new Example();
 
 attach(instance, "myMethod", (next, x) => {
   return next(x + 1);
+});
+
+attach(instance, "withThis", function (this: Example, next, x) {
+  return next(this.myMethod(x + 1).length);
 });
 
 attach(Example, "myMethod", (next, x) => {

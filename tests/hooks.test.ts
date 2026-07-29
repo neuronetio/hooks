@@ -7,6 +7,7 @@ import {
   hook,
   attach,
   detach,
+  inspectHook,
   composeHookKeys,
   getCurrentHookKeyContext,
   middlewares,
@@ -24,6 +25,71 @@ describe("hooks", () => {
 
       expect(result).toBe(5);
       expect(originalFn).toHaveBeenCalledWith(2, 3);
+    });
+
+    it("should preserve the receiver context for wrapped functions", () => {
+      const ctx = {
+        value: 5,
+        multiply(n: number) {
+          return this.value + n;
+        },
+      };
+
+      const wrapped = hook(function (this: typeof ctx, n: number) {
+        return this.multiply(n);
+      });
+
+      expect(wrapped.call(ctx, 3)).toBe(8);
+    });
+
+    it("should expose debugging info for hooks", () => {
+      const key = Symbol("debug");
+      const wrapped = hook(key, "debugName", (x: number) => x + 1);
+
+      attach(key, "debugName", (next, x) => next(x + 1));
+
+      const info = inspectHook(wrapped);
+      expect(info.key).toBe(key);
+      expect(info.name).toBe("debugName");
+      expect(info.middlewareCount).toBe(1);
+      expect(info.middlewareNames).toEqual(["debugName"]);
+    });
+
+    it("should throw when inspecting a function without hook metadata", () => {
+      const plainFn = () => 42;
+
+      expect(() => inspectHook(plainFn as any)).toThrowError("[inspectHook] Hook function metadata not found.");
+    });
+
+    it("should count middleware entries when inspecting a hook", () => {
+      const key = { emptyMiddleware: true };
+      const wrapped = hook(key, "debugName", (x: number) => x + 1);
+
+      middlewares.set(key as any, { debugName: [] as any } as any);
+
+      const info = inspectHook(wrapped);
+      expect(info.middlewareCount).toBe(0);
+      expect(info.middlewareNames).toEqual(["debugName"]);
+    });
+
+    it("should count one middleware entry when inspecting a hook", () => {
+      const key = { middleware: true };
+      const wrapped = hook(key, "debugName", (x: number) => x + 1);
+
+      middlewares.set(key as any, { debugName: [() => undefined] as any } as any);
+
+      const info = inspectHook(wrapped);
+      expect(info.middlewareCount).toBe(1);
+      expect(info.middlewareNames).toEqual(["debugName"]);
+    });
+
+    it("should inspect a hook with no registered middleware", () => {
+      const key = { noMiddleware: true };
+      const wrapped = hook(key, "debugName", (x: number) => x + 1);
+
+      const info = inspectHook(wrapped);
+      expect(info.middlewareCount).toBe(0);
+      expect(info.middlewareNames).toEqual([]);
     });
 
     it("should run middleware before the original function", () => {
