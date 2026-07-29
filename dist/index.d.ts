@@ -74,13 +74,22 @@ declare function hookDecorator(dynamicKeyOrName: HookKeyDynamic | string): Decor
 declare function hookDecorator(dynamicKey: HookKeyDynamic, alternativeName: string): DecoratorResult;
 declare function hookDecorator(alternativeName: string, dynamicKey: HookKeyDynamic): DecoratorResult;
 type MiddlewareMethod<A extends any[] = any[], R = any> = (next: (...args: A) => R, ...args: A) => R;
+type HookNamePropertyKey<N extends HookName> = N extends `get ${infer P}` ? P & PropertyKey : N extends `set ${infer P}` ? P & PropertyKey : N extends `init ${infer P}` ? P & PropertyKey : N extends PropertyKey ? N : never;
+type HookPrototype<TObject> = TObject extends (abstract new (...args: any[]) => any) ? TObject extends {
+  prototype: infer TPrototype;
+} ? TPrototype : never : never;
+type ResolveMemberValue<TObject, TName extends PropertyKey> = TObject extends object ? TName extends keyof TObject ? TObject[TName] : TObject extends (abstract new (...args: any[]) => any) ? TName extends keyof HookPrototype<TObject> ? HookPrototype<TObject>[TName] : never : never : never;
+type InferHookSignature<TObject, TName extends HookName> = TName extends string ? ResolveMemberValue<TObject, HookNamePropertyKey<TName>> extends (infer Member) ? [Member] extends [never] ? [any[], any] : Member extends ((...args: infer A) => infer R) ? [A, R] : TName extends `get ${string}` ? [[], Member] : TName extends `set ${string}` ? [[Member], void] : TName extends `init ${string}` ? [[Member], Member] : [any[], any] : [any[], any] : [any[], any];
+type InferMiddlewareArgs<TObject, TName extends HookName> = InferHookSignature<TObject, TName>[0];
+type InferMiddlewareResult<TObject, TName extends HookName> = InferHookSignature<TObject, TName>[1];
 interface IMiddlewareMethods {
   [key: string | symbol]: MiddlewareMethod[];
 }
 declare const middlewares: WeakMap<HookKey, IMiddlewareMethods>;
-declare function attach<A extends any[] = any[], R = any>(hookFn: IHookFn<A, R>, fn: MiddlewareMethod<A, R>): () => void;
+declare function attach<T extends (...args: any[]) => any>(hookFn: T, fn: MiddlewareMethod<Parameters<T>, ReturnType<T>>): () => void;
 declare function attach<A extends any[] = any[], R = any>(key: HookKey, fn: MiddlewareMethod<A, R>): () => void;
-declare function attach<A extends any[] = any[], R = any>(key: HookKey, name: HookName, fn: MiddlewareMethod<A, R>): () => void;
+declare function attach<TObject, TName extends HookName>(key: TObject, name: TName, fn: MiddlewareMethod<InferMiddlewareArgs<TObject, TName>, InferMiddlewareResult<TObject, TName>>): () => void;
+declare function attach(key: HookKey, name: HookName, fn: MiddlewareMethod<any[], unknown>): () => void;
 declare function detach(key: HookKey, name: HookName, fn: MiddlewareMethod): void;
 type MiddlewareNext<A extends any[] = any[], R = any> = ((...args: A) => R) | null;
 //#endregion
