@@ -990,6 +990,25 @@ describe("hooks: decorators", () => {
     expect(instance2.callMethod("in")).toBe("in:methodMidC:original");
   });
 
+  it("should work with custom hook key and private accessor", () => {
+    const privateKey = Symbol("bankAccountPrivateKey");
+
+    @Hook
+    class SecureBankAccount {
+      @hook(dynamicHookKey(() => privateKey))
+      accessor #balance: number = 1000;
+
+      public getBalance() {
+        return this.#balance;
+      }
+    }
+
+    attach(privateKey, "get #balance", (next) => next() + 500);
+
+    const account = new SecureBankAccount();
+    expect(account.getBalance()).toBe(1500);
+  });
+
   it("should work with alternative names: private members (static)", () => {
     @Hook
     class PrivateStaticClass {
