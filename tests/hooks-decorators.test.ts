@@ -147,13 +147,13 @@ describe("hooks: decorators", () => {
     });
 
     const detach1 = attach(instance, "get myGetterSetter", (next) => {
-      return next("test") + ":getMid1";
+      return next() + ":getMid1";
     });
     expect(instance.myGetterSetter).toBe("myGetterSetterValue:getMid1");
     expect(subCalled).toBe(1);
 
     const detach2 = attach(AccessorsClass, "get myGetterSetter", (next) => {
-      return next("test") + ":getMid2";
+      return next() + ":getMid2";
     });
     expect(instance.myGetterSetter).toBe("myGetterSetterValue:getMid2:getMid1");
     expect(subCalled).toBe(2);
