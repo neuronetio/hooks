@@ -9,6 +9,10 @@ export const HOOK = Symbol("HOOK");
 
 const noop = (..._args: any[]): any => {};
 
+/**
+ * Represents a composition of multiple hook keys.
+ * Used to support hierarchical or multi-layered hook contexts.
+ */
 class HookKeyComposite {
   keys: HookKey[];
 
@@ -16,6 +20,11 @@ class HookKeyComposite {
     this.keys = keys;
   }
 
+  /**
+   * Flattens the composite keys into a single-level array of non-composite keys.
+   * @param keys The keys to flatten. Defaults to the keys of this composite.
+   * @returns An array of non-composite hook keys.
+   */
   flat(keys: HookKey[] = this.keys): Exclude<HookKey, HookKeyComposite>[] {
     const result: HookKey[] = [];
     for (const key of keys) {
@@ -28,6 +37,9 @@ class HookKeyComposite {
     return result;
   }
 
+  /**
+   * Iterates over all non-composite keys in this composite (recursive).
+   */
   *[Symbol.iterator](): Generator<HookKey, void, undefined> {
     for (const key of this.keys) {
       if (key instanceof HookKeyComposite) {
@@ -39,12 +51,25 @@ class HookKeyComposite {
   }
 }
 
+/**
+ * Composes multiple hook keys into a single composite key.
+ * Useful for scenarios where a hook should trigger middleware attached to multiple contexts
+ * (e.g., an instance and its class).
+ *
+ * @param keys The hook keys to compose.
+ * @returns A new HookKeyComposite instance.
+ */
 export function composeHookKeys(...keys: HookKey[]): HookKey {
   return new HookKeyComposite(keys);
 }
 
 export type HookKeyDynamicFn = () => HookKey;
 
+/**
+ * Represents a hook key that is resolved dynamically at runtime.
+ * The key is resolved by calling the provided function, usually with the `this` context
+ * of the hooked method.
+ */
 class HookKeyDynamic {
   fn: HookKeyDynamicFn;
 
@@ -53,6 +78,12 @@ class HookKeyDynamic {
   }
 }
 
+/**
+ * Creates a dynamic hook key.
+ *
+ * @param fn A function that returns a HookKey.
+ * @returns A new HookKeyDynamic instance.
+ */
 export function dynamicHookKey(fn: HookKeyDynamicFn): HookKeyDynamic {
   return new HookKeyDynamic(fn);
 }
@@ -70,15 +101,26 @@ export type HookKey = HookKeySingle | HookKeyComposite;
 
 export type HookName = string | symbol;
 
+/**
+ * Metadata stored on a hook function.
+ */
 export interface IHookData<A extends any[] = any[], R = any> {
+  /** The original function being hooked. */
   origin: (...args: A) => R;
+  /** The key associated with this hook. */
   key: HookKey;
+  /** The name of the hook. */
   name: HookName;
+  /** Optional arguments override. */
   args?: A;
 }
 
+/**
+ * A function wrapped in a hook.
+ */
 export interface IHookFn<A extends any[] = any[], R = any, CallArgs extends any[] = A> {
   (...args: CallArgs): R;
+  /** Metadata for the hook. */
   [HOOK]: IHookData<A, R>;
 }
 
@@ -86,26 +128,82 @@ export type MetadataHooks = (string | symbol)[];
 
 let currentHookKey: HookKey | null = null;
 
+/**
+ * Retrieves the hook key context for the currently executing hook.
+ * This is useful for inferring the hook key when it's not explicitly provided.
+ *
+ * @returns The current HookKey or null if no hook is executing.
+ */
 export function getCurrentHookKeyContext(): HookKey | null {
   return currentHookKey;
 }
 
 /**
- * Creates a hook function that can be used to dynamically and externally add or remove middleware without any further modifications to the function itself.
- * It may also be used as a decorator for class methods, accessors, and fields.
+ * Creates a hook function that can be used to dynamically and externally add or remove middleware
+ * without any further modifications to the function itself.
+ *
+ * Can also be used as a decorator for class methods, accessors, and fields.
+ *
+ * &nbsp;
+ *
+ * ### Examples
+ *
+ * &nbsp;
+ *
+ * #### As a function wrapper
+ * ```ts
+ * const myFn = hook((a: number) => a + 1);
+ * myFn(5); // 6
+ * attach(myFn, (next, a) => next(a) * 2);
+ * myFn(5); // 12
+ * ```
+ * &nbsp;
+ *
+ * #### As a decorator
+ * ```ts
+ * class MyClass {
+ *   @hook()
+ *   myMethod(a: number) {
+ *     return a + 1;
+ *   }
+ * }
+ * attach(MyClass, "myMethod", (next, a) => next(a) * 2);
+ * const instance = new MyClass();
+ * instance.myMethod(5); // 12
+ *
+ * // middleware only for specific instance
+ * attach(instance, "myMethod", (next, a) => next(a) + 3);
+ * instance.myMethod(5); // 15
+ * ```
+ *
+ * &nbsp;
+ *
+ * See `https://github.com/neuronet/hooks#readme` for more examples and full documentation.
  */
 export function hook(): ReturnType<typeof hookDecorator>; // decorator
+/** Decorator with alternative name */
 export function hook(alternativeName: string): ReturnType<typeof hookDecorator>; // decorator
+/** Decorator with dynamic key */
 export function hook(dynamic: HookKeyDynamic): ReturnType<typeof hookDecorator>; // decorator
+/** Decorator with alternative name and dynamic key */
 export function hook(alternativeName: string, dynamic: HookKeyDynamic): ReturnType<typeof hookDecorator>; // decorator
+/** Decorator with dynamic key and alternative name */
 export function hook(dynamic: HookKeyDynamic, alternativeName: string): ReturnType<typeof hookDecorator>; // decorator
+/** Wraps a function in a hook */
 export function hook<A extends any[], R>(fn: ((...args: A) => R) | null): IHookFn<A, R>;
+/** Wraps a function in a hook with overridden arguments */
 export function hook<A extends any[], R>(args: A, fn: ((...args: A) => R) | null): IHookFn<A, R, []>;
+/** Wraps a function in a hook with a specific name */
 export function hook<A extends any[], R>(name: HookName, fn: ((...args: A) => R) | null): IHookFn<A, R>;
+/** Wraps a function in a hook with a specific name and overridden arguments */
 export function hook<A extends any[], R>(name: HookName, args: A, fn: ((...args: A) => R) | null): IHookFn<A, R, []>;
+/** Wraps a function in a hook with a specific key */
 export function hook<A extends any[], R>(key: HookKey, fn: ((...args: A) => R) | null): IHookFn<A, R>;
+/** Wraps a function in a hook with a specific key and overridden arguments */
 export function hook<A extends any[], R>(key: HookKey, args: A, fn: ((...args: A) => R) | null): IHookFn<A, R, []>;
+/** Wraps a function in a hook with a specific key and name */
 export function hook<A extends any[], R>(key: HookKey, name: HookName, fn: ((...args: A) => R) | null): IHookFn<A, R>;
+/** Wraps a function in a hook with a specific key, name, and overridden arguments */
 export function hook<A extends any[], R>(
   key: HookKey,
   name: HookName,
@@ -236,6 +334,14 @@ export function hook<A extends any[] = any[], R = any, F extends (...args: A) =>
   return runHook as any;
 }
 
+/**
+ * A class decorator that enables hook support for the class.
+ * It initializes metadata required for `@hook()` decorated members to work correctly,
+ * ensuring that middleware can be attached to both the class and its instances.
+ *
+ * @param _Class The class constructor.
+ * @param context The class decorator context.
+ */
 export function Hook(_Class: any, context: ClassDecoratorContext) {
   context.addInitializer(function (this: any) {
     const hooks: MetadataHooks = (context.metadata.hooks as MetadataHooks) || [];
@@ -255,14 +361,23 @@ export function Hook(_Class: any, context: ClassDecoratorContext) {
 export type DecoratorResult = (value: any, context: ClassMemberDecoratorContext) => any;
 
 /**
- * Decorator for class methods that wraps the method in a hook.
- * Supports only ECMA TC39 Stage 3+ decorators.
+ * A decorator for class members (methods, accessors, fields) that wraps them in a hook.
+ * Supports ECMA TC39 Stage 3+ decorators.
+ *
+ * When applied to a method, it allows attaching middleware to that method via its instance or class.
+ * When applied to accessors, it generates hooks for `get` and `set` operations.
+ * When applied to fields, it generates an `init` hook.
  */
 export function hookDecorator(): DecoratorResult;
+/** Decorator with dynamic key */
 export function hookDecorator(dynamicKey: HookKeyDynamic): DecoratorResult;
+/** Decorator with alternative name */
 export function hookDecorator(alternativeName: string): DecoratorResult;
+/** Decorator with dynamic key or alternative name */
 export function hookDecorator(dynamicKeyOrName: HookKeyDynamic | string): DecoratorResult;
+/** Decorator with dynamic key and alternative name */
 export function hookDecorator(dynamicKey: HookKeyDynamic, alternativeName: string): DecoratorResult;
+/** Decorator with alternative name and dynamic key */
 export function hookDecorator(alternativeName: string, dynamicKey: HookKeyDynamic): DecoratorResult;
 export function hookDecorator(
   dynamicKey?: HookKeyDynamic | string,
@@ -433,11 +548,21 @@ export interface IMiddlewareMethods {
 
 export const middlewares: WeakMap<HookKey, IMiddlewareMethods> = new WeakMap();
 
+/**
+ * Attaches a middleware function to a hook.
+ * Middleware functions can intercept and modify arguments or results of the hooked function.
+ *
+ * @param hookFn The hook function to attach to.
+ * @param fn The middleware function.
+ * @returns A function that detaches the middleware when called.
+ */
 export function attach<T extends (...args: any[]) => any>(
   hookFn: T,
   fn: MiddlewareMethod<Parameters<T>, ReturnType<T>>,
 ): () => void;
+/** Attaches middleware to a specific hook key */
 export function attach<A extends any[] = any[], R = any>(key: HookKey, fn: MiddlewareMethod<A, R>): () => void;
+/** Attaches middleware to a specific member of a class/instance */
 export function attach<TObject, TName extends HookName>(
   key: TObject,
   name: TName,
@@ -447,6 +572,7 @@ export function attach<TObject, TName extends HookName>(
     InferMiddlewareThis<TObject, TName>
   >,
 ): () => void;
+/** Attaches middleware with a specific key and name */
 export function attach(key: HookKey, name: HookName, fn: MiddlewareMethod<any[], unknown>): () => void;
 
 export function attach<A extends any[] = any[], R = any>(
@@ -510,6 +636,13 @@ export interface IHookInspection {
   middlewareNames: HookName[];
 }
 
+/**
+ * Inspects a hook function and returns its metadata and middleware statistics.
+ *
+ * @param hookFn The hook function to inspect.
+ * @returns Metadata about the hook, including its key, name, and middleware count.
+ * @throws Error if the provided function is not a valid hook function.
+ */
 export function inspectHook(hookFn: IHookFn<any, any>): IHookInspection {
   const maybeHook = (hookFn as IHookFn<any, any>)[HOOK];
   if (!maybeHook) {
@@ -530,6 +663,13 @@ export function inspectHook(hookFn: IHookFn<any, any>): IHookInspection {
   };
 }
 
+/**
+ * Detaches a specific middleware function from a hook.
+ *
+ * @param key The hook key.
+ * @param name The hook name.
+ * @param fn The middleware function to remove.
+ */
 export function detach(key: HookKey, name: HookName, fn: MiddlewareMethod): void {
   const methods = middlewares.get(key);
   if (!methods) {
@@ -555,6 +695,16 @@ export function detach(key: HookKey, name: HookName, fn: MiddlewareMethod): void
 
 export type MiddlewareNext<A extends any[] = any[], R = any> = ((...args: A) => R) | null;
 
+/**
+ * Internally runs middleware chain for a specific hook.
+ *
+ * @param key The single hook key to run middleware for.
+ * @param name The hook name.
+ * @param next The next function in the chain (either original function or next level composite).
+ * @param thisArg The `this` context for the execution.
+ * @param args The arguments passed to the hook.
+ * @returns The result of the execution.
+ */
 function runMiddleware<A extends any[] = any[], R = any>(
   key: HookKeySingle,
   name: HookName,
