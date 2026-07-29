@@ -1026,264 +1026,415 @@ describe("hooks: decorators", () => {
     expect(PrivateStaticClass.callMethod("in")).toBe("in:methodMid:original");
   });
 
-  it("should work with dynamic hook keys on all remaining decorator targets and verify correct this context", () => {
-    const dynamicTracks: { target: string; self: any }[] = [];
-
-    // track helper inside the test
-    function track(target: string) {
-      return dynamicHookKey(function (this: any) {
-        dynamicTracks.push({ target, self: this });
-        if (this.constructor !== Function) {
-          return composeHookKeys(this, this.constructor);
+  describe("Alternative Name and Dynamic Key Decorators (public)", () => {
+    it("should work with alternativeName only on methods", () => {
+      @Hook
+      class AlternativeNameOnlyMethodClass {
+        @hook("methodAltOnly")
+        method(x: string) {
+          return x + ":orig";
         }
-        return composeHookKeys(this);
-      });
-    }
-
-    @Hook
-    class AllRemainingTargetsClass {
-      // 1. Static Public Method
-      @hook(track("staticPublicMethod"))
-      static staticPublicMethod(x: string) {
-        return x + ":orig";
       }
 
-      // 2. Private Method (non-static)
-      @hook(track("privateMethod"))
-      #privateMethod(x: string) {
-        return x + ":orig";
+      const instance = new AlternativeNameOnlyMethodClass();
+      expect(instance.method("hello")).toBe("hello:orig");
+      attach(instance, "methodAltOnly", (next, x) => next(x + ":intercepted"));
+      expect(instance.method("hello")).toBe("hello:intercepted:orig");
+    });
+
+    it("should work with dynamicKey only on methods", () => {
+      const tracks: { target: string; self: any }[] = [];
+
+      function track(target: string) {
+        return dynamicHookKey(function (this: any) {
+          tracks.push({ target, self: this });
+          return composeHookKeys(this, this.constructor);
+        });
       }
 
-      public callPrivateMethod(x: string) {
-        return this.#privateMethod(x);
+      @Hook
+      class DynamicKeyOnlyMethodClass {
+        @hook(track("dynamicOnlyMethod"))
+        method(x: string) {
+          return x + ":orig";
+        }
       }
 
-      // 3. Static Private Method
-      @hook(track("staticPrivateMethod"))
-      static #staticPrivateMethod(x: string) {
-        return x + ":orig";
+      const instance = new DynamicKeyOnlyMethodClass();
+      expect(instance.method("hello")).toBe("hello:orig");
+      attach(instance, "method", (next, x) => next(x + ":intercepted"));
+      expect(instance.method("hello")).toBe("hello:intercepted:orig");
+      expect(tracks).toContainEqual({ target: "dynamicOnlyMethod", self: instance });
+    });
+
+    it("should work with alternativeName and dynamicKey on methods", () => {
+      const tracks: { target: string; self: any }[] = [];
+
+      function track(target: string) {
+        return dynamicHookKey(function (this: any) {
+          tracks.push({ target, self: this });
+          return composeHookKeys(this, this.constructor);
+        });
       }
 
-      static callStaticPrivateMethod(x: string) {
-        return this.#staticPrivateMethod(x);
+      @Hook
+      class AlternativeAndDynamicMethodClass {
+        @hook("methodAltAndDynamic", track("methodAltAndDynamic"))
+        method(x: string) {
+          return x + ":orig";
+        }
       }
 
-      // 4. Static Public Accessor
-      @hook(track("staticPublicAccessor"))
-      static accessor staticPublicAcc: string = "staticAccVal";
+      const instance = new AlternativeAndDynamicMethodClass();
+      expect(instance.method("hello")).toBe("hello:orig");
+      attach(instance, "methodAltAndDynamic", (next, x) => next(x + ":intercepted"));
+      expect(instance.method("hello")).toBe("hello:intercepted:orig");
+      expect(tracks).toContainEqual({ target: "methodAltAndDynamic", self: instance });
+    });
 
-      // 5. Private Accessor (non-static)
-      @hook(track("privateAccessor"))
-      accessor #privateAcc: string = "privAccVal";
+    it("should work with dynamicKey and alternativeName on methods", () => {
+      const tracks: { target: string; self: any }[] = [];
 
-      public getPrivateAcc() {
-        return this.#privateAcc;
-      }
-      public setPrivateAcc(v: string) {
-        this.#privateAcc = v;
-      }
-
-      // 6. Static Private Accessor
-      @hook(track("staticPrivateAccessor"))
-      static accessor #staticPrivateAcc: string = "staticPrivAccVal";
-
-      static getStaticPrivateAcc() {
-        return this.#staticPrivateAcc;
-      }
-      static setStaticPrivateAcc(v: string) {
-        this.#staticPrivateAcc = v;
+      function track(target: string) {
+        return dynamicHookKey(function (this: any) {
+          tracks.push({ target, self: this });
+          return composeHookKeys(this, this.constructor);
+        });
       }
 
-      // 7. Static Public Field
-      @hook(track("staticPublicField"))
-      static staticPublicField: string = "staticFieldVal";
-
-      // 8. Private Field (non-static)
-      @hook(track("privateField"))
-      #privateField: string = "privFieldVal";
-
-      public getPrivateField() {
-        return this.#privateField;
+      @Hook
+      class DynamicAndAlternativeMethodClass {
+        @hook(track("dynamicAndAlternativeMethod"), "methodDynamicAndAlternative")
+        method(x: string) {
+          return x + ":orig";
+        }
       }
 
-      // 9. Static Private Field
-      @hook(track("staticPrivateField"))
-      static #staticPrivateField: string = "staticPrivFieldVal";
+      const instance = new DynamicAndAlternativeMethodClass();
+      expect(instance.method("hello")).toBe("hello:orig");
+      attach(instance, "methodDynamicAndAlternative", (next, x) => next(x + ":intercepted"));
+      expect(instance.method("hello")).toBe("hello:intercepted:orig");
+      expect(tracks).toContainEqual({ target: "dynamicAndAlternativeMethod", self: instance });
+    });
 
-      static getStaticPrivateField() {
-        return this.#staticPrivateField;
+    it("should work with alternativeName only on accessors", () => {
+      @Hook
+      class AlternativeNameOnlyAccessorClass {
+        @hook("accAltOnly")
+        accessor acc: string = "initial";
       }
 
-      // 10. Static Public Getter/Setter
-      static #staticPublicGetSetVal = "staticGetSetVal";
-      @hook(track("staticPublicGetter"))
-      static get staticPublicGet() {
-        return this.#staticPublicGetSetVal;
+      const instance = new AlternativeNameOnlyAccessorClass();
+      expect(instance.acc).toBe("initial");
+      attach(instance, "get accAltOnly", (next) => next() + ":getMid");
+      attach(instance, "set accAltOnly", (next, value) => next(value + ":setMid"));
+      expect(instance.acc).toBe("initial:getMid");
+      instance.acc = "updated";
+      expect(instance.acc).toBe("updated:setMid:getMid");
+    });
+
+    it("should work with dynamicKey only on accessors", () => {
+      const tracks: { target: string; self: any }[] = [];
+
+      function track(target: string) {
+        return dynamicHookKey(function (this: any) {
+          tracks.push({ target, self: this });
+          return composeHookKeys(this, this.constructor);
+        });
       }
 
-      @hook(track("staticPublicSetter"))
-      static set staticPublicSet(v: string) {
-        this.#staticPublicGetSetVal = v;
+      @Hook
+      class DynamicKeyOnlyAccessorClass {
+        @hook(track("dynamicOnlyAccessor"))
+        accessor acc: string = "initial";
       }
 
-      // 11. Private Getter/Setter
-      #privGetSetVal = "privGetSetVal";
-      @hook(track("privateGetter"))
-      get #privateGet() {
-        return this.#privGetSetVal;
+      const instance = new DynamicKeyOnlyAccessorClass();
+      expect(instance.acc).toBe("initial");
+      attach(instance, "get acc", (next) => next() + ":getMid");
+      attach(instance, "set acc", (next, value) => next(value + ":setMid"));
+      expect(instance.acc).toBe("initial:getMid");
+      instance.acc = "updated";
+      expect(instance.acc).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({ target: "dynamicOnlyAccessor", self: instance });
+    });
+
+    it("should work with alternativeName and dynamicKey on accessors", () => {
+      const tracks: { target: string; self: any }[] = [];
+
+      function track(target: string) {
+        return dynamicHookKey(function (this: any) {
+          tracks.push({ target, self: this });
+          return composeHookKeys(this, this.constructor);
+        });
       }
 
-      @hook(track("privateSetter"))
-      set #privateSet(v: string) {
-        this.#privGetSetVal = v;
+      @Hook
+      class AlternativeAndDynamicAccessorClass {
+        @hook("accAltAndDynamic", track("accAltAndDynamic"))
+        accessor acc: string = "initial";
       }
 
-      public getPrivateGet() {
-        return this.#privateGet;
+      const instance = new AlternativeAndDynamicAccessorClass();
+      expect(instance.acc).toBe("initial");
+      attach(instance, "get accAltAndDynamic", (next) => next() + ":getMid");
+      attach(instance, "set accAltAndDynamic", (next, value) => next(value + ":setMid"));
+      expect(instance.acc).toBe("initial:getMid");
+      instance.acc = "updated";
+      expect(instance.acc).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({ target: "accAltAndDynamic", self: instance });
+    });
+
+    it("should work with dynamicKey and alternativeName on accessors", () => {
+      const tracks: { target: string; self: any }[] = [];
+
+      function track(target: string) {
+        return dynamicHookKey(function (this: any) {
+          tracks.push({ target, self: this });
+          return composeHookKeys(this, this.constructor);
+        });
       }
-      public setPrivateSet(v: string) {
-        this.#privateSet = v;
+
+      @Hook
+      class DynamicAndAlternativeAccessorClass {
+        @hook(track("dynamicAndAlternativeAccessor"), "accDynamicAndAlternative")
+        accessor acc: string = "initial";
       }
 
-      // 12. Static Private Getter/Setter
-      static #staticPrivGetSetVal = "staticPrivGetSetVal";
-      @hook(track("staticPrivateGetter"))
-      static get #staticPrivateGet() {
-        return this.#staticPrivGetSetVal;
+      const instance = new DynamicAndAlternativeAccessorClass();
+      expect(instance.acc).toBe("initial");
+      attach(instance, "get accDynamicAndAlternative", (next) => next() + ":getMid");
+      attach(instance, "set accDynamicAndAlternative", (next, value) => next(value + ":setMid"));
+      expect(instance.acc).toBe("initial:getMid");
+      instance.acc = "updated";
+      expect(instance.acc).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({ target: "dynamicAndAlternativeAccessor", self: instance });
+    });
+
+    it("should work with alternativeName only on fields", () => {
+      @Hook
+      class AlternativeNameOnlyFieldClass {
+        @hook("fieldAltOnly")
+        field = "initial";
       }
 
-      @hook(track("staticPrivateSetter"))
-      static set #staticPrivateSet(v: string) {
-        this.#staticPrivGetSetVal = v;
+      expect(new AlternativeNameOnlyFieldClass().field).toBe("initial");
+      attach(AlternativeNameOnlyFieldClass, "init fieldAltOnly", (next, value) => next(value + ":initMid"));
+      const instance = new AlternativeNameOnlyFieldClass();
+      expect(instance.field).toBe("initial:initMid");
+    });
+
+    it("should work with dynamicKey only on fields", () => {
+      const tracks: { target: string; self: any }[] = [];
+
+      function track(target: string) {
+        return dynamicHookKey(function (this: any) {
+          tracks.push({ target, self: this });
+          return composeHookKeys(this, this.constructor);
+        });
       }
 
-      static getStaticPrivateGet() {
-        return this.#staticPrivateGet;
+      @Hook
+      class DynamicKeyOnlyFieldClass {
+        @hook(track("dynamicOnlyField"))
+        field = "initial";
       }
-      static setStaticPrivateSet(v: string) {
-        this.#staticPrivateSet = v;
+
+      expect(new DynamicKeyOnlyFieldClass().field).toBe("initial");
+      attach(DynamicKeyOnlyFieldClass, "init field", (next, value) => next(value + ":initMid"));
+      const instance = new DynamicKeyOnlyFieldClass();
+      expect(instance.field).toBe("initial:initMid");
+      expect(tracks).toContainEqual({ target: "dynamicOnlyField", self: instance });
+    });
+
+    it("should work with alternativeName and dynamicKey on fields", () => {
+      const tracks: { target: string; self: any }[] = [];
+
+      function track(target: string) {
+        return dynamicHookKey(function (this: any) {
+          tracks.push({ target, self: this });
+          return composeHookKeys(this, this.constructor);
+        });
       }
-    }
 
-    // A. Verify static initializers executed on class definition
-    const staticInitializers = dynamicTracks.filter((t) => t.self === AllRemainingTargetsClass);
-    expect(staticInitializers.some((t) => t.target === "staticPublicField")).toBe(true);
-    expect(staticInitializers.some((t) => t.target === "staticPrivateField")).toBe(true);
-    expect(staticInitializers.some((t) => t.target === "staticPublicAccessor")).toBe(true);
-    expect(staticInitializers.some((t) => t.target === "staticPrivateAccessor")).toBe(true);
+      @Hook
+      class AlternativeAndDynamicFieldClass {
+        @hook("fieldAltAndDynamic", track("fieldAltAndDynamic"))
+        field = "initial";
+      }
 
-    // Clear tracks for clean run of triggers
-    dynamicTracks.length = 0;
+      expect(new AlternativeAndDynamicFieldClass().field).toBe("initial");
+      attach(AlternativeAndDynamicFieldClass, "init fieldAltAndDynamic", (next, value) => next(value + ":initMid"));
+      const instance = new AlternativeAndDynamicFieldClass();
+      expect(instance.field).toBe("initial:initMid");
+      expect(tracks).toContainEqual({ target: "fieldAltAndDynamic", self: instance });
+    });
 
-    // 1. Static Public Method
-    expect(AllRemainingTargetsClass.staticPublicMethod("hello")).toBe("hello:orig");
-    expect(dynamicTracks).toContainEqual({ target: "staticPublicMethod", self: AllRemainingTargetsClass });
-    dynamicTracks.length = 0;
+    it("should work with dynamicKey and alternativeName on fields", () => {
+      const tracks: { target: string; self: any }[] = [];
 
-    // 2. Private Method (non-static)
-    const instance = new AllRemainingTargetsClass();
+      function track(target: string) {
+        return dynamicHookKey(function (this: any) {
+          tracks.push({ target, self: this });
+          return composeHookKeys(this, this.constructor);
+        });
+      }
 
-    // Instantiating triggers: privateField (init), privateAccessor (init)
-    const instanceInitializers = dynamicTracks.filter((t) => t.self === instance);
-    expect(instanceInitializers.some((t) => t.target === "privateField")).toBe(true);
-    expect(instanceInitializers.some((t) => t.target === "privateAccessor")).toBe(true);
-    dynamicTracks.length = 0;
+      @Hook
+      class DynamicAndAlternativeFieldClass {
+        @hook(track("dynamicAndAlternativeField"), "fieldDynamicAndAlternative")
+        field = "initial";
+      }
 
-    expect(instance.callPrivateMethod("world")).toBe("world:orig");
-    expect(dynamicTracks).toContainEqual({ target: "privateMethod", self: instance });
-    dynamicTracks.length = 0;
+      expect(new DynamicAndAlternativeFieldClass().field).toBe("initial");
+      attach(DynamicAndAlternativeFieldClass, "init fieldDynamicAndAlternative", (next, value) =>
+        next(value + ":initMid"),
+      );
+      const instance = new DynamicAndAlternativeFieldClass();
+      expect(instance.field).toBe("initial:initMid");
+      expect(tracks).toContainEqual({ target: "dynamicAndAlternativeField", self: instance });
+    });
 
-    // 3. Static Private Method
-    expect(AllRemainingTargetsClass.callStaticPrivateMethod("stat")).toBe("stat:orig");
-    expect(dynamicTracks).toContainEqual({ target: "staticPrivateMethod", self: AllRemainingTargetsClass });
-    dynamicTracks.length = 0;
+    it("should work with alternativeName only on getter/setter pairs", () => {
+      @Hook
+      class AlternativeNameOnlyGetSetClass {
+        #value = "initial";
 
-    // 4. Static Public Accessor
-    expect(AllRemainingTargetsClass.staticPublicAcc).toBe("staticAccVal");
-    expect(dynamicTracks).toContainEqual({ target: "staticPublicAccessor", self: AllRemainingTargetsClass });
-    dynamicTracks.length = 0;
+        @hook("valueAltOnly")
+        get value() {
+          return this.#value;
+        }
 
-    AllRemainingTargetsClass.staticPublicAcc = "newStaticAcc";
-    expect(AllRemainingTargetsClass.staticPublicAcc).toBe("newStaticAcc");
-    expect(dynamicTracks).toContainEqual({ target: "staticPublicAccessor", self: AllRemainingTargetsClass });
-    dynamicTracks.length = 0;
+        @hook("valueAltOnly")
+        set value(v: string) {
+          this.#value = v;
+        }
+      }
 
-    // 5. Private Accessor (non-static)
-    expect(instance.getPrivateAcc()).toBe("privAccVal");
-    expect(dynamicTracks).toContainEqual({ target: "privateAccessor", self: instance });
-    dynamicTracks.length = 0;
+      const instance = new AlternativeNameOnlyGetSetClass();
+      expect(instance.value).toBe("initial");
+      attach(instance, "get valueAltOnly", (next) => next() + ":getMid");
+      attach(instance, "set valueAltOnly", (next, value) => next(value + ":setMid"));
+      expect(instance.value).toBe("initial:getMid");
+      instance.value = "updated";
+      expect(instance.value).toBe("updated:setMid:getMid");
 
-    instance.setPrivateAcc("newPrivAcc");
-    expect(instance.getPrivateAcc()).toBe("newPrivAcc");
-    expect(dynamicTracks).toContainEqual({ target: "privateAccessor", self: instance });
-    dynamicTracks.length = 0;
+      // should not affect anything
+      attach(instance, "valueAltOnly", (next, value) => next(value + ":setMid2"));
+      instance.value = "updated2";
+      expect(instance.value).toBe("updated2:setMid:getMid");
+    });
 
-    // 6. Static Private Accessor
-    expect(AllRemainingTargetsClass.getStaticPrivateAcc()).toBe("staticPrivAccVal");
-    expect(dynamicTracks).toContainEqual({ target: "staticPrivateAccessor", self: AllRemainingTargetsClass });
-    dynamicTracks.length = 0;
+    it("should work with dynamicKey only on getter/setter pairs", () => {
+      const tracks: { target: string; self: any }[] = [];
 
-    AllRemainingTargetsClass.setStaticPrivateAcc("newStaticPrivAcc");
-    expect(AllRemainingTargetsClass.getStaticPrivateAcc()).toBe("newStaticPrivAcc");
-    expect(dynamicTracks).toContainEqual({ target: "staticPrivateAccessor", self: AllRemainingTargetsClass });
-    dynamicTracks.length = 0;
+      function track(target: string) {
+        return dynamicHookKey(function (this: any) {
+          tracks.push({ target, self: this });
+          return composeHookKeys(this, this.constructor);
+        });
+      }
 
-    // 7. Static Public Field
-    expect(AllRemainingTargetsClass.staticPublicField).toBe("staticFieldVal");
+      @Hook
+      class DynamicKeyOnlyGetSetClass {
+        #value = "initial";
 
-    // 8. Private Field (non-static)
-    expect(instance.getPrivateField()).toBe("privFieldVal");
+        @hook(track("dynamicOnlyGetSet"))
+        get value() {
+          return this.#value;
+        }
 
-    // 9. Static Private Field
-    expect(AllRemainingTargetsClass.getStaticPrivateField()).toBe("staticPrivFieldVal");
+        @hook(track("dynamicOnlyGetSet"))
+        set value(v: string) {
+          this.#value = v;
+        }
+      }
 
-    // 10. Static Public Getter & Setter
-    expect(AllRemainingTargetsClass.staticPublicGet).toBe("staticGetSetVal");
-    expect(dynamicTracks).toContainEqual({ target: "staticPublicGetter", self: AllRemainingTargetsClass });
-    dynamicTracks.length = 0;
+      const instance = new DynamicKeyOnlyGetSetClass();
+      expect(instance.value).toBe("initial");
+      attach(instance, "get value", (next) => next() + ":getMid");
+      attach(instance, "set value", (next, value) => next(value + ":setMid"));
+      expect(instance.value).toBe("initial:getMid");
+      instance.value = "updated";
+      expect(instance.value).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({ target: "dynamicOnlyGetSet", self: instance });
+    });
 
-    AllRemainingTargetsClass.staticPublicSet = "newStaticGetSet";
-    expect(AllRemainingTargetsClass.staticPublicGet).toBe("newStaticGetSet");
-    expect(dynamicTracks).toContainEqual({ target: "staticPublicSetter", self: AllRemainingTargetsClass });
-    dynamicTracks.length = 0;
+    it("should work with alternativeName and dynamicKey on getter/setter pairs", () => {
+      const tracks: { target: string; self: any }[] = [];
 
-    // 11. Private Getter & Setter (non-static)
-    expect(instance.getPrivateGet()).toBe("privGetSetVal");
-    expect(dynamicTracks).toContainEqual({ target: "privateGetter", self: instance });
-    dynamicTracks.length = 0;
+      function track(target: string) {
+        return dynamicHookKey(function (this: any) {
+          tracks.push({ target, self: this });
+          return composeHookKeys(this, this.constructor);
+        });
+      }
 
-    instance.setPrivateSet("newPrivGetSet");
-    expect(instance.getPrivateGet()).toBe("newPrivGetSet");
-    expect(dynamicTracks).toContainEqual({ target: "privateSetter", self: instance });
-    dynamicTracks.length = 0;
+      @Hook
+      class AlternativeAndDynamicGetSetClass {
+        #value = "initial";
 
-    // 12. Static Private Getter & Setter
-    expect(AllRemainingTargetsClass.getStaticPrivateGet()).toBe("staticPrivGetSetVal");
-    expect(dynamicTracks).toContainEqual({ target: "staticPrivateGetter", self: AllRemainingTargetsClass });
-    dynamicTracks.length = 0;
+        @hook("valueAltAndDynamic", track("valueAltAndDynamic"))
+        get value() {
+          return this.#value;
+        }
 
-    AllRemainingTargetsClass.setStaticPrivateSet("newStaticPrivGetSet");
-    expect(AllRemainingTargetsClass.getStaticPrivateGet()).toBe("newStaticPrivGetSet");
-    expect(dynamicTracks).toContainEqual({ target: "staticPrivateSetter", self: AllRemainingTargetsClass });
-    dynamicTracks.length = 0;
+        @hook("valueAltAndDynamic", track("valueAltAndDynamic"))
+        set value(v: string) {
+          this.#value = v;
+        }
+      }
 
-    // Middlewares validation for static and private members to ensure interception works with dynamic composite hook keys
-    attach(AllRemainingTargetsClass, "staticPublicMethod", (next, x) => next(x + ":intercepted"));
-    expect(AllRemainingTargetsClass.staticPublicMethod("test")).toBe("test:intercepted:orig");
+      const instance = new AlternativeAndDynamicGetSetClass();
+      expect(instance.value).toBe("initial");
+      attach(instance, "get valueAltAndDynamic", (next) => next() + ":getMid");
+      attach(instance, "set valueAltAndDynamic", (next, value) => next(value + ":setMid"));
+      expect(instance.value).toBe("initial:getMid");
+      instance.value = "updated";
+      expect(instance.value).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({ target: "valueAltAndDynamic", self: instance });
+    });
 
-    attach(instance, "#privateMethod", (next, x) => next(x + ":intercepted"));
-    expect(instance.callPrivateMethod("test")).toBe("test:intercepted:orig");
+    it("should work with dynamicKey and alternativeName on getter/setter pairs", () => {
+      const tracks: { target: string; self: any }[] = [];
 
-    attach(AllRemainingTargetsClass, "get staticPublicGet", (next) => next() + ":intercepted");
-    expect(AllRemainingTargetsClass.staticPublicGet).toBe("newStaticGetSet:intercepted");
+      function track(target: string) {
+        return dynamicHookKey(function (this: any) {
+          tracks.push({ target, self: this });
+          return composeHookKeys(this, this.constructor);
+        });
+      }
+
+      @Hook
+      class DynamicAndAlternativeGetSetClass {
+        #value = "initial";
+
+        @hook(track("dynamicAndAlternativeGetSet"), "valueDynamicAndAlternative")
+        get value() {
+          return this.#value;
+        }
+
+        @hook(track("dynamicAndAlternativeGetSet"), "valueDynamicAndAlternative")
+        set value(v: string) {
+          this.#value = v;
+        }
+      }
+
+      const instance = new DynamicAndAlternativeGetSetClass();
+      expect(instance.value).toBe("initial");
+      attach(instance, "get valueDynamicAndAlternative", (next) => next() + ":getMid");
+      attach(instance, "set valueDynamicAndAlternative", (next, value) => next(value + ":setMid"));
+      expect(instance.value).toBe("initial:getMid");
+      instance.value = "updated";
+      expect(instance.value).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({ target: "dynamicAndAlternativeGetSet", self: instance });
+    });
   });
 
-  it("should work with alternativeName and dynamicKey in both argument orders on all decorator targets and verify correct this context", () => {
-    const altTracks: { target: string; self: any }[] = [];
-
-    function trackAlt(target: string) {
+  describe("Alternative Name and Dynamic Key Decorators (static)", () => {
+    function track(target: string) {
       return dynamicHookKey(function (this: any) {
-        altTracks.push({ target, self: this });
+        tracks.push({ target, self: this });
         if (this.constructor !== Function) {
           return composeHookKeys(this, this.constructor);
         }
@@ -1291,314 +1442,1181 @@ describe("hooks: decorators", () => {
       });
     }
 
-    @Hook
-    class AlternativeAndDynamicClass {
-      // 1. Public Method - order (alternativeName, dynamicKey)
-      @hook("methodAlt1", trackAlt("methodAlt1"))
-      method1(x: string) {
-        return x + ":orig1";
+    const tracks: { target: string; self: any }[] = [];
+
+    it("should work with alternativeName only on static methods", () => {
+      @Hook
+      class AlternativeNameOnlyStaticMethodClass {
+        @hook("methodAltOnly")
+        static method(x: string) {
+          return x + ":orig";
+        }
       }
 
-      // 2. Static Public Method - order (dynamicKey, alternativeName)
-      @hook(trackAlt("staticMethodAlt2"), "staticMethodAlt2")
-      static staticMethod2(x: string) {
-        return x + ":orig2";
+      expect(AlternativeNameOnlyStaticMethodClass.method("hello")).toBe("hello:orig");
+      attach(AlternativeNameOnlyStaticMethodClass, "methodAltOnly", (next, x) => next(x + ":intercepted"));
+      expect(AlternativeNameOnlyStaticMethodClass.method("hello")).toBe("hello:intercepted:orig");
+    });
+
+    it("should work with dynamicKey only on static methods", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicKeyOnlyStaticMethodClass {
+        @hook(track("dynamicOnlyStaticMethod"))
+        static method(x: string) {
+          return x + ":orig";
+        }
       }
 
-      // 3. Private Method - order (alternativeName, dynamicKey)
-      @hook("privMethodAlt1", trackAlt("privMethodAlt1"))
-      #privMethod1(x: string) {
-        return x + ":orig1";
+      expect(DynamicKeyOnlyStaticMethodClass.method("hello")).toBe("hello:orig");
+      attach(DynamicKeyOnlyStaticMethodClass, "method", (next, x) => next(x + ":intercepted"));
+      expect(DynamicKeyOnlyStaticMethodClass.method("hello")).toBe("hello:intercepted:orig");
+      expect(tracks).toContainEqual({ target: "dynamicOnlyStaticMethod", self: DynamicKeyOnlyStaticMethodClass });
+    });
+
+    it("should work with alternativeName and dynamicKey on static methods", () => {
+      tracks.length = 0;
+
+      @Hook
+      class AlternativeAndDynamicStaticMethodClass {
+        @hook("methodAltAndDynamic", track("methodAltAndDynamic"))
+        static method(x: string) {
+          return x + ":orig";
+        }
       }
 
-      public callPrivMethod1(x: string) {
-        return this.#privMethod1(x);
+      expect(AlternativeAndDynamicStaticMethodClass.method("hello")).toBe("hello:orig");
+      attach(AlternativeAndDynamicStaticMethodClass, "methodAltAndDynamic", (next, x) => next(x + ":intercepted"));
+      expect(AlternativeAndDynamicStaticMethodClass.method("hello")).toBe("hello:intercepted:orig");
+      expect(tracks).toContainEqual({ target: "methodAltAndDynamic", self: AlternativeAndDynamicStaticMethodClass });
+    });
+
+    it("should work with dynamicKey and alternativeName on static methods", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicAndAlternativeStaticMethodClass {
+        @hook(track("dynamicAndAlternativeStaticMethod"), "methodDynamicAndAlternative")
+        static method(x: string) {
+          return x + ":orig";
+        }
       }
 
-      // 4. Static Private Method - order (dynamicKey, alternativeName)
-      @hook(trackAlt("staticPrivMethodAlt2"), "staticPrivMethodAlt2")
-      static #staticPrivMethod2(x: string) {
-        return x + ":orig2";
+      expect(DynamicAndAlternativeStaticMethodClass.method("hello")).toBe("hello:orig");
+      attach(DynamicAndAlternativeStaticMethodClass, "methodDynamicAndAlternative", (next, x) =>
+        next(x + ":intercepted"),
+      );
+      expect(DynamicAndAlternativeStaticMethodClass.method("hello")).toBe("hello:intercepted:orig");
+      expect(tracks).toContainEqual({
+        target: "dynamicAndAlternativeStaticMethod",
+        self: DynamicAndAlternativeStaticMethodClass,
+      });
+    });
+
+    it("should work with alternativeName only on static accessors", () => {
+      @Hook
+      class AlternativeNameOnlyStaticAccessorClass {
+        @hook("accAltOnly")
+        static accessor acc: string = "initial";
       }
 
-      static callStaticPrivMethod2(x: string) {
-        return this.#staticPrivMethod2(x);
+      expect(AlternativeNameOnlyStaticAccessorClass.acc).toBe("initial");
+      attach(AlternativeNameOnlyStaticAccessorClass, "get accAltOnly", (next) => next() + ":getMid");
+      attach(AlternativeNameOnlyStaticAccessorClass, "set accAltOnly", (next, value) => next(value + ":setMid"));
+      expect(AlternativeNameOnlyStaticAccessorClass.acc).toBe("initial:getMid");
+      AlternativeNameOnlyStaticAccessorClass.acc = "updated";
+      expect(AlternativeNameOnlyStaticAccessorClass.acc).toBe("updated:setMid:getMid");
+    });
+
+    it("should work with dynamicKey only on static accessors", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicKeyOnlyStaticAccessorClass {
+        @hook(track("dynamicOnlyStaticAccessor"))
+        static accessor acc: string = "initial";
       }
 
-      // 5. Public Accessor - order (alternativeName, dynamicKey)
-      @hook("accAlt1", trackAlt("accAlt1"))
-      accessor acc1: string = "valAcc1";
+      expect(DynamicKeyOnlyStaticAccessorClass.acc).toBe("initial");
+      attach(DynamicKeyOnlyStaticAccessorClass, "get acc", (next) => next() + ":getMid");
+      attach(DynamicKeyOnlyStaticAccessorClass, "set acc", (next, value) => next(value + ":setMid"));
+      expect(DynamicKeyOnlyStaticAccessorClass.acc).toBe("initial:getMid");
+      DynamicKeyOnlyStaticAccessorClass.acc = "updated";
+      expect(DynamicKeyOnlyStaticAccessorClass.acc).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({ target: "dynamicOnlyStaticAccessor", self: DynamicKeyOnlyStaticAccessorClass });
+    });
 
-      // 6. Static Public Accessor - order (dynamicKey, alternativeName)
-      @hook(trackAlt("staticAccAlt2"), "staticAccAlt2")
-      static accessor staticAcc2: string = "valStaticAcc2";
+    it("should work with alternativeName and dynamicKey on static accessors", () => {
+      tracks.length = 0;
 
-      // 7. Private Accessor - order (alternativeName, dynamicKey)
-      @hook("privAccAlt1", trackAlt("privAccAlt1"))
-      accessor #privAcc1: string = "valPrivAcc1";
-
-      public getPrivAcc1() {
-        return this.#privAcc1;
-      }
-      public setPrivAcc1(v: string) {
-        this.#privAcc1 = v;
-      }
-
-      // 8. Static Private Accessor - order (dynamicKey, alternativeName)
-      @hook(trackAlt("staticPrivAccAlt2"), "staticPrivAccAlt2")
-      static accessor #staticPrivAcc2: string = "valStaticPrivAcc2";
-
-      static getStaticPrivAcc2() {
-        return this.#staticPrivAcc2;
-      }
-      static setStaticPrivAcc2(v: string) {
-        this.#staticPrivAcc2 = v;
+      @Hook
+      class AlternativeAndDynamicStaticAccessorClass {
+        @hook("accAltAndDynamic", track("accAltAndDynamic"))
+        static accessor acc: string = "initial";
       }
 
-      // 9. Public Field - order (alternativeName, dynamicKey)
-      @hook("fieldAlt1", trackAlt("fieldAlt1"))
-      field1: string = "valField1";
+      expect(AlternativeAndDynamicStaticAccessorClass.acc).toBe("initial");
+      attach(AlternativeAndDynamicStaticAccessorClass, "get accAltAndDynamic", (next) => next() + ":getMid");
+      attach(AlternativeAndDynamicStaticAccessorClass, "set accAltAndDynamic", (next, value) =>
+        next(value + ":setMid"),
+      );
+      expect(AlternativeAndDynamicStaticAccessorClass.acc).toBe("initial:getMid");
+      AlternativeAndDynamicStaticAccessorClass.acc = "updated";
+      expect(AlternativeAndDynamicStaticAccessorClass.acc).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({ target: "accAltAndDynamic", self: AlternativeAndDynamicStaticAccessorClass });
+    });
 
-      // 10. Static Public Field - order (dynamicKey, alternativeName)
-      @hook(trackAlt("staticFieldAlt2"), "staticFieldAlt2")
-      static staticField2: string = "valStaticField2";
+    it("should work with dynamicKey and alternativeName on static accessors", () => {
+      tracks.length = 0;
 
-      // 11. Private Field - order (alternativeName, dynamicKey)
-      @hook("privFieldAlt1", trackAlt("privFieldAlt1"))
-      #privField1: string = "valPrivField1";
-
-      public getPrivField1() {
-        return this.#privField1;
+      @Hook
+      class DynamicAndAlternativeStaticAccessorClass {
+        @hook(track("dynamicAndAlternativeStaticAccessor"), "accDynamicAndAlternative")
+        static accessor acc: string = "initial";
       }
 
-      // 12. Static Private Field - order (dynamicKey, alternativeName)
-      @hook(trackAlt("staticPrivFieldAlt2"), "staticPrivFieldAlt2")
-      static #staticPrivField2: string = "valStaticPrivField2";
+      expect(DynamicAndAlternativeStaticAccessorClass.acc).toBe("initial");
+      attach(DynamicAndAlternativeStaticAccessorClass, "get accDynamicAndAlternative", (next) => next() + ":getMid");
+      attach(DynamicAndAlternativeStaticAccessorClass, "set accDynamicAndAlternative", (next, value) =>
+        next(value + ":setMid"),
+      );
+      expect(DynamicAndAlternativeStaticAccessorClass.acc).toBe("initial:getMid");
+      DynamicAndAlternativeStaticAccessorClass.acc = "updated";
+      expect(DynamicAndAlternativeStaticAccessorClass.acc).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({
+        target: "dynamicAndAlternativeStaticAccessor",
+        self: DynamicAndAlternativeStaticAccessorClass,
+      });
+    });
 
-      static getStaticPrivField2() {
-        return this.#staticPrivField2;
-      }
-
-      // 13. Public Getter/Setter - order (alternativeName, dynamicKey)
-      #getSetVal1 = "valGetSet1";
-      @hook("getSetAlt1", trackAlt("getSetAlt1"))
-      get getSet1() {
-        return this.#getSetVal1;
-      }
-
-      @hook("getSetAlt1", trackAlt("getSetAlt1"))
-      set getSet1(v: string) {
-        this.#getSetVal1 = v;
-      }
-
-      // 14. Static Public Getter/Setter - order (dynamicKey, alternativeName)
-      static #staticGetSetVal2 = "valStaticGetSet2";
-      @hook(trackAlt("staticGetSetAlt2"), "staticGetSetAlt2")
-      static get staticGetSet2() {
-        return this.#staticGetSetVal2;
+    it("should work with alternativeName only on static fields", () => {
+      @Hook
+      class AlternativeNameOnlyStaticFieldClass {
+        @hook("fieldAltOnly")
+        static field = "initial";
       }
 
-      @hook(trackAlt("staticGetSetAlt2"), "staticGetSetAlt2")
-      static set staticGetSet2(v: string) {
-        this.#staticGetSetVal2 = v;
+      expect(AlternativeNameOnlyStaticFieldClass.field).toBe("initial");
+    });
+
+    it("should work with dynamicKey only on static fields", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicKeyOnlyStaticFieldClass {
+        @hook(track("dynamicOnlyStaticField"))
+        static field = "initial";
       }
 
-      // 15. Private Getter/Setter - order (alternativeName, dynamicKey)
-      #privGetSetVal1 = "valPrivGetSet1";
-      @hook("privGetSetAlt1", trackAlt("privGetSetAlt1"))
-      get #privGetSet1() {
-        return this.#privGetSetVal1;
+      expect(DynamicKeyOnlyStaticFieldClass.field).toBe("initial");
+      expect(tracks).toContainEqual({ target: "dynamicOnlyStaticField", self: DynamicKeyOnlyStaticFieldClass });
+    });
+
+    it("should work with alternativeName and dynamicKey on static fields", () => {
+      tracks.length = 0;
+
+      @Hook
+      class AlternativeAndDynamicStaticFieldClass {
+        @hook("fieldAltAndDynamic", track("fieldAltAndDynamic"))
+        static field = "initial";
       }
 
-      @hook("privGetSetAlt1", trackAlt("privGetSetAlt1"))
-      set #privGetSet1(v: string) {
-        this.#privGetSetVal1 = v;
+      expect(AlternativeAndDynamicStaticFieldClass.field).toBe("initial");
+      expect(tracks).toContainEqual({ target: "fieldAltAndDynamic", self: AlternativeAndDynamicStaticFieldClass });
+    });
+
+    it("should work with dynamicKey and alternativeName on static fields", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicAndAlternativeStaticFieldClass {
+        @hook(track("dynamicAndAlternativeStaticField"), "fieldDynamicAndAlternative")
+        static field = "initial";
       }
 
-      public getPrivGetSet1() {
-        return this.#privGetSet1;
-      }
-      public setPrivGetSet1(v: string) {
-        this.#privGetSet1 = v;
+      expect(DynamicAndAlternativeStaticFieldClass.field).toBe("initial");
+      expect(tracks).toContainEqual({
+        target: "dynamicAndAlternativeStaticField",
+        self: DynamicAndAlternativeStaticFieldClass,
+      });
+    });
+
+    it("should work with alternativeName only on static getter/setter pairs", () => {
+      @Hook
+      class AlternativeNameOnlyStaticGetSetClass {
+        static #value = "initial";
+
+        @hook("valueAltOnly")
+        static get value() {
+          return this.#value;
+        }
+
+        @hook("valueAltOnly")
+        static set value(v: string) {
+          this.#value = v;
+        }
       }
 
-      // 16. Static Private Getter/Setter - order (dynamicKey, alternativeName)
-      static #staticPrivGetSetVal2 = "valStaticPrivGetSet2";
-      @hook(trackAlt("staticPrivGetSetAlt2"), "staticPrivGetSetAlt2")
-      static get #staticPrivGetSet2() {
-        return this.#staticPrivGetSetVal2;
+      expect(AlternativeNameOnlyStaticGetSetClass.value).toBe("initial");
+      attach(AlternativeNameOnlyStaticGetSetClass, "get valueAltOnly", (next) => next() + ":getMid");
+      attach(AlternativeNameOnlyStaticGetSetClass, "set valueAltOnly", (next, value) => next(value + ":setMid"));
+      expect(AlternativeNameOnlyStaticGetSetClass.value).toBe("initial:getMid");
+      AlternativeNameOnlyStaticGetSetClass.value = "updated";
+      expect(AlternativeNameOnlyStaticGetSetClass.value).toBe("updated:setMid:getMid");
+    });
+
+    it("should work with dynamicKey only on static getter/setter pairs", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicKeyOnlyStaticGetSetClass {
+        static #value = "initial";
+
+        @hook(track("dynamicOnlyStaticGetSet"))
+        static get value() {
+          return this.#value;
+        }
+
+        @hook(track("dynamicOnlyStaticGetSet"))
+        static set value(v: string) {
+          this.#value = v;
+        }
       }
 
-      @hook(trackAlt("staticPrivGetSetAlt2"), "staticPrivGetSetAlt2")
-      static set #staticPrivGetSet2(v: string) {
-        this.#staticPrivGetSetVal2 = v;
+      expect(DynamicKeyOnlyStaticGetSetClass.value).toBe("initial");
+      attach(DynamicKeyOnlyStaticGetSetClass, "get value", (next) => next() + ":getMid");
+      attach(DynamicKeyOnlyStaticGetSetClass, "set value", (next, value) => next(value + ":setMid"));
+      expect(DynamicKeyOnlyStaticGetSetClass.value).toBe("initial:getMid");
+      DynamicKeyOnlyStaticGetSetClass.value = "updated";
+      expect(DynamicKeyOnlyStaticGetSetClass.value).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({ target: "dynamicOnlyStaticGetSet", self: DynamicKeyOnlyStaticGetSetClass });
+    });
+
+    it("should work with alternativeName and dynamicKey on static getter/setter pairs", () => {
+      tracks.length = 0;
+
+      @Hook
+      class AlternativeAndDynamicStaticGetSetClass {
+        static #value = "initial";
+
+        @hook("valueAltAndDynamic", track("valueAltAndDynamic"))
+        static get value() {
+          return this.#value;
+        }
+
+        @hook("valueAltAndDynamic", track("valueAltAndDynamic"))
+        static set value(v: string) {
+          this.#value = v;
+        }
       }
 
-      static getStaticPrivGetSet2() {
-        return this.#staticPrivGetSet2;
+      expect(AlternativeAndDynamicStaticGetSetClass.value).toBe("initial");
+      attach(AlternativeAndDynamicStaticGetSetClass, "get valueAltAndDynamic", (next) => next() + ":getMid");
+      attach(AlternativeAndDynamicStaticGetSetClass, "set valueAltAndDynamic", (next, value) =>
+        next(value + ":setMid"),
+      );
+      expect(AlternativeAndDynamicStaticGetSetClass.value).toBe("initial:getMid");
+      AlternativeAndDynamicStaticGetSetClass.value = "updated";
+      expect(AlternativeAndDynamicStaticGetSetClass.value).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({ target: "valueAltAndDynamic", self: AlternativeAndDynamicStaticGetSetClass });
+    });
+
+    it("should work with dynamicKey and alternativeName on static getter/setter pairs", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicAndAlternativeStaticGetSetClass {
+        static #value = "initial";
+
+        @hook(track("dynamicAndAlternativeStaticGetSet"), "valueDynamicAndAlternative")
+        static get value() {
+          return this.#value;
+        }
+
+        @hook(track("dynamicAndAlternativeStaticGetSet"), "valueDynamicAndAlternative")
+        static set value(v: string) {
+          this.#value = v;
+        }
       }
-      static setStaticPrivGetSet2(v: string) {
-        this.#staticPrivGetSet2 = v;
-      }
+
+      expect(DynamicAndAlternativeStaticGetSetClass.value).toBe("initial");
+      attach(DynamicAndAlternativeStaticGetSetClass, "get valueDynamicAndAlternative", (next) => next() + ":getMid");
+      attach(DynamicAndAlternativeStaticGetSetClass, "set valueDynamicAndAlternative", (next, value) =>
+        next(value + ":setMid"),
+      );
+      expect(DynamicAndAlternativeStaticGetSetClass.value).toBe("initial:getMid");
+      DynamicAndAlternativeStaticGetSetClass.value = "updated";
+      expect(DynamicAndAlternativeStaticGetSetClass.value).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({
+        target: "dynamicAndAlternativeStaticGetSet",
+        self: DynamicAndAlternativeStaticGetSetClass,
+      });
+    });
+  });
+
+  describe("Alternative Name and Dynamic Key Decorators (private)", () => {
+    function track(target: string) {
+      return dynamicHookKey(function (this: any) {
+        tracks.push({ target, self: this });
+        return composeHookKeys(this, this.constructor);
+      });
     }
 
-    // A. Verify static fields / accessors run at class initialization
-    const staticInitializers = altTracks.filter((t) => t.self === AlternativeAndDynamicClass);
-    expect(staticInitializers.some((t) => t.target === "staticAccAlt2")).toBe(true);
-    expect(staticInitializers.some((t) => t.target === "staticPrivAccAlt2")).toBe(true);
-    expect(staticInitializers.some((t) => t.target === "staticFieldAlt2")).toBe(true);
-    expect(staticInitializers.some((t) => t.target === "staticPrivFieldAlt2")).toBe(true);
-    altTracks.length = 0;
+    const tracks: { target: string; self: any }[] = [];
 
-    // 1. Public Method - order (alternativeName, dynamicKey)
-    const instance = new AlternativeAndDynamicClass();
+    it("should work with alternativeName only on private methods", () => {
+      @Hook
+      class AlternativeNameOnlyPrivateMethodClass {
+        @hook("methodAltOnly")
+        #method(x: string) {
+          return x + ":orig";
+        }
 
-    // Instantiation triggers field and accessor inits
-    const instanceInitializers = altTracks.filter((t) => t.self === instance);
-    expect(instanceInitializers.some((t) => t.target === "accAlt1")).toBe(true);
-    expect(instanceInitializers.some((t) => t.target === "privAccAlt1")).toBe(true);
-    expect(instanceInitializers.some((t) => t.target === "fieldAlt1")).toBe(true);
-    expect(instanceInitializers.some((t) => t.target === "privFieldAlt1")).toBe(true);
-    altTracks.length = 0;
+        public callMethod(x: string) {
+          return this.#method(x);
+        }
+      }
 
-    expect(instance.method1("hello")).toBe("hello:orig1");
-    expect(altTracks).toContainEqual({ target: "methodAlt1", self: instance });
-    altTracks.length = 0;
+      const instance = new AlternativeNameOnlyPrivateMethodClass();
+      expect(instance.callMethod("hello")).toBe("hello:orig");
+      attach(instance, "methodAltOnly", (next, x) => next(x + ":intercepted"));
+      expect(instance.callMethod("hello")).toBe("hello:intercepted:orig");
+    });
 
-    // 2. Static Public Method - order (dynamicKey, alternativeName)
-    expect(AlternativeAndDynamicClass.staticMethod2("stat")).toBe("stat:orig2");
-    expect(altTracks).toContainEqual({ target: "staticMethodAlt2", self: AlternativeAndDynamicClass });
-    altTracks.length = 0;
+    it("should work with dynamicKey only on private methods", () => {
+      tracks.length = 0;
 
-    // 3. Private Method - order (alternativeName, dynamicKey)
-    expect(instance.callPrivMethod1("world")).toBe("world:orig1");
-    expect(altTracks).toContainEqual({ target: "privMethodAlt1", self: instance });
-    altTracks.length = 0;
+      @Hook
+      class DynamicKeyOnlyPrivateMethodClass {
+        @hook(track("dynamicOnlyPrivateMethod"))
+        #method(x: string) {
+          return x + ":orig";
+        }
 
-    // 4. Static Private Method - order (dynamicKey, alternativeName)
-    expect(AlternativeAndDynamicClass.callStaticPrivMethod2("staticworld")).toBe("staticworld:orig2");
-    expect(altTracks).toContainEqual({ target: "staticPrivMethodAlt2", self: AlternativeAndDynamicClass });
-    altTracks.length = 0;
+        public callMethod(x: string) {
+          return this.#method(x);
+        }
+      }
 
-    // 5. Public Accessor - order (alternativeName, dynamicKey)
-    expect(instance.acc1).toBe("valAcc1");
-    expect(altTracks).toContainEqual({ target: "accAlt1", self: instance });
-    altTracks.length = 0;
+      const instance = new DynamicKeyOnlyPrivateMethodClass();
+      expect(instance.callMethod("hello")).toBe("hello:orig");
+      attach(instance, "#method", (next, x) => next(x + ":intercepted"));
+      expect(instance.callMethod("hello")).toBe("hello:intercepted:orig");
+      expect(tracks).toContainEqual({ target: "dynamicOnlyPrivateMethod", self: instance });
+    });
 
-    instance.acc1 = "valAcc1_new";
-    expect(instance.acc1).toBe("valAcc1_new");
-    expect(altTracks).toContainEqual({ target: "accAlt1", self: instance });
-    altTracks.length = 0;
+    it("should work with alternativeName and dynamicKey on private methods", () => {
+      tracks.length = 0;
 
-    // 6. Static Public Accessor - order (dynamicKey, alternativeName)
-    expect(AlternativeAndDynamicClass.staticAcc2).toBe("valStaticAcc2");
-    expect(altTracks).toContainEqual({ target: "staticAccAlt2", self: AlternativeAndDynamicClass });
-    altTracks.length = 0;
+      @Hook
+      class AlternativeAndDynamicPrivateMethodClass {
+        @hook("methodAltAndDynamic", track("methodAltAndDynamic"))
+        #method(x: string) {
+          return x + ":orig";
+        }
 
-    AlternativeAndDynamicClass.staticAcc2 = "valStaticAcc2_new";
-    expect(AlternativeAndDynamicClass.staticAcc2).toBe("valStaticAcc2_new");
-    expect(altTracks).toContainEqual({ target: "staticAccAlt2", self: AlternativeAndDynamicClass });
-    altTracks.length = 0;
+        public callMethod(x: string) {
+          return this.#method(x);
+        }
+      }
 
-    // 7. Private Accessor - order (alternativeName, dynamicKey)
-    expect(instance.getPrivAcc1()).toBe("valPrivAcc1");
-    expect(altTracks).toContainEqual({ target: "privAccAlt1", self: instance });
-    altTracks.length = 0;
+      const instance = new AlternativeAndDynamicPrivateMethodClass();
+      expect(instance.callMethod("hello")).toBe("hello:orig");
+      attach(instance, "methodAltAndDynamic", (next, x) => next(x + ":intercepted"));
+      expect(instance.callMethod("hello")).toBe("hello:intercepted:orig");
+      expect(tracks).toContainEqual({ target: "methodAltAndDynamic", self: instance });
+    });
 
-    instance.setPrivAcc1("valPrivAcc1_new");
-    expect(instance.getPrivAcc1()).toBe("valPrivAcc1_new");
-    expect(altTracks).toContainEqual({ target: "privAccAlt1", self: instance });
-    altTracks.length = 0;
+    it("should work with dynamicKey and alternativeName on private methods", () => {
+      tracks.length = 0;
 
-    // 8. Static Private Accessor - order (dynamicKey, alternativeName)
-    expect(AlternativeAndDynamicClass.getStaticPrivAcc2()).toBe("valStaticPrivAcc2");
-    expect(altTracks).toContainEqual({ target: "staticPrivAccAlt2", self: AlternativeAndDynamicClass });
-    altTracks.length = 0;
+      @Hook
+      class DynamicAndAlternativePrivateMethodClass {
+        @hook(track("dynamicAndAlternativePrivateMethod"), "methodDynamicAndAlternative")
+        #method(x: string) {
+          return x + ":orig";
+        }
 
-    AlternativeAndDynamicClass.setStaticPrivAcc2("valStaticPrivAcc2_new");
-    expect(AlternativeAndDynamicClass.getStaticPrivAcc2()).toBe("valStaticPrivAcc2_new");
-    expect(altTracks).toContainEqual({ target: "staticPrivAccAlt2", self: AlternativeAndDynamicClass });
-    altTracks.length = 0;
+        public callMethod(x: string) {
+          return this.#method(x);
+        }
+      }
 
-    // 9. Public Field - order (alternativeName, dynamicKey)
-    expect(instance.field1).toBe("valField1");
+      const instance = new DynamicAndAlternativePrivateMethodClass();
+      expect(instance.callMethod("hello")).toBe("hello:orig");
+      attach(instance, "methodDynamicAndAlternative", (next, x) => next(x + ":intercepted"));
+      expect(instance.callMethod("hello")).toBe("hello:intercepted:orig");
+      expect(tracks).toContainEqual({ target: "dynamicAndAlternativePrivateMethod", self: instance });
+    });
 
-    // 10. Static Public Field - order (dynamicKey, alternativeName)
-    expect(AlternativeAndDynamicClass.staticField2).toBe("valStaticField2");
+    it("should work with alternativeName only on private accessors", () => {
+      @Hook
+      class AlternativeNameOnlyPrivateAccessorClass {
+        @hook("accAltOnly")
+        accessor #acc: string = "initial";
 
-    // 11. Private Field - order (alternativeName, dynamicKey)
-    expect(instance.getPrivField1()).toBe("valPrivField1");
+        public getAcc() {
+          return this.#acc;
+        }
 
-    // 12. Static Private Field - order (dynamicKey, alternativeName)
-    expect(AlternativeAndDynamicClass.getStaticPrivField2()).toBe("valStaticPrivField2");
+        public setAcc(v: string) {
+          this.#acc = v;
+        }
+      }
 
-    // 13. Public Getter/Setter - order (alternativeName, dynamicKey)
-    expect(instance.getSet1).toBe("valGetSet1");
-    expect(altTracks).toContainEqual({ target: "getSetAlt1", self: instance });
-    altTracks.length = 0;
+      const instance = new AlternativeNameOnlyPrivateAccessorClass();
+      expect(instance.getAcc()).toBe("initial");
+      attach(instance, "get accAltOnly", (next) => next() + ":getMid");
+      attach(instance, "set accAltOnly", (next, value) => next(value + ":setMid"));
+      expect(instance.getAcc()).toBe("initial:getMid");
+      instance.setAcc("updated");
+      expect(instance.getAcc()).toBe("updated:setMid:getMid");
+    });
 
-    instance.getSet1 = "valGetSet1_new";
-    expect(instance.getSet1).toBe("valGetSet1_new");
-    expect(altTracks).toContainEqual({ target: "getSetAlt1", self: instance });
-    altTracks.length = 0;
+    it("should work with dynamicKey only on private accessors", () => {
+      tracks.length = 0;
 
-    // 14. Static Public Getter/Setter - order (dynamicKey, alternativeName)
-    expect(AlternativeAndDynamicClass.staticGetSet2).toBe("valStaticGetSet2");
-    expect(altTracks).toContainEqual({ target: "staticGetSetAlt2", self: AlternativeAndDynamicClass });
-    altTracks.length = 0;
+      @Hook
+      class DynamicKeyOnlyPrivateAccessorClass {
+        @hook(track("dynamicOnlyPrivateAccessor"))
+        accessor #acc: string = "initial";
 
-    AlternativeAndDynamicClass.staticGetSet2 = "valStaticGetSet2_new";
-    expect(AlternativeAndDynamicClass.staticGetSet2).toBe("valStaticGetSet2_new");
-    expect(altTracks).toContainEqual({ target: "staticGetSetAlt2", self: AlternativeAndDynamicClass });
-    altTracks.length = 0;
+        public getAcc() {
+          return this.#acc;
+        }
 
-    // 15. Private Getter/Setter - order (alternativeName, dynamicKey)
-    expect(instance.getPrivGetSet1()).toBe("valPrivGetSet1");
-    expect(altTracks).toContainEqual({ target: "privGetSetAlt1", self: instance });
-    altTracks.length = 0;
+        public setAcc(v: string) {
+          this.#acc = v;
+        }
+      }
 
-    instance.setPrivGetSet1("valPrivGetSet1_new");
-    expect(instance.getPrivGetSet1()).toBe("valPrivGetSet1_new");
-    expect(altTracks).toContainEqual({ target: "privGetSetAlt1", self: instance });
-    altTracks.length = 0;
+      const instance = new DynamicKeyOnlyPrivateAccessorClass();
+      expect(instance.getAcc()).toBe("initial");
+      attach(instance, "get #acc", (next) => next() + ":getMid");
+      attach(instance, "set #acc", (next, value) => next(value + ":setMid"));
+      expect(instance.getAcc()).toBe("initial:getMid");
+      instance.setAcc("updated");
+      expect(instance.getAcc()).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({ target: "dynamicOnlyPrivateAccessor", self: instance });
+    });
 
-    // 16. Static Private Getter/Setter - order (dynamicKey, alternativeName)
-    expect(AlternativeAndDynamicClass.getStaticPrivGetSet2()).toBe("valStaticPrivGetSet2");
-    expect(altTracks).toContainEqual({ target: "staticPrivGetSetAlt2", self: AlternativeAndDynamicClass });
-    altTracks.length = 0;
+    it("should work with alternativeName and dynamicKey on private accessors", () => {
+      tracks.length = 0;
 
-    AlternativeAndDynamicClass.setStaticPrivGetSet2("valStaticPrivGetSet2_new");
-    expect(AlternativeAndDynamicClass.getStaticPrivGetSet2()).toBe("valStaticPrivGetSet2_new");
-    expect(altTracks).toContainEqual({ target: "staticPrivGetSetAlt2", self: AlternativeAndDynamicClass });
-    altTracks.length = 0;
+      @Hook
+      class AlternativeAndDynamicPrivateAccessorClass {
+        @hook("accAltAndDynamic", track("accAltAndDynamic"))
+        accessor #acc: string = "initial";
 
-    // Interception / middle attachment testing to make sure the target name used is the alternativeName
-    attach(instance, "methodAlt1", (next, x) => next(x + ":intercepted"));
-    expect(instance.method1("test1")).toBe("test1:intercepted:orig1");
+        public getAcc() {
+          return this.#acc;
+        }
 
-    attach(AlternativeAndDynamicClass, "staticMethodAlt2", (next, x) => next(x + ":intercepted"));
-    expect(AlternativeAndDynamicClass.staticMethod2("test2")).toBe("test2:intercepted:orig2");
+        public setAcc(v: string) {
+          this.#acc = v;
+        }
+      }
 
-    attach(instance, "privMethodAlt1", (next, x) => next(x + ":intercepted"));
-    expect(instance.callPrivMethod1("test3")).toBe("test3:intercepted:orig1");
+      const instance = new AlternativeAndDynamicPrivateAccessorClass();
+      expect(instance.getAcc()).toBe("initial");
+      attach(instance, "get accAltAndDynamic", (next) => next() + ":getMid");
+      attach(instance, "set accAltAndDynamic", (next, value) => next(value + ":setMid"));
+      expect(instance.getAcc()).toBe("initial:getMid");
+      instance.setAcc("updated");
+      expect(instance.getAcc()).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({ target: "accAltAndDynamic", self: instance });
+    });
 
-    attach(AlternativeAndDynamicClass, "staticPrivMethodAlt2", (next, x) => next(x + ":intercepted"));
-    expect(AlternativeAndDynamicClass.callStaticPrivMethod2("test4")).toBe("test4:intercepted:orig2");
+    it("should work with dynamicKey and alternativeName on private accessors", () => {
+      tracks.length = 0;
 
-    attach(instance, "get accAlt1", (next) => next() + ":intercepted");
-    expect(instance.acc1).toBe("valAcc1_new:intercepted");
+      @Hook
+      class DynamicAndAlternativePrivateAccessorClass {
+        @hook(track("dynamicAndAlternativePrivateAccessor"), "accDynamicAndAlternative")
+        accessor #acc: string = "initial";
 
-    attach(AlternativeAndDynamicClass, "get staticAccAlt2", (next) => next() + ":intercepted");
-    expect(AlternativeAndDynamicClass.staticAcc2).toBe("valStaticAcc2_new:intercepted");
+        public getAcc() {
+          return this.#acc;
+        }
 
-    attach(instance, "get privAccAlt1", (next) => next() + ":intercepted");
-    expect(instance.getPrivAcc1()).toBe("valPrivAcc1_new:intercepted");
+        public setAcc(v: string) {
+          this.#acc = v;
+        }
+      }
 
-    attach(AlternativeAndDynamicClass, "get staticPrivAccAlt2", (next) => next() + ":intercepted");
-    expect(AlternativeAndDynamicClass.getStaticPrivAcc2()).toBe("valStaticPrivAcc2_new:intercepted");
+      const instance = new DynamicAndAlternativePrivateAccessorClass();
+      expect(instance.getAcc()).toBe("initial");
+      attach(instance, "get accDynamicAndAlternative", (next) => next() + ":getMid");
+      attach(instance, "set accDynamicAndAlternative", (next, value) => next(value + ":setMid"));
+      expect(instance.getAcc()).toBe("initial:getMid");
+      instance.setAcc("updated");
+      expect(instance.getAcc()).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({ target: "dynamicAndAlternativePrivateAccessor", self: instance });
+    });
 
-    attach(AlternativeAndDynamicClass, "init fieldAlt1", (next, val) => next(val + ":intercepted"));
-    const inst2 = new AlternativeAndDynamicClass();
-    expect(inst2.field1).toBe("valField1:intercepted");
+    it("should work with alternativeName only on private fields", () => {
+      @Hook
+      class AlternativeNameOnlyPrivateFieldClass {
+        @hook("fieldAltOnly")
+        #field = "initial";
+
+        public getField() {
+          return this.#field;
+        }
+      }
+
+      const instance = new AlternativeNameOnlyPrivateFieldClass();
+      expect(instance.getField()).toBe("initial");
+    });
+
+    it("should work with dynamicKey only on private fields", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicKeyOnlyPrivateFieldClass {
+        @hook(track("dynamicOnlyPrivateField"))
+        #field = "initial";
+
+        public getField() {
+          return this.#field;
+        }
+      }
+
+      const instance = new DynamicKeyOnlyPrivateFieldClass();
+      expect(instance.getField()).toBe("initial");
+      expect(tracks).toContainEqual({ target: "dynamicOnlyPrivateField", self: instance });
+    });
+
+    it("should work with alternativeName and dynamicKey on private fields", () => {
+      tracks.length = 0;
+
+      @Hook
+      class AlternativeAndDynamicPrivateFieldClass {
+        @hook("fieldAltAndDynamic", track("fieldAltAndDynamic"))
+        #field = "initial";
+
+        public getField() {
+          return this.#field;
+        }
+      }
+
+      const instance = new AlternativeAndDynamicPrivateFieldClass();
+      expect(instance.getField()).toBe("initial");
+      expect(tracks).toContainEqual({ target: "fieldAltAndDynamic", self: instance });
+    });
+
+    it("should work with dynamicKey and alternativeName on private fields", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicAndAlternativePrivateFieldClass {
+        @hook(track("dynamicAndAlternativePrivateField"), "fieldDynamicAndAlternative")
+        #field = "initial";
+
+        public getField() {
+          return this.#field;
+        }
+      }
+
+      const instance = new DynamicAndAlternativePrivateFieldClass();
+      expect(instance.getField()).toBe("initial");
+      expect(tracks).toContainEqual({ target: "dynamicAndAlternativePrivateField", self: instance });
+    });
+
+    it("should work with alternativeName only on private getter/setter pairs", () => {
+      @Hook
+      class AlternativeNameOnlyPrivateGetSetClass {
+        #value = "initial";
+
+        @hook("valueAltOnly")
+        get #valueGet() {
+          return this.#value;
+        }
+
+        @hook("valueAltOnly")
+        set #valueSet(v: string) {
+          this.#value = v;
+        }
+
+        public getValue() {
+          return this.#valueGet;
+        }
+
+        public setValue(v: string) {
+          this.#valueSet = v;
+        }
+      }
+
+      const instance = new AlternativeNameOnlyPrivateGetSetClass();
+      expect(instance.getValue()).toBe("initial");
+      attach(instance, "get valueAltOnly", (next) => next() + ":getMid");
+      attach(instance, "set valueAltOnly", (next, value) => next(value + ":setMid"));
+      expect(instance.getValue()).toBe("initial:getMid");
+      instance.setValue("updated");
+      expect(instance.getValue()).toBe("updated:setMid:getMid");
+    });
+
+    it("should work with dynamicKey only on private getter/setter pairs", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicKeyOnlyPrivateGetSetClass {
+        #value = "initial";
+
+        @hook(track("dynamicOnlyPrivateGetSet"))
+        get #valueGet() {
+          return this.#value;
+        }
+
+        @hook(track("dynamicOnlyPrivateGetSet"))
+        set #valueSet(v: string) {
+          this.#value = v;
+        }
+
+        public getValue() {
+          return this.#valueGet;
+        }
+
+        public setValue(v: string) {
+          this.#valueSet = v;
+        }
+      }
+
+      const instance = new DynamicKeyOnlyPrivateGetSetClass();
+      expect(instance.getValue()).toBe("initial");
+      attach(instance, "get #valueGet", (next) => next() + ":getMid");
+      attach(instance, "set #valueSet", (next, value) => next(value + ":setMid"));
+      expect(instance.getValue()).toBe("initial:getMid");
+      instance.setValue("updated");
+      expect(instance.getValue()).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({ target: "dynamicOnlyPrivateGetSet", self: instance });
+    });
+
+    it("should work with alternativeName and dynamicKey on private getter/setter pairs", () => {
+      tracks.length = 0;
+
+      @Hook
+      class AlternativeAndDynamicPrivateGetSetClass {
+        #value = "initial";
+
+        @hook("valueAltAndDynamic", track("valueAltAndDynamic"))
+        get #valueGet() {
+          return this.#value;
+        }
+
+        @hook("valueAltAndDynamic", track("valueAltAndDynamic"))
+        set #valueSet(v: string) {
+          this.#value = v;
+        }
+
+        public getValue() {
+          return this.#valueGet;
+        }
+
+        public setValue(v: string) {
+          this.#valueSet = v;
+        }
+      }
+
+      const instance = new AlternativeAndDynamicPrivateGetSetClass();
+      expect(instance.getValue()).toBe("initial");
+      attach(instance, "get valueAltAndDynamic", (next) => next() + ":getMid");
+      attach(instance, "set valueAltAndDynamic", (next, value) => next(value + ":setMid"));
+      expect(instance.getValue()).toBe("initial:getMid");
+      instance.setValue("updated");
+      expect(instance.getValue()).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({ target: "valueAltAndDynamic", self: instance });
+    });
+
+    it("should work with dynamicKey and alternativeName on private getter/setter pairs", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicAndAlternativePrivateGetSetClass {
+        #value = "initial";
+
+        @hook(track("dynamicAndAlternativePrivateGetSet"), "valueDynamicAndAlternative")
+        get #valueGet() {
+          return this.#value;
+        }
+
+        @hook(track("dynamicAndAlternativePrivateGetSet"), "valueDynamicAndAlternative")
+        set #valueSet(v: string) {
+          this.#value = v;
+        }
+
+        public getValue() {
+          return this.#valueGet;
+        }
+
+        public setValue(v: string) {
+          this.#valueSet = v;
+        }
+      }
+
+      const instance = new DynamicAndAlternativePrivateGetSetClass();
+      expect(instance.getValue()).toBe("initial");
+      attach(instance, "get valueDynamicAndAlternative", (next) => next() + ":getMid");
+      attach(instance, "set valueDynamicAndAlternative", (next, value) => next(value + ":setMid"));
+      expect(instance.getValue()).toBe("initial:getMid");
+      instance.setValue("updated");
+      expect(instance.getValue()).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({ target: "dynamicAndAlternativePrivateGetSet", self: instance });
+    });
+  });
+
+  describe("Alternative Name and Dynamic Key Decorators (static private)", () => {
+    function track(target: string) {
+      return dynamicHookKey(function (this: any) {
+        tracks.push({ target, self: this });
+        if (this.constructor !== Function) {
+          return composeHookKeys(this, this.constructor);
+        }
+        return composeHookKeys(this);
+      });
+    }
+
+    const tracks: { target: string; self: any }[] = [];
+
+    it("should work with alternativeName only on static private methods", () => {
+      @Hook
+      class AlternativeNameOnlyStaticPrivateMethodClass {
+        @hook("methodAltOnly")
+        static #method(x: string) {
+          return x + ":orig";
+        }
+
+        static callMethod(x: string) {
+          return this.#method(x);
+        }
+      }
+
+      expect(AlternativeNameOnlyStaticPrivateMethodClass.callMethod("hello")).toBe("hello:orig");
+      attach(AlternativeNameOnlyStaticPrivateMethodClass, "methodAltOnly", (next, x) => next(x + ":intercepted"));
+      expect(AlternativeNameOnlyStaticPrivateMethodClass.callMethod("hello")).toBe("hello:intercepted:orig");
+    });
+
+    it("should work with dynamicKey only on static private methods", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicKeyOnlyStaticPrivateMethodClass {
+        @hook(track("dynamicOnlyStaticPrivateMethod"))
+        static #method(x: string) {
+          return x + ":orig";
+        }
+
+        static callMethod(x: string) {
+          return this.#method(x);
+        }
+      }
+
+      expect(DynamicKeyOnlyStaticPrivateMethodClass.callMethod("hello")).toBe("hello:orig");
+      attach(DynamicKeyOnlyStaticPrivateMethodClass, "#method", (next, x) => next(x + ":intercepted"));
+      expect(DynamicKeyOnlyStaticPrivateMethodClass.callMethod("hello")).toBe("hello:intercepted:orig");
+      expect(tracks).toContainEqual({
+        target: "dynamicOnlyStaticPrivateMethod",
+        self: DynamicKeyOnlyStaticPrivateMethodClass,
+      });
+    });
+
+    it("should work with alternativeName and dynamicKey on static private methods", () => {
+      tracks.length = 0;
+
+      @Hook
+      class AlternativeAndDynamicStaticPrivateMethodClass {
+        @hook("methodAltAndDynamic", track("methodAltAndDynamic"))
+        static #method(x: string) {
+          return x + ":orig";
+        }
+
+        static callMethod(x: string) {
+          return this.#method(x);
+        }
+      }
+
+      expect(AlternativeAndDynamicStaticPrivateMethodClass.callMethod("hello")).toBe("hello:orig");
+      attach(AlternativeAndDynamicStaticPrivateMethodClass, "methodAltAndDynamic", (next, x) =>
+        next(x + ":intercepted"),
+      );
+      expect(AlternativeAndDynamicStaticPrivateMethodClass.callMethod("hello")).toBe("hello:intercepted:orig");
+      expect(tracks).toContainEqual({
+        target: "methodAltAndDynamic",
+        self: AlternativeAndDynamicStaticPrivateMethodClass,
+      });
+    });
+
+    it("should work with dynamicKey and alternativeName on static private methods", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicAndAlternativeStaticPrivateMethodClass {
+        @hook(track("dynamicAndAlternativeStaticPrivateMethod"), "methodDynamicAndAlternative")
+        static #method(x: string) {
+          return x + ":orig";
+        }
+
+        static callMethod(x: string) {
+          return this.#method(x);
+        }
+      }
+
+      expect(DynamicAndAlternativeStaticPrivateMethodClass.callMethod("hello")).toBe("hello:orig");
+      attach(DynamicAndAlternativeStaticPrivateMethodClass, "methodDynamicAndAlternative", (next, x) =>
+        next(x + ":intercepted"),
+      );
+      expect(DynamicAndAlternativeStaticPrivateMethodClass.callMethod("hello")).toBe("hello:intercepted:orig");
+      expect(tracks).toContainEqual({
+        target: "dynamicAndAlternativeStaticPrivateMethod",
+        self: DynamicAndAlternativeStaticPrivateMethodClass,
+      });
+    });
+
+    it("should work with alternativeName only on static private accessors", () => {
+      @Hook
+      class AlternativeNameOnlyStaticPrivateAccessorClass {
+        @hook("accAltOnly")
+        static accessor #acc: string = "initial";
+
+        static getAcc() {
+          return this.#acc;
+        }
+
+        static setAcc(v: string) {
+          this.#acc = v;
+        }
+      }
+
+      expect(AlternativeNameOnlyStaticPrivateAccessorClass.getAcc()).toBe("initial");
+      attach(AlternativeNameOnlyStaticPrivateAccessorClass, "get accAltOnly", (next) => next() + ":getMid");
+      attach(AlternativeNameOnlyStaticPrivateAccessorClass, "set accAltOnly", (next, value) => next(value + ":setMid"));
+      expect(AlternativeNameOnlyStaticPrivateAccessorClass.getAcc()).toBe("initial:getMid");
+      AlternativeNameOnlyStaticPrivateAccessorClass.setAcc("updated");
+      expect(AlternativeNameOnlyStaticPrivateAccessorClass.getAcc()).toBe("updated:setMid:getMid");
+    });
+
+    it("should work with dynamicKey only on static private accessors", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicKeyOnlyStaticPrivateAccessorClass {
+        @hook(track("dynamicOnlyStaticPrivateAccessor"))
+        static accessor #acc: string = "initial";
+
+        static getAcc() {
+          return this.#acc;
+        }
+
+        static setAcc(v: string) {
+          this.#acc = v;
+        }
+      }
+
+      expect(DynamicKeyOnlyStaticPrivateAccessorClass.getAcc()).toBe("initial");
+      attach(DynamicKeyOnlyStaticPrivateAccessorClass, "get #acc", (next) => next() + ":getMid");
+      attach(DynamicKeyOnlyStaticPrivateAccessorClass, "set #acc", (next, value) => next(value + ":setMid"));
+      expect(DynamicKeyOnlyStaticPrivateAccessorClass.getAcc()).toBe("initial:getMid");
+      DynamicKeyOnlyStaticPrivateAccessorClass.setAcc("updated");
+      expect(DynamicKeyOnlyStaticPrivateAccessorClass.getAcc()).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({
+        target: "dynamicOnlyStaticPrivateAccessor",
+        self: DynamicKeyOnlyStaticPrivateAccessorClass,
+      });
+    });
+
+    it("should work with alternativeName and dynamicKey on static private accessors", () => {
+      tracks.length = 0;
+
+      @Hook
+      class AlternativeAndDynamicStaticPrivateAccessorClass {
+        @hook("accAltAndDynamic", track("accAltAndDynamic"))
+        static accessor #acc: string = "initial";
+
+        static getAcc() {
+          return this.#acc;
+        }
+
+        static setAcc(v: string) {
+          this.#acc = v;
+        }
+      }
+
+      expect(AlternativeAndDynamicStaticPrivateAccessorClass.getAcc()).toBe("initial");
+      attach(AlternativeAndDynamicStaticPrivateAccessorClass, "get accAltAndDynamic", (next) => next() + ":getMid");
+      attach(AlternativeAndDynamicStaticPrivateAccessorClass, "set accAltAndDynamic", (next, value) =>
+        next(value + ":setMid"),
+      );
+      expect(AlternativeAndDynamicStaticPrivateAccessorClass.getAcc()).toBe("initial:getMid");
+      AlternativeAndDynamicStaticPrivateAccessorClass.setAcc("updated");
+      expect(AlternativeAndDynamicStaticPrivateAccessorClass.getAcc()).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({
+        target: "accAltAndDynamic",
+        self: AlternativeAndDynamicStaticPrivateAccessorClass,
+      });
+    });
+
+    it("should work with dynamicKey and alternativeName on static private accessors", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicAndAlternativeStaticPrivateAccessorClass {
+        @hook(track("dynamicAndAlternativeStaticPrivateAccessor"), "accDynamicAndAlternative")
+        static accessor #acc: string = "initial";
+
+        static getAcc() {
+          return this.#acc;
+        }
+
+        static setAcc(v: string) {
+          this.#acc = v;
+        }
+      }
+
+      expect(DynamicAndAlternativeStaticPrivateAccessorClass.getAcc()).toBe("initial");
+      attach(
+        DynamicAndAlternativeStaticPrivateAccessorClass,
+        "get accDynamicAndAlternative",
+        (next) => next() + ":getMid",
+      );
+      attach(DynamicAndAlternativeStaticPrivateAccessorClass, "set accDynamicAndAlternative", (next, value) =>
+        next(value + ":setMid"),
+      );
+      expect(DynamicAndAlternativeStaticPrivateAccessorClass.getAcc()).toBe("initial:getMid");
+      DynamicAndAlternativeStaticPrivateAccessorClass.setAcc("updated");
+      expect(DynamicAndAlternativeStaticPrivateAccessorClass.getAcc()).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({
+        target: "dynamicAndAlternativeStaticPrivateAccessor",
+        self: DynamicAndAlternativeStaticPrivateAccessorClass,
+      });
+    });
+
+    it("should work with alternativeName only on static private fields", () => {
+      @Hook
+      class AlternativeNameOnlyStaticPrivateFieldClass {
+        @hook("fieldAltOnly")
+        static #field = "initial";
+
+        static getField() {
+          return this.#field;
+        }
+      }
+
+      expect(AlternativeNameOnlyStaticPrivateFieldClass.getField()).toBe("initial");
+    });
+
+    it("should work with dynamicKey only on static private fields", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicKeyOnlyStaticPrivateFieldClass {
+        @hook(track("dynamicOnlyStaticPrivateField"))
+        static #field = "initial";
+
+        static getField() {
+          return this.#field;
+        }
+      }
+
+      expect(DynamicKeyOnlyStaticPrivateFieldClass.getField()).toBe("initial");
+      expect(tracks).toContainEqual({
+        target: "dynamicOnlyStaticPrivateField",
+        self: DynamicKeyOnlyStaticPrivateFieldClass,
+      });
+    });
+
+    it("should work with alternativeName and dynamicKey on static private fields", () => {
+      tracks.length = 0;
+
+      @Hook
+      class AlternativeAndDynamicStaticPrivateFieldClass {
+        @hook("fieldAltAndDynamic", track("fieldAltAndDynamic"))
+        static #field = "initial";
+
+        static getField() {
+          return this.#field;
+        }
+      }
+
+      expect(AlternativeAndDynamicStaticPrivateFieldClass.getField()).toBe("initial");
+      expect(tracks).toContainEqual({
+        target: "fieldAltAndDynamic",
+        self: AlternativeAndDynamicStaticPrivateFieldClass,
+      });
+    });
+
+    it("should work with dynamicKey and alternativeName on static private fields", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicAndAlternativeStaticPrivateFieldClass {
+        @hook(track("dynamicAndAlternativeStaticPrivateField"), "fieldDynamicAndAlternative")
+        static #field = "initial";
+
+        static getField() {
+          return this.#field;
+        }
+      }
+
+      expect(DynamicAndAlternativeStaticPrivateFieldClass.getField()).toBe("initial");
+      expect(tracks).toContainEqual({
+        target: "dynamicAndAlternativeStaticPrivateField",
+        self: DynamicAndAlternativeStaticPrivateFieldClass,
+      });
+    });
+
+    it("should work with alternativeName only on static private getter/setter pairs", () => {
+      @Hook
+      class AlternativeNameOnlyStaticPrivateGetSetClass {
+        static #value = "initial";
+
+        @hook("valueAltOnly")
+        static get #valueGet() {
+          return this.#value;
+        }
+
+        @hook("valueAltOnly")
+        static set #valueSet(v: string) {
+          this.#value = v;
+        }
+
+        static getValue() {
+          return this.#valueGet;
+        }
+
+        static setValue(v: string) {
+          this.#valueSet = v;
+        }
+      }
+
+      expect(AlternativeNameOnlyStaticPrivateGetSetClass.getValue()).toBe("initial");
+      attach(AlternativeNameOnlyStaticPrivateGetSetClass, "get valueAltOnly", (next) => next() + ":getMid");
+      attach(AlternativeNameOnlyStaticPrivateGetSetClass, "set valueAltOnly", (next, value) => next(value + ":setMid"));
+      expect(AlternativeNameOnlyStaticPrivateGetSetClass.getValue()).toBe("initial:getMid");
+      AlternativeNameOnlyStaticPrivateGetSetClass.setValue("updated");
+      expect(AlternativeNameOnlyStaticPrivateGetSetClass.getValue()).toBe("updated:setMid:getMid");
+    });
+
+    it("should work with dynamicKey only on static private getter/setter pairs", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicKeyOnlyStaticPrivateGetSetClass {
+        static #value = "initial";
+
+        @hook(track("dynamicOnlyStaticPrivateGetSet"))
+        static get #valueGet() {
+          return this.#value;
+        }
+
+        @hook(track("dynamicOnlyStaticPrivateGetSet"))
+        static set #valueSet(v: string) {
+          this.#value = v;
+        }
+
+        static getValue() {
+          return this.#valueGet;
+        }
+
+        static setValue(v: string) {
+          this.#valueSet = v;
+        }
+      }
+
+      expect(DynamicKeyOnlyStaticPrivateGetSetClass.getValue()).toBe("initial");
+      attach(DynamicKeyOnlyStaticPrivateGetSetClass, "get #valueGet", (next) => next() + ":getMid");
+      attach(DynamicKeyOnlyStaticPrivateGetSetClass, "set #valueSet", (next, value) => next(value + ":setMid"));
+      expect(DynamicKeyOnlyStaticPrivateGetSetClass.getValue()).toBe("initial:getMid");
+      DynamicKeyOnlyStaticPrivateGetSetClass.setValue("updated");
+      expect(DynamicKeyOnlyStaticPrivateGetSetClass.getValue()).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({
+        target: "dynamicOnlyStaticPrivateGetSet",
+        self: DynamicKeyOnlyStaticPrivateGetSetClass,
+      });
+    });
+
+    it("should work with alternativeName and dynamicKey on static private getter/setter pairs", () => {
+      tracks.length = 0;
+
+      @Hook
+      class AlternativeAndDynamicStaticPrivateGetSetClass {
+        static #value = "initial";
+
+        @hook("valueAltAndDynamic", track("valueAltAndDynamic"))
+        static get #valueGet() {
+          return this.#value;
+        }
+
+        @hook("valueAltAndDynamic", track("valueAltAndDynamic"))
+        static set #valueSet(v: string) {
+          this.#value = v;
+        }
+
+        static getValue() {
+          return this.#valueGet;
+        }
+
+        static setValue(v: string) {
+          this.#valueSet = v;
+        }
+      }
+
+      expect(AlternativeAndDynamicStaticPrivateGetSetClass.getValue()).toBe("initial");
+      attach(AlternativeAndDynamicStaticPrivateGetSetClass, "get valueAltAndDynamic", (next) => next() + ":getMid");
+      attach(AlternativeAndDynamicStaticPrivateGetSetClass, "set valueAltAndDynamic", (next, value) =>
+        next(value + ":setMid"),
+      );
+      expect(AlternativeAndDynamicStaticPrivateGetSetClass.getValue()).toBe("initial:getMid");
+      AlternativeAndDynamicStaticPrivateGetSetClass.setValue("updated");
+      expect(AlternativeAndDynamicStaticPrivateGetSetClass.getValue()).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({
+        target: "valueAltAndDynamic",
+        self: AlternativeAndDynamicStaticPrivateGetSetClass,
+      });
+    });
+
+    it("should work with dynamicKey and alternativeName on static private getter/setter pairs", () => {
+      tracks.length = 0;
+
+      @Hook
+      class DynamicAndAlternativeStaticPrivateGetSetClass {
+        static #value = "initial";
+
+        @hook(track("dynamicAndAlternativeStaticPrivateGetSet"), "valueDynamicAndAlternative")
+        static get #valueGet() {
+          return this.#value;
+        }
+
+        @hook(track("dynamicAndAlternativeStaticPrivateGetSet"), "valueDynamicAndAlternative")
+        static set #valueSet(v: string) {
+          this.#value = v;
+        }
+
+        static getValue() {
+          return this.#valueGet;
+        }
+
+        static setValue(v: string) {
+          this.#valueSet = v;
+        }
+      }
+
+      expect(DynamicAndAlternativeStaticPrivateGetSetClass.getValue()).toBe("initial");
+      attach(
+        DynamicAndAlternativeStaticPrivateGetSetClass,
+        "get valueDynamicAndAlternative",
+        (next) => next() + ":getMid",
+      );
+      attach(DynamicAndAlternativeStaticPrivateGetSetClass, "set valueDynamicAndAlternative", (next, value) =>
+        next(value + ":setMid"),
+      );
+      expect(DynamicAndAlternativeStaticPrivateGetSetClass.getValue()).toBe("initial:getMid");
+      DynamicAndAlternativeStaticPrivateGetSetClass.setValue("updated");
+      expect(DynamicAndAlternativeStaticPrivateGetSetClass.getValue()).toBe("updated:setMid:getMid");
+      expect(tracks).toContainEqual({
+        target: "dynamicAndAlternativeStaticPrivateGetSet",
+        self: DynamicAndAlternativeStaticPrivateGetSetClass,
+      });
+    });
   });
 });
