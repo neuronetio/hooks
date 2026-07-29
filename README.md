@@ -53,7 +53,8 @@ greet("John"); // "Hello, John!"
 
 ### 2. Class Methods (Instance & Static)
 
-Using ES decorators, you can hook classes effortlessly. You can attach middleware to **all instances** (via the class constructor) or a **specific instance**.
+Using ECMA decorators, you can hook classes effortlessly. You can attach middleware to **all instances** (via the class constructor) or a **specific instance**.
+While decorators are not yet ready, you need to add [babel-plugin-proposal-decorators](https://babeljs.io/docs/babel-plugin-proposal-decorators) to your build pipeline or use TypeScript.
 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
