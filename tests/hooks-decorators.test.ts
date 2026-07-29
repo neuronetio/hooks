@@ -635,6 +635,29 @@ describe("hooks: decorators", () => {
     expect(instance3.myValue3).toBe("initial3:initAlt3");
   });
 
+  it("should get the correct hook key from instance inside dynamicHookKey", () => {
+    @Hook
+    class MyClass {
+      myKey = Symbol("myKey");
+
+      @hook(
+        dynamicHookKey(function (this: MyClass) {
+          return this.myKey;
+        }),
+      )
+      myMethod() {
+        return "ok";
+      }
+    }
+
+    const instance = new MyClass();
+    expect(instance.myMethod()).toBe("ok");
+
+    attach(instance.myKey, "myMethod", (next) => "intercepted " + next());
+
+    expect(instance.myMethod()).toBe("intercepted ok");
+  });
+
   it("should work with hooks inside middlewares", () => {
     @Hook
     class InnerHooksClass {
