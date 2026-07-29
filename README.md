@@ -111,18 +111,18 @@ class Product {
   @hook()
   price = 100;
 
-  _discount = 0;
+  #discount = 0;
 
   // Hook the getter
   @hook()
   get discount() {
-    return this._discount;
+    return this.#discount;
   }
 
   // Hook the setter
   @hook()
   set discount(value: number) {
-    this._discount = value;
+    this.#discount = value;
   }
 }
 
