@@ -1214,24 +1214,39 @@ Wraps an accessor and enables `init`, `get`, and `set` hooks for it.
 import { hookAccessor, attach } from "@neuronet/hooks";
 
 let Product = class Product {
-  #price = 0;
+  price: number = 0;
+};
 
-  get price() {
-    return this.#price;
-  }
+Product = hookAccessor(Product, "price");
+attach(Product, "init price", (next, value) => next(value + 1));
+attach(Product, "get price", (next) => next() + 10);
+attach(Product, "set price", (next, value) => next(value + 20));
 
-  set price(value: number) {
-    this.#price = value;
-  }
+const product = new Product();
+console.log(product.price); // 1 + 10 = 11
+product.price = 2;
+console.log(product.price); // 2 + 20 + 10 = 32
+```
+
+Static
+
+```ts
+import { hookAccessor, attach } from "@neuronet/hooks";
+
+const initPrice = Symbol("initPrice");
+attach(initPrice, "init price", (next, value) => next(value + 1));
+
+let Product = class Product {
+  static price: number = hook(initPrice, "init price", (v: number) => v)(0);
 };
 
 Product = hookAccessor(Product, "price");
 attach(Product, "get price", (next) => next() + 10);
-attach(Product, "set price", (next, value) => next(value + 1));
+attach(Product, "set price", (next, value) => next(value + 20));
 
-const product = new Product();
-product.price = 2;
-console.log(product.price); // 13
+console.log(Product.price); // 0 + 1 + 10 = 11
+Product.price = 2;
+console.log(Product.price); // 2 + 20 + 10 = 32
 ```
 
 ## ECMA decorators
