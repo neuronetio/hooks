@@ -22,58 +22,65 @@ On top of that, `@neuronet/hooks` is very lightweight, well tested, and has no e
 ## Table of contents
 
 - [Why this library is useful](#when-this-library-might-be-useful)
-- [The three main ways to use it](#the-three-main-ways-to-use-it)
-  - [1. Quick start: wrap a function](#1-quick-start-wrap-a-function)
-  - [2. Quick start: manual decorators](#2-quick-start-manual-decorators)
-  - [3. Quick start: ECMA decorators](#3-quick-start-ecma-decorators)
-- [Function hooks](#function-hooks)
-  - [`hook(fn)`](#hookfn)
-  - [`hook(key, fn)`](#hookkey-fn)
-  - [`hook(key, name, fn)`](#hookkey-name-fn)
-  - [`hook(args, fn)`](#hookargs-fn)
-  - [`hook(key, args, fn)`](#hookkey-args-fn)
-  - [`hook(key, name, args, fn)`](#hookkey-name-args-fn)
-  - [`hook(name, fn)`](#hookname-fn)
-  - [`hook(name, args, fn)`](#hookname-args-fn)
-- [Manual decorators](#manual-decorators)
-  - [Using `Hooks(Class)` builder](#using-hooksclass-builder)
-  - [Builder `method` usage](#builder-method-usage)
-  - [Builder `getter` usage](#builder-getter-usage)
-  - [Builder `setter` usage](#builder-setter-usage)
-  - [Builder `field` usage](#builder-field-usage)
-  - [Builder `accessor` usage](#builder-accessor-usage)
-  - [Builder `build`](#builder-build)
-  - [Sub-hooks in the builder](#sub-hooks-in-the-builder)
-- [Using direct hook functions](#using-direct-hook-functions)
-  - [`hookGetter(Class, property)`](#hookgetterclass-property)
-  - [`hookSetter(Class, property)`](#hooksetterclass-property)
-  - [`hookField(Class, property)`](#hookfieldclass-property)
-  - [`hookAccessor(Class, property)`](#hookaccessorclass-property)
-- [ECMA decorators](#ecma-decorators)
-  - [`@Hook`](#hook)
-  - [`@hook()` on methods](#hook-on-methods)
-  - [`@hook()` on getters](#hook-on-getters)
-  - [`@hook()` on setters](#hook-on-setters)
-  - [`@hook()` on fields](#hook-on-fields)
-  - [`@hook()` on accessors](#hook-on-accessors)
-  - [Custom names in ECMA decorators](#custom-names-in-ecma-decorators)
-  - [Dynamic keys in ECMA decorators](#dynamic-keys-in-ecma-decorators)
-  - [Alternative names and dynamic keys together](#alternative-names-and-dynamic-keys-together)
-  - [Static methods, fields and accessors](#static-methods-fields-and-accessors)
-    - [Static methods](#static-methods)
-    - [Static fields](#static-fields)
-    - [Static accessors](#static-accessors)
-  - [Private members](#private-members)
-    - [Private methods](#private-methods)
-    - [Private getters](#private-getters)
-    - [Private setters](#private-setters)
-    - [Private fields](#private-fields)
-    - [Private accessors](#private-accessors)
-    - [Private static members](#private-static-members)
-    - [Security considerations: private members with hooks](#security-considerations-private-members-with-hooks)
-  - [Sub-hooks in ECMA decorators](#sub-hooks-in-ecma-decorators)
+- [Basic concepts](#basic-concepts)
+  - [The four main ways to use it](#the-four-main-ways-to-use-it)
+    - [1. Quick start: wrap a function](#1-quick-start-wrap-a-function)
+    - [2. Quick start: wrap a class member](#2-quick-start-wrap-a-class-member)
+    - [3. Quick start: manual decorators](#3-quick-start-manual-decorators)
+    - [4. Quick start: ECMA decorators](#4-quick-start-ecma-decorators)
+  - [Middleware execution order / composite keys](#middleware-execution-order--composite-keys)
+  - [Dynamic keys](#dynamic-keys)
+- [API](#api)
+  - [Function hooks](#function-hooks)
+    - [`hook(fn)`](#hookfn)
+    - [`hook(key, fn)`](#hookkey-fn)
+    - [`hook(key, name, fn)`](#hookkey-name-fn)
+    - [`hook(args, fn)`](#hookargs-fn)
+    - [`hook(key, args, fn)`](#hookkey-args-fn)
+    - [`hook(key, name, args, fn)`](#hookkey-name-args-fn)
+    - [`hook(name, fn)`](#hookname-fn)
+    - [`hook(name, args, fn)`](#hookname-args-fn)
+  - [Manual decorators](#manual-decorators)
+    - [Using `Hooks(Class)` builder](#using-hooksclass-builder)
+    - [Builder `method` usage](#builder-method-usage)
+    - [Builder `getter` usage](#builder-getter-usage)
+    - [Builder `setter` usage](#builder-setter-usage)
+    - [Builder `field` usage](#builder-field-usage)
+    - [Builder `accessor` usage](#builder-accessor-usage)
+    - [Builder `build`](#builder-build)
+    - [Sub-hooks in the builder](#sub-hooks-in-the-builder)
+  - [Using direct hook functions](#using-direct-hook-functions)
+    - [`hookGetter(Class, property)`](#hookgetterclass-property)
+    - [`hookSetter(Class, property)`](#hooksetterclass-property)
+    - [`hookField(Class, property)`](#hookfieldclass-property)
+    - [`hookAccessor(Class, property)`](#hookaccessorclass-property)
+  - [ECMA decorators](#ecma-decorators)
+    - [`@Hook`](#hook)
+    - [`@hook()` on methods](#hook-on-methods)
+    - [`@hook()` on getters](#hook-on-getters)
+    - [`@hook()` on setters](#hook-on-setters)
+    - [`@hook()` on fields](#hook-on-fields)
+    - [`@hook()` on accessors](#hook-on-accessors)
+    - [Custom names in ECMA decorators](#custom-names-in-ecma-decorators)
+    - [Dynamic keys in ECMA decorators](#dynamic-keys-in-ecma-decorators)
+    - [Alternative names and dynamic keys together](#alternative-names-and-dynamic-keys-together)
+    - [Static methods, fields and accessors](#static-methods-fields-and-accessors)
+      - [Static methods](#static-methods)
+      - [Static fields](#static-fields)
+      - [Static accessors](#static-accessors)
+    - [Private members](#private-members)
+      - [Private methods](#private-methods)
+      - [Private getters](#private-getters)
+      - [Private setters](#private-setters)
+      - [Private fields](#private-fields)
+      - [Private accessors](#private-accessors)
+      - [Private static members](#private-static-members)
+      - [Security considerations: private members with hooks](#security-considerations-private-members-with-hooks)
+    - [Sub-hooks in ECMA decorators](#sub-hooks-in-ecma-decorators)
 
-## The four main ways to use it
+## Basic concepts
+
+### The four main ways to use it
 
 You can use this library in four simple ways:
 
@@ -82,7 +89,7 @@ You can use this library in four simple ways:
 3. Decorate an existing class manually
 4. Use ECMA decorators
 
-### 1. Quick start: wrap a function
+#### 1. Quick start: wrap a function
 
 ```ts
 import { hook, attach } from "@neuronet/hooks";
@@ -104,7 +111,7 @@ greet("Ada"); // Hello, ADA 👋
 detach();
 ```
 
-### 2. Quick start: wrap a class member
+#### 2. Quick start: wrap a class member
 
 This style is useful when you want to decorate an existing class without using decorator syntax.
 
@@ -129,7 +136,7 @@ service.greet("Ada"); // Hello, ADA
 detach();
 ```
 
-### 3. Quick start: manual decorators
+#### 3. Quick start: manual decorators
 
 This style is useful when you want to decorate an existing class without using decorator syntax.
 
@@ -160,7 +167,7 @@ service.greet("Ada"); // Hello, ADA
 detach();
 ```
 
-### 4. Quick start: ECMA decorators
+#### 4. Quick start: ECMA decorators
 
 This style is very convenient when you work with classes directly. For ECMA decorators, you usually need TypeScript or Babel, and the [babel-plugin-proposal-decorators](https://babeljs.io/docs/babel-plugin-proposal-decorators) (it depends on your environment).
 
@@ -196,11 +203,7 @@ detach();
 
 &nbsp;
 
-Before we dive into the detailed documentation, let's review two core mechanisms: hook keys and middleware behavior.
-
-&nbsp;
-
-## Middleware execution order / composite keys
+### Middleware execution order / composite keys
 
 By default, middleware runs in the order it was registered (the most recently added middleware runs at the end of the chain).
 
@@ -263,7 +266,7 @@ composite("test"); // test  key1_1  key1_2  key2_1  key2_2  key3_1
 
 ---
 
-## Dynamic keys
+### Dynamic keys
 
 Dynamic keys are a powerful feature that allows you to resolve the hook key at runtime. This is useful when you want to use different pipeline behavior based on runtime conditions or you don't know the key in advance.
 
@@ -331,7 +334,13 @@ composite("test"); // test:key3:key4
 
 ---
 
-## Function hooks
+&nbsp;
+
+## API
+
+&nbsp;
+
+### Function hooks
 
 A hook wraps a function and gives you a place to run extra logic before, after, or around the original call.
 
@@ -342,7 +351,7 @@ The basic idea is simple:
 - each middleware can call `next()` to continue the chain (or not call it to short-circuit the chain),
 - the middleware can also change arguments or the final result.
 
-### `hook(fn)`
+#### `hook(fn)`
 
 Wraps a function using its own function object as the hook key.
 
@@ -355,7 +364,7 @@ attach(greet, (next, name) => next(name.toUpperCase()));
 greet("Ada"); // Hello, ADA
 ```
 
-### `hook(key, fn)`
+#### `hook(key, fn)`
 
 Uses an explicit hook key.
 
@@ -369,7 +378,7 @@ attach(key, (next, name) => next(name.toUpperCase()));
 greet("Ada"); // Hello, ADA
 ```
 
-### `hook(key, name, fn)`
+#### `hook(key, name, fn)`
 
 Uses an explicit key and a custom hook name.
 
@@ -383,7 +392,7 @@ attach(key, "customName", (next, name) => next(name.toUpperCase()));
 greet("Ada"); // Hello, ADA
 ```
 
-### `hook(args, fn)`
+#### `hook(args, fn)`
 
 Provides hardcoded arguments for the wrapped function. This is an override, not a fallback. The wrapped function will no longer accept arbitrary arguments at call time. In TypeScript, passing other arguments will be reported as an error.
 
@@ -394,7 +403,7 @@ const greet = hook(["Ada"], (name: string) => `Hello, ${name}`);
 greet(); // Hello, Ada
 ```
 
-### `hook(key, args, fn)`
+#### `hook(key, args, fn)`
 
 Uses a custom key and hardcoded arguments.
 
@@ -408,7 +417,7 @@ attach(key, (next, name) => next(name.toUpperCase()));
 greet(); // Hello, ADA
 ```
 
-### `hook(key, name, args, fn)`
+#### `hook(key, name, args, fn)`
 
 The most explicit form: custom key, custom name, and hardcoded arguments.
 
@@ -422,7 +431,7 @@ attach(key, "custom", (next, name) => next(name.toUpperCase()));
 greet(); // Hello, ADA
 ```
 
-### `hook(name, fn)`
+#### `hook(name, fn)`
 
 This overload can only be used inside another hook. In that case it creates a sub-hook and inherits the hook key from the parent hook context. If there is no parent hook context, it throws an error.
 
@@ -441,7 +450,7 @@ attach(parentKey, "child", (next, value) => next(value.toUpperCase()));
 parent(); // Child: OK
 ```
 
-### `hook(name, args, fn)`
+#### `hook(name, args, fn)`
 
 Same situation as the previous overload, but with hardcoded arguments.
 
@@ -462,24 +471,24 @@ parent(); // Child: OK
 
 ---
 
-## Manual decorators
+### Manual decorators
 
 Manual decorators are useful when you want to decorate an already defined class without using the standard decorator syntax.
 
-### Using `Hooks(Class)` builder
+#### Using `Hooks(Class)` builder
 
 The `Hooks(Class)` builder exposes a fluent API for enabling hooks on several members at once. Each builder method supports multiple overloads — below we list the overloads explicitly and provide a short example for each.
 
 Note: builder methods accept a property name, an optional alternative hook name (string), or a dynamic key resolver created with `dynamicHookKey(...)`. You can also pass both a dynamic key and an alternative name when needed.
 
-#### Builder `method` usage
+##### Builder `method` usage
 
 - `method(property)` — enable hooks for a method where `property` is the method name.
 - `method(property, alternativeName)` — use `alternativeName` as the hook name.
 - `method(property, dynamicKey)` — resolve hook key at runtime using `dynamicHookKey`.
 - `method(property, alternativeName, dynamicKey)` — combine alternative name and dynamic key.
 
-##### Simple method
+###### Simple method
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -497,7 +506,7 @@ const service = new Service();
 service.myMethod("test"); // "test:mid:orig"
 ```
 
-##### Alternative name
+###### Alternative name
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -515,7 +524,7 @@ const service = new Service();
 service.myMethod("test"); // "test:alt:orig"
 ```
 
-##### Dynamic key
+###### Dynamic key
 
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
@@ -541,7 +550,7 @@ const service = new Service();
 service.myMethod("test"); // "test:dyn:orig"
 ```
 
-##### Dynamic key + alternative name
+###### Dynamic key + alternative name
 
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
@@ -568,14 +577,14 @@ const service = new Service();
 service.myMethod("test"); // "test:combined:orig"
 ```
 
-#### Builder `getter` usage
+##### Builder `getter` usage
 
 - `getter(property)` — enable `get <property>` hook using the member name.
 - `getter(property, alternativeName: string)` — use `alternativeName` as the public `get` hook name.
 - `getter(property, dynamicKey)` — resolve key dynamically.
 - `getter(property, alternativeName, dynamicKey)` — combine alternative name and dynamic key.
 
-##### Simple getter
+###### Simple getter
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -593,7 +602,7 @@ const service = new Service();
 service.value; // 2
 ```
 
-##### Alternative name
+###### Alternative name
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -611,7 +620,7 @@ const service = new Service();
 service.value; // 3
 ```
 
-##### Dynamic key
+###### Dynamic key
 
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
@@ -637,7 +646,7 @@ const service = new Service();
 service.value; // 3
 ```
 
-##### Dynamic key + alternative name
+###### Dynamic key + alternative name
 
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
@@ -664,14 +673,14 @@ const service = new Service();
 service.value; // 4
 ```
 
-#### Builder `setter` usage
+##### Builder `setter` usage
 
 - `setter(property)` — enable `set <property>` hook using the member name.
 - `setter(property, alternativeName)` — use `alternativeName` as the public `set` hook name.
 - `setter(property, dynamicKey)` — resolve key dynamically.
 - `setter(property, alternativeName, dynamicKey)` — combine dynamic key and alternative name.
 
-##### Simple setter
+###### Simple setter
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -694,7 +703,7 @@ service.value = 2;
 console.log(service.value); // 3
 ```
 
-##### Alternative name
+###### Alternative name
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -717,7 +726,7 @@ service.value = 2;
 console.log(service.value); // 4
 ```
 
-##### Dynamic key
+###### Dynamic key
 
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
@@ -748,7 +757,7 @@ service.value = 2;
 console.log(service.value); // 4
 ```
 
-##### Dynamic key + alternative name
+###### Dynamic key + alternative name
 
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
@@ -780,14 +789,14 @@ service.value = 2;
 console.log(service.value); // 5
 ```
 
-#### Builder `field` usage
+##### Builder `field` usage
 
 - `field(property)` — enable `init <property>` hook using the member name.
 - `field(property, alternativeName: string)` — use `alternativeName` as the public `init` hook name.
 - `field(property, dynamicKey: dynamicHookKey)` — resolve key dynamically.
 - `field(property, dynamicKey, alternativeName)` — combine dynamic key and alternative name.
 
-##### Simple field
+###### Simple field
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -803,7 +812,7 @@ const service = new Service();
 service.value; // "x:init"
 ```
 
-##### Alternative name
+###### Alternative name
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -819,7 +828,7 @@ const service = new Service();
 service.value; // "x:altInit"
 ```
 
-##### Dynamic key
+###### Dynamic key
 
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
@@ -843,7 +852,7 @@ const service = new Service();
 service.value; // "x:dynInit"
 ```
 
-##### Dynamic key + alternative name
+###### Dynamic key + alternative name
 
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
@@ -868,14 +877,14 @@ const service = new Service();
 service.value; // "x:combinedInit"
 ```
 
-#### Builder `accessor` usage
+##### Builder `accessor` usage
 
 - `accessor(property)` — enable `init <property>`, `get <property>`, and `set <property>` hooks using the member name.
 - `accessor(property, alternativeName: string)` — change the public base name used for the three hooks.
 - `accessor(property, dynamicKey: dynamicHookKey)` — resolve key dynamically for accessor hooks.
 - `accessor(property, dynamicKey, alternativeName)` — combine dynamic key and alternative name.
 
-##### Simple accessor
+###### Simple accessor
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -891,7 +900,7 @@ const service = new Service();
 console.log(service.x); // "a:getMid"
 ```
 
-##### Alternative name
+###### Alternative name
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -907,7 +916,7 @@ const service = new Service();
 console.log(service.x); // "a:initAlt"
 ```
 
-##### Dynamic key
+###### Dynamic key
 
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
@@ -931,7 +940,7 @@ const service = new Service();
 console.log(service.x); // "a:dynGet"
 ```
 
-##### Dynamic key + alternative name
+###### Dynamic key + alternative name
 
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
@@ -956,7 +965,7 @@ const service = new Service();
 console.log(service.x); // "a:getAlt"
 ```
 
-#### Builder `build`
+##### Builder `build`
 
 - `build()` — finalizes the chain and returns the wrapped class constructor that will run initializers for instance members. Use the returned class in place of the original binding.
 
@@ -988,7 +997,7 @@ p.total = 20; // sets price to 20 + 5 = 25
 console.log(p.total); // 25 + 10 = 35
 ```
 
-### Sub-hooks in the builder
+#### Sub-hooks in the builder
 
 You can create sub-hooks inside hooked methods using the `hook(name, fn)` syntax. These sub-hooks inherit the parent hook key and can be attached separately.
 
@@ -1048,9 +1057,9 @@ attach(subKey, (next, name) => next(name + "!!!"));
 new UserService().greet("Ada"); // Hello, ADA!!!
 ```
 
-### Using direct hook functions
+#### Using direct hook functions
 
-#### `hookGetter(Class, property)`
+##### `hookGetter(Class, property)`
 
 Wraps a getter and creates a hook under the name `get <property>`.
 
@@ -1070,7 +1079,7 @@ attach(Counter, "get value", (next) => next() + 1);
 new Counter().value; // 2
 ```
 
-#### `hookSetter(Class, property)`
+##### `hookSetter(Class, property)`
 
 Wraps a setter and creates a hook under the name `set <property>`.
 
@@ -1093,7 +1102,7 @@ counter.value = 2;
 console.log(counter.value); // 3
 ```
 
-#### `hookField(Class, property)`
+##### `hookField(Class, property)`
 
 Wraps a public field initializer and creates a hook under the name `init <property>`.
 
@@ -1110,7 +1119,7 @@ attach(User, "init status", (next, value) => next(value.toUpperCase()));
 new User().status; // NEW
 ```
 
-#### `hookAccessor(Class, property)`
+##### `hookAccessor(Class, property)`
 
 Wraps an accessor and enables `init`, `get`, and `set` hooks for it.
 
