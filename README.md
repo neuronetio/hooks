@@ -263,6 +263,74 @@ composite("test"); // test  key1_1  key1_2  key2_1  key2_2  key3_1
 
 ---
 
+## Dynamic keys
+
+Dynamic keys are a powerful feature that allows you to resolve the hook key at runtime. This is useful when you want to use different pipeline behavior based on runtime conditions or you don't know the key in advance.
+
+**Example**: dynamic pipeline selection
+
+```ts
+import { hook, attach, dynamicHookKey } from "@neuronet/hooks";
+
+// different set of behavior
+const pipeline1 = Symbol("pipeline1");
+const pipeline2 = Symbol("pipeline2");
+
+// middleware can be created in advance
+attach(pipeline1, (next, name) => next(name + ":pipeline1"));
+attach(pipeline2, (next, name) => next(name + ":pipeline2"));
+
+let usePipeline = 1;
+
+const greet = hook(
+  dynamicHookKey(() => {
+    // resolve the key at runtime
+    if (usePipeline === 1) {
+      return pipeline1;
+    }
+    return pipeline2;
+  }),
+  (name: string) => `Hello, ${name}`,
+);
+
+greet("Ada"); // Hello, Ada:pipeline1
+
+usePipeline = 2; // configuration changed
+
+greet("Ada"); // Hello, Ada:pipeline2
+```
+
+`dynamicHookKey` callback can also return a composite key, so you can combine multiple keys dynamically.
+
+```ts
+import { hook, attach, dynamicHookKey, composeHookKeys } from "@neuronet/hooks";
+
+const key1 = Symbol("key1");
+const key2 = Symbol("key2");
+const key3 = Symbol("key3");
+const key4 = Symbol("key4");
+
+attach(key1, (next, name) => next(name + ":key1"));
+attach(key2, (next, name) => next(name + ":key2"));
+attach(key3, (next, name) => next(name + ":key3"));
+attach(key4, (next, name) => next(name + ":key4"));
+
+let pipeline = [key1, key2];
+
+const composite = hook(
+  dynamicHookKey(() => composeHookKeys(...pipeline)),
+  (name: string) => name,
+);
+
+composite("test"); // test:key1:key2
+
+pipeline = [key3, key4]; // configuration changed
+
+composite("test"); // test:key3:key4
+```
+
+---
+
 ## Function hooks
 
 A hook wraps a function and gives you a place to run extra logic before, after, or around the original call.
