@@ -321,6 +321,23 @@ describe("hooks: manual decorators", () => {
     expect(subCalled).toBe(8);
   });
 
+  it("hookAccessor should work with static accessors", () => {
+    const initPrice = Symbol("initPrice");
+    attach(initPrice, "init price", (next, value) => next(value + 1));
+
+    let Product = class Product {
+      static price: number = hook(initPrice, "init price", (v: number) => v)(0);
+    };
+
+    Product = hookAccessor(Product, "price");
+    attach(Product, "get price", (next) => next() + 10);
+    attach(Product, "set price", (next, value) => next(value + 20));
+
+    expect(Product.price).toBe(11); // 0 + 1 + 10 = 11
+    Product.price = 2;
+    expect(Product.price).toBe(32); // 2 + 20 + 10 = 32
+  });
+
   it("should work with dynamic hook keys for methods", () => {
     const dynamicThis: any[] = [];
     let DynamicHookClass = class DynamicHookClass {
