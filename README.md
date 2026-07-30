@@ -1156,10 +1156,8 @@ Wraps a getter and creates a hook under the name `get <property>`.
 import { hookGetter, attach } from "@neuronet/hooks";
 
 let Counter = class Counter {
-  #value = 1;
-
   get value() {
-    return this.#value;
+    return 1;
   }
 };
 
