@@ -380,6 +380,7 @@ interface IAccessorDecoratorHooks {
 
 interface IManualHookState<TClass extends HookDecoratedClass = HookDecoratedClass> {
   Class: TClass;
+  originalClass: HookDecoratedClass;
   instanceInitializers: Array<(instance: any) => void>;
 }
 
@@ -422,6 +423,7 @@ function resolveHookDecoratorOptions(
  * @param hookName The public hook name used by `attach()`.
  * @param value The original member implementation.
  * @param dynamicKey Optional runtime key resolver.
+ * @param owner Optional owner to bind the original member to, instead of the receiver.
  * @returns A function that lazily creates and reuses the wrapped hook for one receiver.
  */
 function createLazyHookInvoker(
@@ -429,11 +431,13 @@ function createLazyHookInvoker(
   hookName: HookName,
   value: (...args: any[]) => any,
   dynamicKey?: HookKeyDynamic,
+  owner?: any,
 ) {
   const hookKey = Symbol(`[hook][${String(propertyKey)}]`);
   return function runHook(this: any, ...args: any[]) {
     if (!this[hookKey]) {
-      this[hookKey] = hook(dynamicKey ?? composeHookKeys(this, this.constructor), hookName, value.bind(this));
+      const receiver = owner ?? this;
+      this[hookKey] = hook(dynamicKey ?? composeHookKeys(this, this.constructor), hookName, value.bind(receiver));
     }
     return this[hookKey](...args);
   };
@@ -458,6 +462,7 @@ function createAccessorDecoratorHooks(
   get: (...args: any[]) => any,
   set: (...args: any[]) => any,
   dynamicKey?: HookKeyDynamic,
+  owner?: any,
 ): IAccessorDecoratorHooks {
   const getHookKey = Symbol(`[hook][get ${String(propertyKey)}]`);
   const setHookKey = Symbol(`[hook][set ${String(propertyKey)}]`);
@@ -466,26 +471,29 @@ function createAccessorDecoratorHooks(
   return {
     get: function runHook(this: any, ...args: any[]) {
       if (!this[getHookKey]) {
+        const receiver = owner ?? this;
         this[getHookKey] = hook(
           dynamicKey ?? composeHookKeys(this, this.constructor),
           "get " + String(hookName),
-          get.bind(this),
+          get.bind(receiver),
         );
       }
       return this[getHookKey](...args);
     },
     set: function runHook(this: any, ...args: any[]) {
       if (!this[setHookKey]) {
+        const receiver = owner ?? this;
         this[setHookKey] = hook(
           dynamicKey ?? composeHookKeys(this, this.constructor),
           "set " + String(hookName),
-          set.bind(this),
+          set.bind(receiver),
         );
       }
       return this[setHookKey](...args);
     },
     init: function runHook(this: any, initialValue: any) {
       if (!this[initHookKey]) {
+        const receiver = owner ?? this;
         this[initHookKey] = hook(
           dynamicKey ?? composeHookKeys(this, this.constructor),
           "init " + String(hookName),
@@ -559,6 +567,7 @@ function ensureManualHookState<TClass extends HookDecoratedClass>(Class: TClass)
 
   const state: IManualHookState<TClass> = {
     Class: HookedClass,
+    originalClass: Class as HookDecoratedClass,
     instanceInitializers,
   };
 
@@ -944,7 +953,7 @@ export function hookGetter<TClass extends HookDecoratedClass, TName extends Hook
   arg2?: HookDecoratorArgument,
 ): TClass {
   const state = ensureManualHookState(Class);
-  const { descriptor, target } = resolveMemberDescriptor(
+  const { descriptor, target, isStatic } = resolveMemberDescriptor(
     state.Class,
     propertyKey,
     (candidate) => typeof candidate?.get === "function",
@@ -952,10 +961,15 @@ export function hookGetter<TClass extends HookDecoratedClass, TName extends Hook
   );
   const { dynamicKey, alternativeName } = resolveHookDecoratorOptions(arg1, arg2);
   const hookName = (alternativeName ?? propertyKey) as HookName;
-
   Object.defineProperty(target, propertyKey, {
     ...descriptor,
-    get: createLazyHookInvoker("get " + String(propertyKey), "get " + String(hookName), descriptor.get!, dynamicKey),
+    get: createLazyHookInvoker(
+      "get " + String(propertyKey),
+      "get " + String(hookName),
+      descriptor.get!,
+      dynamicKey,
+      isStatic ? state.originalClass : undefined, // undefined means default
+    ),
   });
 
   return state.Class;
@@ -1017,7 +1031,7 @@ export function hookSetter<TClass extends HookDecoratedClass, TName extends Hook
   arg2?: HookDecoratorArgument,
 ): TClass {
   const state = ensureManualHookState(Class);
-  const { descriptor, target } = resolveMemberDescriptor(
+  const { descriptor, target, isStatic } = resolveMemberDescriptor(
     state.Class,
     propertyKey,
     (candidate) => typeof candidate?.set === "function",
@@ -1028,7 +1042,13 @@ export function hookSetter<TClass extends HookDecoratedClass, TName extends Hook
 
   Object.defineProperty(target, propertyKey, {
     ...descriptor,
-    set: createLazyHookInvoker("set " + String(propertyKey), "set " + String(hookName), descriptor.set!, dynamicKey),
+    set: createLazyHookInvoker(
+      "set " + String(propertyKey),
+      "set " + String(hookName),
+      descriptor.set!,
+      dynamicKey,
+      isStatic ? state.originalClass : undefined,
+    ),
   });
 
   return state.Class;
@@ -1177,16 +1197,23 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
   if (typeof staticDescriptor?.get === "function" && typeof staticDescriptor?.set === "function") {
     const originalGet = staticDescriptor.get;
     const originalSet = staticDescriptor.set;
-    const decoratedAccessor = createAccessorDecoratorHooks(propertyKey, hookName, originalGet, originalSet, dynamicKey);
+    const decoratedAccessor = createAccessorDecoratorHooks(
+      propertyKey,
+      hookName,
+      originalGet,
+      originalSet,
+      dynamicKey,
+      state.originalClass,
+    );
     const initializedKey = Symbol(`[hook][manual-initialized ${String(propertyKey)}]`);
     const ensureInitialized = function runHookAccessorInitializer(this: any) {
       if (this[initializedKey]) {
         return;
       }
 
-      const initialValue = originalGet.call(this);
+      const initialValue = originalGet.call(state.originalClass);
       const nextValue = decoratedAccessor.init.call(this, initialValue);
-      originalSet.call(this, nextValue);
+      originalSet.call(state.originalClass, nextValue);
       this[initializedKey] = true;
     };
 

@@ -352,6 +352,30 @@ describe("hooks: manual decorators", () => {
     expect(Product.price).toBe(32); // 2 + 20 + 10 = 32
   });
 
+  it("should work with static setters and getters", () => {
+    let Counter = class Counter {
+      static #value = 0;
+
+      static set value(next: number) {
+        this.#value = next;
+      }
+
+      static get value() {
+        return this.#value;
+      }
+    };
+
+    expect(Counter.value).toBe(0);
+
+    Counter = hookGetter(Counter, "value");
+    Counter = hookSetter(Counter, "value");
+    attach(Counter, "get value", (next) => next() + 1);
+    attach(Counter, "set value", (next, value) => next(value + 1));
+    expect(Counter.value).toBe(1);
+    Counter.value = 2;
+    expect(Counter.value).toBe(4); // 2 + 1 + 1 = 4
+  });
+
   it("middlewares should not be applied when attached before hookMethod is used", () => {
     let MyClass = class MyClass {
       myMethod(x: string) {
