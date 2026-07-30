@@ -1189,6 +1189,30 @@ counter.value = 2;
 console.log(counter.value); // 3
 ```
 
+Static
+
+```ts
+import { hookSetter, attach } from "@neuronet/hooks";
+
+let Counter = class Counter {
+  static #value = 0;
+
+  static set value(next: number) {
+    this.#value = next;
+  }
+
+  static get value() {
+    return this.#value;
+  }
+};
+
+Counter = hookSetter(Counter, "value");
+attach(Counter, "set value", (next, value) => next(value + 1));
+
+Counter.value = 2;
+console.log(Counter.value); // 3
+```
+
 ##### `hookField(Class, property)`
 
 Wraps a public field initializer and creates a hook under the name `init <property>`.
@@ -1231,8 +1255,11 @@ console.log(product.price); // 2 + 20 + 10 = 32
 Static
 
 ```ts
-import { hookAccessor, attach } from "@neuronet/hooks";
+import { hookAccessor, attach, hook } from "@neuronet/hooks";
 
+// different hook key for static members
+// because static properties are assigned when the class is defined,
+// not when an instance is created
 const initPrice = Symbol("initPrice");
 attach(initPrice, "init price", (next, value) => next(value + 1));
 
