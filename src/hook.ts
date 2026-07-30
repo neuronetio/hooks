@@ -538,7 +538,6 @@ export function _createAccessorDecoratorHooks(
     },
     init: function runHook(this: any, initialValue: any) {
       if (!this[initHookKey]) {
-        const receiver = owner ?? this;
         this[initHookKey] = hook(
           dynamicKey ?? composeHookKeys(this, this.constructor),
           "init " + String(hookName),

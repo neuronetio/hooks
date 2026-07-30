@@ -1,19 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  HOOK,
-  attach,
-  composeHookKeys,
-  dynamicHookKey,
-  getCurrentHookKeyContext,
-  hook,
-  hookAccessor,
-  hookClass,
-  hookField,
-  hookGetter,
-  hookMethod,
-  hookSetter,
-} from "../src";
+import { HOOK, attach, composeHookKeys, dynamicHookKey, getCurrentHookKeyContext, hook, hookUtils } from "../src";
 
 describe("hooks: manual decorators", () => {
   it("should work with static methods", () => {
@@ -24,7 +11,7 @@ describe("hooks: manual decorators", () => {
       }
     };
 
-    StaticMethodsClass = hookMethod(StaticMethodsClass, "testStatic");
+    StaticMethodsClass = hookUtils.method(StaticMethodsClass, "testStatic");
 
     expect(StaticMethodsClass.testStatic("x")).toBe("x:testStatic");
 
@@ -59,7 +46,7 @@ describe("hooks: manual decorators", () => {
       myField = "myFieldValue";
     };
 
-    FieldsClass = hookField(FieldsClass, "myField");
+    FieldsClass = hookUtils.field(FieldsClass, "myField");
 
     const instance = new FieldsClass();
     expect(instance.myField).toBe("myFieldValue");
@@ -86,7 +73,7 @@ describe("hooks: manual decorators", () => {
       }
     };
 
-    MethodsClass = hookMethod(MethodsClass, "myMethod");
+    MethodsClass = hookUtils.method(MethodsClass, "myMethod");
 
     const instance = new MethodsClass();
     const classHookData = (MethodsClass.prototype.myMethod as any)[HOOK];
@@ -160,7 +147,7 @@ describe("hooks: manual decorators", () => {
       }
     };
 
-    ConstructorCallClass = hookMethod(ConstructorCallClass, "myMethod");
+    ConstructorCallClass = hookUtils.method(ConstructorCallClass, "myMethod");
 
     attach(ConstructorCallClass, "myMethod", (next, x) => {
       return next(x + ":class");
@@ -179,7 +166,7 @@ describe("hooks: manual decorators", () => {
       accessor myValue: string = "initial";
     };
 
-    AccessorClass = hookAccessor(AccessorClass, "myValue");
+    AccessorClass = hookUtils.accessor(AccessorClass, "myValue");
 
     expect(new AccessorClass().myValue).toBe("initial");
 
@@ -220,7 +207,7 @@ describe("hooks: manual decorators", () => {
       field: any = 10;
     };
 
-    AccessorClass = hookAccessor(AccessorClass, "field");
+    AccessorClass = hookUtils.accessor(AccessorClass, "field");
 
     expect(new AccessorClass().field).toBe(10);
 
@@ -236,7 +223,7 @@ describe("hooks: manual decorators", () => {
   });
 
   it("should create accessors for plain static fields", () => {
-    let StaticAccessorClass = hookClass(
+    let StaticAccessorClass = hookUtils.class(
       class StaticAccessorClass {
         static field = 10;
       },
@@ -246,7 +233,7 @@ describe("hooks: manual decorators", () => {
     attach(StaticAccessorClass, "get fieldAlt", (next) => next() * 2);
     attach(StaticAccessorClass, "set fieldAlt", (next, value) => next(value + 3));
 
-    StaticAccessorClass = hookAccessor(StaticAccessorClass, "field", "fieldAlt");
+    StaticAccessorClass = hookUtils.accessor(StaticAccessorClass, "field", "fieldAlt");
 
     expect(StaticAccessorClass.field).toBe(22);
     StaticAccessorClass.field = 7;
@@ -268,8 +255,8 @@ describe("hooks: manual decorators", () => {
       }
     };
 
-    AccessorsClass = hookGetter(AccessorsClass, "myGetterSetter");
-    AccessorsClass = hookSetter(AccessorsClass, "myGetterSetter");
+    AccessorsClass = hookUtils.getter(AccessorsClass, "myGetterSetter");
+    AccessorsClass = hookUtils.setter(AccessorsClass, "myGetterSetter");
 
     const instance = new AccessorsClass();
     expect(instance.myGetterSetter).toBe("myGetterSetterValue");
@@ -334,7 +321,7 @@ describe("hooks: manual decorators", () => {
 
     expect(Product.val).toBe("test init prv");
 
-    Product = hookAccessor(Product, "val");
+    Product = hookUtils.accessor(Product, "val");
     attach(Product, "get val", (next) => next() + " getter");
     attach(Product, "set val", (next, value) => next(value + " setter"));
 
@@ -348,7 +335,7 @@ describe("hooks: manual decorators", () => {
       static price: number = 0;
     };
     attach(Product, "init price", (next, value) => next(value + 1));
-    Product = hookAccessor(Product, "price");
+    Product = hookUtils.accessor(Product, "price");
     attach(Product, "get price", (next) => next() + 10);
     attach(Product, "set price", (next, value) => next(value + 20));
 
@@ -372,8 +359,8 @@ describe("hooks: manual decorators", () => {
 
     expect(Counter.value).toBe(0);
 
-    Counter = hookGetter(Counter, "value");
-    Counter = hookSetter(Counter, "value");
+    Counter = hookUtils.getter(Counter, "value");
+    Counter = hookUtils.setter(Counter, "value");
     attach(Counter, "get value", (next) => next() + 1);
     attach(Counter, "set value", (next, value) => next(value + 1));
     expect(Counter.value).toBe(1);
@@ -390,7 +377,7 @@ describe("hooks: manual decorators", () => {
     };
     const instance = new Counter();
     expect(instance.myMethod("test")).toBe("test private");
-    Counter = hookMethod(Counter, "myMethod");
+    Counter = hookUtils.method(Counter, "myMethod");
     attach(Counter, "myMethod", (next, x) => next(x + " attached"));
     expect(instance.myMethod("test")).toBe("test attached private");
   });
@@ -403,7 +390,7 @@ describe("hooks: manual decorators", () => {
       }
     };
     expect(Counter.myMethod("test")).toBe("test private");
-    Counter = hookMethod(Counter, "myMethod");
+    Counter = hookUtils.method(Counter, "myMethod");
     attach(Counter, "myMethod", (next, x) => next(x + " attached"));
     expect(Counter.myMethod("test")).toBe("test attached private");
   });
@@ -416,7 +403,7 @@ describe("hooks: manual decorators", () => {
     };
     const origin = MyClass;
     attach(MyClass, "myMethod", (next, x) => next(x + ":mid1"));
-    MyClass = hookMethod(MyClass, "myMethod");
+    MyClass = hookUtils.method(MyClass, "myMethod");
     const instance = new MyClass();
     expect(instance instanceof MyClass).toBe(true);
     expect(instance instanceof origin).toBe(true);
@@ -432,7 +419,7 @@ describe("hooks: manual decorators", () => {
       }
     };
 
-    DynamicHookClass = hookMethod(
+    DynamicHookClass = hookUtils.method(
       DynamicHookClass,
       "dynamicMethod",
       dynamicHookKey(function (this: InstanceType<typeof DynamicHookClass>) {
@@ -485,15 +472,16 @@ describe("hooks: manual decorators", () => {
       myField: string = "field";
     };
 
-    DynamicHookClass = hookField(
-      hookAccessor(
-        DynamicHookClass,
-        "myValue",
-        dynamicHookKey(function (this: InstanceType<typeof DynamicHookClass>) {
-          dynamicThis.push(this);
-          return composeHookKeys(this, DynamicHookClass);
-        }),
-      ),
+    DynamicHookClass = hookUtils.accessor(
+      DynamicHookClass,
+      "myValue",
+      dynamicHookKey(function (this: InstanceType<typeof DynamicHookClass>) {
+        dynamicThis.push(this);
+        return composeHookKeys(this, DynamicHookClass);
+      }),
+    );
+    DynamicHookClass = hookUtils.field(
+      DynamicHookClass,
       "myField",
       dynamicHookKey(function (this: InstanceType<typeof DynamicHookClass>) {
         dynamicThis.push(this);
@@ -547,7 +535,8 @@ describe("hooks: manual decorators", () => {
       return composeHookKeys(this, DynamicHookClass);
     });
 
-    DynamicHookClass = hookSetter(hookGetter(DynamicHookClass, "myValue", track), "myValue", track);
+    DynamicHookClass = hookUtils.getter(DynamicHookClass, "myValue", track);
+    DynamicHookClass = hookUtils.setter(DynamicHookClass, "myValue", track);
 
     const instance = new DynamicHookClass();
     let getSubCalled = 0;
@@ -597,7 +586,7 @@ describe("hooks: manual decorators", () => {
       }
     };
 
-    MyClass = hookMethod(
+    MyClass = hookUtils.method(
       MyClass,
       "myMethod",
       dynamicHookKey(function (this: InstanceType<typeof MyClass>) {
@@ -621,7 +610,7 @@ describe("hooks: manual decorators", () => {
       }
     };
 
-    InnerHooksClass = hookMethod(InnerHooksClass, "myMethod");
+    InnerHooksClass = hookUtils.method(InnerHooksClass, "myMethod");
 
     const instance = new InnerHooksClass();
 
@@ -669,7 +658,7 @@ describe("hooks: manual decorators", () => {
   });
 
   it("should work with static fields and accessors when middleware is attached before decoration", () => {
-    let StaticMembersClass = hookClass(
+    let StaticMembersClass = hookUtils.class(
       class StaticMembersClass {
         static staticField = "staticField";
         static accessor staticAcc: string = "staticAcc";
@@ -681,8 +670,8 @@ describe("hooks: manual decorators", () => {
     attach(StaticMembersClass, "get staticAccAlt", (next) => next() + ":getAcc");
     attach(StaticMembersClass, "set staticAccAlt", (next, value) => next(value + ":setAcc"));
 
-    StaticMembersClass = hookField(StaticMembersClass, "staticField", "staticFieldAlt");
-    StaticMembersClass = hookAccessor(StaticMembersClass, "staticAcc", "staticAccAlt");
+    StaticMembersClass = hookUtils.field(StaticMembersClass, "staticField", "staticFieldAlt");
+    StaticMembersClass = hookUtils.accessor(StaticMembersClass, "staticAcc", "staticAccAlt");
 
     expect(StaticMembersClass.staticField).toBe("staticField:fieldInit");
     expect(StaticMembersClass.staticAcc).toBe("staticAcc:accInit:getAcc");
@@ -705,12 +694,12 @@ describe("hooks: manual decorators", () => {
       }
     }
 
-    expect(() => hookMethod(InvalidClass, "field")).toThrow("hookMethod");
-    expect(() => hookGetter(InvalidClass, "field")).toThrow("hookGetter");
-    expect(() => hookSetter(InvalidClass, "field")).toThrow("hookSetter");
-    expect(() => hookAccessor(InvalidClass, "onlyGetter")).toThrow("hookAccessor");
-    expect(() => hookField(InvalidClass, "constructor")).toThrow("hookField");
-    expect(() => hookField(InvalidStaticFieldClass, "bad")).toThrow("hookField");
-    expect(() => hookAccessor(InvalidStaticFieldClass, "bad")).toThrow("hookAccessor");
+    expect(() => hookUtils.method(InvalidClass, "field")).toThrow("[hookUtils][method]");
+    expect(() => hookUtils.getter(InvalidClass, "field")).toThrow("[hookUtils][getter]");
+    expect(() => hookUtils.setter(InvalidClass, "field")).toThrow("[hookUtils][setter]");
+    expect(() => hookUtils.accessor(InvalidClass, "onlyGetter")).toThrow("[hookUtils][accessor]");
+    expect(() => hookUtils.field(InvalidClass, "constructor")).toThrow("[hookUtils][field]");
+    expect(() => hookUtils.field(InvalidStaticFieldClass, "bad")).toThrow("[hookUtils][field]");
+    expect(() => hookUtils.accessor(InvalidStaticFieldClass, "bad")).toThrow("[hookUtils][accessor]");
   });
 });

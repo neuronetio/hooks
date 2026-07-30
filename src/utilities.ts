@@ -15,28 +15,28 @@ import {
   _identity,
 } from "./index.js";
 
-const PREFIX = `[@neuronet/hooks]`;
+const PREFIX = `[@neuronet/hooks][hookUtils]`;
 
-interface IManualHookState<TClass extends HookDecoratedClass = HookDecoratedClass> {
+interface IUtilitiesHookState<TClass extends HookDecoratedClass = HookDecoratedClass> {
   Class: TClass;
   originalClass: HookDecoratedClass;
   instanceInitializers: Array<(instance: any) => void>;
 }
 
-const MANUAL_HOOK_STATE = Symbol("[hook][manual-state]");
+const UTILITIES_HOOK_STATE = Symbol("[hook][utilities-state]");
 
 /**
- * Builds a lightweight method decorator context for the manual API.
+ * Builds a lightweight method decorator context for the utilities API.
  *
- * Manual decoration does not run through the JavaScript decorator runtime, so this helper
+ * Utilities decoration does not run through the JavaScript decorator runtime, so this helper
  * creates the subset of `ClassMemberDecoratorContext` that `hookDecorator()` needs.
  * It also collects initializer callbacks so they can be replayed later.
  *
  * @param propertyKey The method name.
- * @param isStatic Tells the manual context whether the method is static.
+ * @param isStatic Tells the utilities context whether the method is static.
  * @returns A synthetic decorator context and the initializer list collected from it.
  */
-function createManualMethodContext(
+function createUtilitiesMethodContext(
   propertyKey: PropertyKey,
   isStatic: boolean,
 ): {
@@ -60,21 +60,21 @@ function createManualMethodContext(
 }
 
 /**
- * Returns the cached manual hook runtime state for a class, creating it when needed.
+ * Returns the cached utilities hook runtime state for a class, creating it when needed.
  *
  * The state stores a wrapped constructor and the list of instance initializers that should
- * run after each new instance is created. This is the foundation of the manual decoration API.
+ * run after each new instance is created. This is the foundation of the utilities decoration API.
  *
- * @param Class The class being prepared for manual decoration.
+ * @param Class The class being prepared for utilities decoration.
  * @returns The shared runtime state for that class.
  */
-function ensureManualHookState<TClass extends HookDecoratedClass>(Class: TClass): IManualHookState<TClass> {
-  const existingState = (Class as any)[MANUAL_HOOK_STATE] as IManualHookState<TClass> | undefined;
+function ensureUtilitiesHookState<TClass extends HookDecoratedClass>(Class: TClass): IUtilitiesHookState<TClass> {
+  const existingState = (Class as any)[UTILITIES_HOOK_STATE] as IUtilitiesHookState<TClass> | undefined;
   if (existingState) {
     return existingState;
   }
 
-  const instanceInitializers: IManualHookState<TClass>["instanceInitializers"] = [];
+  const instanceInitializers: IUtilitiesHookState<TClass>["instanceInitializers"] = [];
   const HookedClass = new Proxy(Class as HookDecoratedClass, {
     construct(target, args, newTarget) {
       const instance = Reflect.construct(target, args, newTarget);
@@ -85,14 +85,14 @@ function ensureManualHookState<TClass extends HookDecoratedClass>(Class: TClass)
     },
   }) as TClass;
 
-  const state: IManualHookState<TClass> = {
+  const state: IUtilitiesHookState<TClass> = {
     Class: HookedClass,
     originalClass: Class as HookDecoratedClass,
     instanceInitializers,
   };
 
-  (HookedClass as any)[MANUAL_HOOK_STATE] = state;
-  (Class as any)[MANUAL_HOOK_STATE] = state;
+  (HookedClass as any)[UTILITIES_HOOK_STATE] = state;
+  (Class as any)[UTILITIES_HOOK_STATE] = state;
   HookedClass.prototype.constructor = HookedClass;
 
   return state;
@@ -101,7 +101,7 @@ function ensureManualHookState<TClass extends HookDecoratedClass>(Class: TClass)
 /**
  * Finds a member descriptor on the class or its prototype and validates its shape.
  *
- * Manual decoration can target either static members or instance members. This helper checks
+ * Utilities decoration can target either static members or instance members. This helper checks
  * both locations, returns the first compatible descriptor, and throws a clear error otherwise.
  *
  * @param Class The class being inspected.
@@ -158,7 +158,7 @@ function resolveFieldPlacement(Class: HookDecoratedClass, propertyKey: PropertyK
       typeof staticDescriptor.get === "function" ||
       typeof staticDescriptor.set === "function"
     ) {
-      throw new Error(`${PREFIX}[hookField] Member "${String(propertyKey)}" is not a field.`);
+      throw new Error(`${PREFIX}[field] Member "${String(propertyKey)}" is not a field.`);
     }
 
     return true;
@@ -166,7 +166,7 @@ function resolveFieldPlacement(Class: HookDecoratedClass, propertyKey: PropertyK
 
   const instanceDescriptor = Object.getOwnPropertyDescriptor(Class.prototype, propertyKey);
   if (instanceDescriptor) {
-    throw new Error(`${PREFIX}[hookField] Member "${String(propertyKey)}" is not a field.`);
+    throw new Error(`${PREFIX}[field] Member "${String(propertyKey)}" is not a field.`);
   }
 
   return false;
@@ -188,8 +188,8 @@ function isPrototypeReceiver(value: any): boolean {
 /**
  * Enables hook support for an existing class without using decorator syntax.
  *
- * This function is the manual equivalent of `@Hook`. It returns a wrapped constructor
- * that runs all manual hook initializers for instance members.
+ * This function is the utilities equivalent of `@Hook`. It returns a wrapped constructor
+ * that runs all utilities hook initializers for instance members.
  *
  * Always keep the returned class reference:
  * ```ts
@@ -197,17 +197,17 @@ function isPrototypeReceiver(value: any): boolean {
  * UserService = hookClass(UserService);
  * ```
  *
- * @param Class The class to prepare for manual hook decoration.
+ * @param Class The class to prepare for utilities hook decoration.
  * @returns The wrapped class constructor that should replace the original binding.
  */
 export function hookClass<TClass extends HookDecoratedClass>(Class: TClass): TClass {
-  return ensureManualHookState(Class).Class;
+  return ensureUtilitiesHookState(Class).Class;
 }
 
 /**
  * Applies hook behavior to a class method without using decorator syntax.
  *
- * This function is the manual equivalent of `@hook()` for methods.
+ * This function is the utilities equivalent of `@hook()` for methods.
  *
  * Static methods are wrapped immediately. Prototype methods are prepared in two layers:
  * the method on the prototype becomes the class-level hook, and each instance receives
@@ -268,12 +268,12 @@ export function hookMethod<TClass extends HookDecoratedClass, TName extends Hook
   arg1?: HookDecoratorArgument,
   arg2?: HookDecoratorArgument,
 ): TClass {
-  const state = ensureManualHookState(Class);
+  const state = ensureUtilitiesHookState(Class);
   const { descriptor, isStatic } = resolveMemberDescriptor(
     state.Class,
     propertyKey,
     (candidate) => typeof candidate?.value === "function",
-    "hookMethod",
+    "method",
   );
   const { dynamicKey, alternativeName } = _resolveHookDecoratorOptions(arg1, arg2);
   const hookName = (alternativeName ?? propertyKey) as HookName;
@@ -290,7 +290,7 @@ export function hookMethod<TClass extends HookDecoratedClass, TName extends Hook
   }
 
   const decorate = hookDecorator(arg1 as any, arg2 as any);
-  const { context, initializers } = createManualMethodContext(propertyKey, isStatic);
+  const { context, initializers } = createUtilitiesMethodContext(propertyKey, isStatic);
   const decoratedMethod = decorate(descriptor.value, context);
   const classHook = hook(state.Class, hookName, decoratedMethod);
   const runInitializers = function runHookMethodInitializers(this: any) {
@@ -335,7 +335,7 @@ export function hookMethod<TClass extends HookDecoratedClass, TName extends Hook
 /**
  * Applies hook behavior to a getter without using decorator syntax.
  *
- * This is the manual equivalent of `@hook()` placed on `get property()`.
+ * This is the utilities equivalent of `@hook()` placed on `get property()`.
  * The created hook name uses the `get ` prefix, for example `get total`.
  *
  * @param Class The class that owns the getter.
@@ -387,12 +387,12 @@ export function hookGetter<TClass extends HookDecoratedClass, TName extends Hook
   arg1?: HookDecoratorArgument,
   arg2?: HookDecoratorArgument,
 ): TClass {
-  const state = ensureManualHookState(Class);
+  const state = ensureUtilitiesHookState(Class);
   const { descriptor, target, isStatic } = resolveMemberDescriptor(
     state.Class,
     propertyKey,
     (candidate) => typeof candidate?.get === "function",
-    "hookGetter",
+    "getter",
   );
   const { dynamicKey, alternativeName } = _resolveHookDecoratorOptions(arg1, arg2);
   const hookName = (alternativeName ?? propertyKey) as HookName;
@@ -413,7 +413,7 @@ export function hookGetter<TClass extends HookDecoratedClass, TName extends Hook
 /**
  * Applies hook behavior to a setter without using decorator syntax.
  *
- * This is the manual equivalent of `@hook()` placed on `set property(value)`.
+ * This is the utilities equivalent of `@hook()` placed on `set property(value)`.
  * The created hook name uses the `set ` prefix, for example `set total`.
  *
  * @param Class The class that owns the setter.
@@ -465,12 +465,12 @@ export function hookSetter<TClass extends HookDecoratedClass, TName extends Hook
   arg1?: HookDecoratorArgument,
   arg2?: HookDecoratorArgument,
 ): TClass {
-  const state = ensureManualHookState(Class);
+  const state = ensureUtilitiesHookState(Class);
   const { descriptor, target, isStatic } = resolveMemberDescriptor(
     state.Class,
     propertyKey,
     (candidate) => typeof candidate?.set === "function",
-    "hookSetter",
+    "setter",
   );
   const { dynamicKey, alternativeName } = _resolveHookDecoratorOptions(arg1, arg2);
   const hookName = (alternativeName ?? propertyKey) as HookName;
@@ -492,10 +492,10 @@ export function hookSetter<TClass extends HookDecoratedClass, TName extends Hook
 /**
  * Applies hook behavior to a public field initializer without using decorator syntax.
  *
- * This is the manual equivalent of `@hook()` placed on a public field.
+ * This is the utilities equivalent of `@hook()` placed on a public field.
  * The hook name uses the `init ` prefix, for example `init status`.
  *
- * Use this function before creating new instances. Manual field decoration updates
+ * Use this function before creating new instances. Utilities field decoration updates
  * the value during initialization, not after the field already exists.
  *
  * @param Class The class that owns the field.
@@ -547,7 +547,7 @@ export function hookField<TClass extends HookDecoratedClass, TName extends HookP
   arg1?: HookDecoratorArgument,
   arg2?: HookDecoratorArgument,
 ): TClass {
-  const state = ensureManualHookState(Class);
+  const state = ensureUtilitiesHookState(Class);
   const isStatic = resolveFieldPlacement(state.Class, propertyKey);
   const { dynamicKey, alternativeName } = _resolveHookDecoratorOptions(arg1, arg2);
   const hookName = (alternativeName ?? propertyKey) as HookName;
@@ -573,7 +573,7 @@ export function hookField<TClass extends HookDecoratedClass, TName extends HookP
 /**
  * Applies hook behavior to an auto-accessor without using decorator syntax.
  *
- * This is the manual equivalent of `@hook()` placed on `accessor property`.
+ * This is the utilities equivalent of `@hook()` placed on `accessor property`.
  * It creates the same three hook entry points as the decorator version:
  * `init <name>`, `get <name>`, and `set <name>`.
  *
@@ -623,7 +623,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
   arg1?: HookDecoratorArgument,
   arg2?: HookDecoratorArgument,
 ): TClass {
-  const state = ensureManualHookState(Class);
+  const state = ensureUtilitiesHookState(Class);
   const { dynamicKey, alternativeName } = _resolveHookDecoratorOptions(arg1, arg2);
   const hookName = (alternativeName ?? propertyKey) as HookName;
   const staticDescriptor = Object.getOwnPropertyDescriptor(state.Class, propertyKey);
@@ -640,7 +640,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
       dynamicKey,
       state.originalClass,
     );
-    const initializedKey = Symbol(`[hook][manual-initialized ${String(propertyKey)}]`);
+    const initializedKey = Symbol(`[hook][utilities-initialized ${String(propertyKey)}]`);
     const ensureInitialized = function runHookAccessorInitializer(this: any) {
       if (this[initializedKey]) {
         return;
@@ -678,7 +678,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
       originalSet,
       dynamicKey,
     );
-    const initializedKey = Symbol(`[hook][manual-initialized ${String(propertyKey)}]`);
+    const initializedKey = Symbol(`[hook][utilities-initialized ${String(propertyKey)}]`);
     const ensureInitialized = function runHookAccessorInitializer(this: any) {
       if (this[initializedKey]) {
         return;
@@ -711,7 +711,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
 
   if (instanceDescriptor) {
     throw new Error(
-      `${PREFIX}[hookAccessor] Could not find a compatible member named "${String(propertyKey)}" on the class or its prototype.`,
+      `${PREFIX}[accessor] Could not find a compatible member named "${String(propertyKey)}" on the class or its prototype.`,
     );
   }
 
@@ -722,7 +722,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
       typeof staticDescriptor.set === "function")
   ) {
     throw new Error(
-      `${PREFIX}[hookAccessor] Could not find a compatible member named "${String(propertyKey)}" on the class or its prototype.`,
+      `${PREFIX}[accessor] Could not find a compatible member named "${String(propertyKey)}" on the class or its prototype.`,
     );
   }
 
@@ -763,3 +763,15 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
 
   return state.Class;
 }
+
+/**
+ * Utility functions for hooking into class methods, fields, accessors, and more.
+ */
+export const hookUtils = {
+  class: hookClass,
+  method: hookMethod,
+  getter: hookGetter,
+  setter: hookSetter,
+  field: hookField,
+  accessor: hookAccessor,
+};

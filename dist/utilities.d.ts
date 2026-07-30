@@ -3,8 +3,8 @@ import { HookDecoratedClass, HookDecoratorArgument, HookKeyDynamic, HookProperty
 /**
  * Enables hook support for an existing class without using decorator syntax.
  *
- * This function is the manual equivalent of `@Hook`. It returns a wrapped constructor
- * that runs all manual hook initializers for instance members.
+ * This function is the utilities equivalent of `@Hook`. It returns a wrapped constructor
+ * that runs all utilities hook initializers for instance members.
  *
  * Always keep the returned class reference:
  * ```ts
@@ -12,14 +12,14 @@ import { HookDecoratedClass, HookDecoratorArgument, HookKeyDynamic, HookProperty
  * UserService = hookClass(UserService);
  * ```
  *
- * @param Class The class to prepare for manual hook decoration.
+ * @param Class The class to prepare for utilities hook decoration.
  * @returns The wrapped class constructor that should replace the original binding.
  */
 declare function hookClass<TClass extends HookDecoratedClass>(Class: TClass): TClass;
 /**
  * Applies hook behavior to a class method without using decorator syntax.
  *
- * This function is the manual equivalent of `@hook()` for methods.
+ * This function is the utilities equivalent of `@hook()` for methods.
  *
  * Static methods are wrapped immediately. Prototype methods are prepared in two layers:
  * the method on the prototype becomes the class-level hook, and each instance receives
@@ -47,7 +47,7 @@ declare function hookMethod<TClass extends HookDecoratedClass, TName extends Hoo
 /**
  * Applies hook behavior to a getter without using decorator syntax.
  *
- * This is the manual equivalent of `@hook()` placed on `get property()`.
+ * This is the utilities equivalent of `@hook()` placed on `get property()`.
  * The created hook name uses the `get ` prefix, for example `get total`.
  *
  * @param Class The class that owns the getter.
@@ -66,7 +66,7 @@ declare function hookGetter<TClass extends HookDecoratedClass, TName extends Hoo
 /**
  * Applies hook behavior to a setter without using decorator syntax.
  *
- * This is the manual equivalent of `@hook()` placed on `set property(value)`.
+ * This is the utilities equivalent of `@hook()` placed on `set property(value)`.
  * The created hook name uses the `set ` prefix, for example `set total`.
  *
  * @param Class The class that owns the setter.
@@ -85,10 +85,10 @@ declare function hookSetter<TClass extends HookDecoratedClass, TName extends Hoo
 /**
  * Applies hook behavior to a public field initializer without using decorator syntax.
  *
- * This is the manual equivalent of `@hook()` placed on a public field.
+ * This is the utilities equivalent of `@hook()` placed on a public field.
  * The hook name uses the `init ` prefix, for example `init status`.
  *
- * Use this function before creating new instances. Manual field decoration updates
+ * Use this function before creating new instances. Utilities field decoration updates
  * the value during initialization, not after the field already exists.
  *
  * @param Class The class that owns the field.
@@ -107,7 +107,7 @@ declare function hookField<TClass extends HookDecoratedClass, TName extends Hook
 /**
  * Applies hook behavior to an auto-accessor without using decorator syntax.
  *
- * This is the manual equivalent of `@hook()` placed on `accessor property`.
+ * This is the utilities equivalent of `@hook()` placed on `accessor property`.
  * It creates the same three hook entry points as the decorator version:
  * `init <name>`, `get <name>`, and `set <name>`.
  *
@@ -124,6 +124,17 @@ declare function hookAccessor<TClass extends HookDecoratedClass>(Class: TClass, 
 declare function hookAccessor<TClass extends HookDecoratedClass>(Class: TClass, propertyKey: PropertyKey, dynamicKey: HookKeyDynamic, alternativeName: string): TClass;
 declare function hookAccessor<TClass extends HookDecoratedClass>(Class: TClass, propertyKey: PropertyKey, alternativeName: string, dynamicKey: HookKeyDynamic): TClass;
 declare function hookAccessor<TClass extends HookDecoratedClass>(Class: TClass, propertyKey: PropertyKey, arg1?: HookDecoratorArgument, arg2?: HookDecoratorArgument): TClass;
+/**
+ * Utility functions for hooking into class methods, fields, accessors, and more.
+ */
+declare const hookUtils: {
+  class: typeof hookClass;
+  method: typeof hookMethod;
+  getter: typeof hookGetter;
+  setter: typeof hookSetter;
+  field: typeof hookField;
+  accessor: typeof hookAccessor;
+};
 //#endregion
-export { hookAccessor, hookClass, hookField, hookGetter, hookMethod, hookSetter };
+export { hookAccessor, hookClass, hookField, hookGetter, hookMethod, hookSetter, hookUtils };
 //# sourceMappingURL=utilities.d.ts.map
