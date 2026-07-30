@@ -11,6 +11,7 @@ It helps you extend behavior without changing the original codebase. In practice
 - When you want a plugin-style extension mechanism for libraries or applications.
 - When you deliver customer-specific solutions that stay separate from, yet ship with, the core code.
 - Ideal for cross-cutting concerns such as dependency injection, validation, testing, logging, caching, memoization, retries, metrics, and other common tasks.
+- When you want to chain functions dynamically and achieve a dynamic pipeline.
 - When you want more granular control over the order of execution of multiple middlewares.
 - When you want full control over where to attach middleware (at the function, class, or specific instance level).
 - When you need middlewares that can be attached and detached at runtime.
@@ -72,7 +73,7 @@ On top of that, `@neuronet/hooks` is very lightweight, well tested, and has no e
     - [Security considerations: private members with hooks](#security-considerations-private-members-with-hooks)
   - [Sub-hooks in ECMA decorators](#sub-hooks-in-ecma-decorators)
 
-## The three main ways to use it
+## The four main ways to use it
 
 You can use this library in four simple ways:
 
@@ -86,8 +87,12 @@ You can use this library in four simple ways:
 ```ts
 import { hook, attach } from "@neuronet/hooks";
 
+// wrap a function with a hook
 const greet = hook((name: string) => `Hello, ${name}\!`);
 
+greet("Ada"); // Hello, Ada
+
+// attach a middleware to the hook
 const detach = attach(greet, (next, name) => {
   const result = next(name.toUpperCase());
   return `${result} 👋`;
@@ -95,6 +100,7 @@ const detach = attach(greet, (next, name) => {
 
 greet("Ada"); // Hello, ADA 👋
 
+// detach the middleware if you need to remove it later
 detach();
 ```
 
@@ -111,19 +117,24 @@ class UserService {
   });
 }
 
-attach(UserService, "greet", (next, name) => {
+// attach a middleware to the hook
+const detach = attach(UserService, "greet", (next, name) => {
   return next(name.toUpperCase());
 });
 
-new UserService().greet("Ada"); // Hello, ADA
+const service = new UserService();
+service.greet("Ada"); // Hello, ADA
+
+// detach the middleware if you need to remove it later
+detach();
 ```
 
-### 2. Quick start: manual decorators
+### 3. Quick start: manual decorators
 
 This style is useful when you want to decorate an existing class without using decorator syntax.
 
 ```ts
-import { Hooks, attach } from "@neuronet/hooks";
+import { Hooks, attach, hookMethod } from "@neuronet/hooks";
 
 let UserService = class UserService {
   greet(name: string) {
@@ -131,18 +142,27 @@ let UserService = class UserService {
   }
 };
 
+// convert the class to a hooked class with builder
 UserService = Hooks(UserService).method("greet").build();
 
-attach(UserService, "greet", (next, name) => {
+// or with the `hookMethod` utility function
+UserService = hookMethod(UserService, "greet");
+
+// attach a middleware to the hook
+const detach = attach(UserService, "greet", (next, name) => {
   return next(name.toUpperCase());
 });
 
-new UserService().greet("Ada"); // Hello, ADA
+const service = new UserService();
+service.greet("Ada"); // Hello, ADA
+
+// detach the middleware if you need to remove it later
+detach();
 ```
 
-### 3. Quick start: ECMA decorators
+### 4. Quick start: ECMA decorators
 
-This style is very convenient when you work with classes directly. For ECMA decorators, you usually need TypeScript or Babel, and the Babel plugin: https://babeljs.io/docs/babel-plugin-proposal-decorators
+This style is very convenient when you work with classes directly. For ECMA decorators, you usually need TypeScript or Babel, and the [babel-plugin-proposal-decorators](https://babeljs.io/docs/babel-plugin-proposal-decorators)
 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
@@ -157,11 +177,82 @@ class UserService {
 
 const service = new UserService();
 
-attach(service, "greet", (next, name) => {
+service.greet("Ada"); // Hello, Ada
+
+// attach a middleware to the hook
+const detach = attach(service, "greet", (next, name) => {
   return next(name.toUpperCase());
 });
 
 service.greet("Ada"); // Hello, ADA
+
+// detach the middleware if you need to remove it later
+detach();
+```
+
+---
+
+Before we dive into the detailed documentation, let's review two core mechanisms: hook keys and middleware behavior.
+
+## Middleware execution order / composite keys
+
+By default, middleware runs in the order it was registered (the most recently added middleware runs at the end of the chain).
+
+`composeHookKeys` is a utility that merges multiple hook keys into a single composite key, so you can attach middleware at multiple levels simultaneously.
+For example, you can register middleware for a specific instance or for all instances of a class — though the mechanism is not limited to classes.
+
+Composed keys are evaluated in cascade (waterfall): for a composition made of two keys, all middleware registered on the first key runs first (in registration order), and then all middleware registered on the second key runs.
+The individual lists are concatenated into a single execution chain.
+
+As a result, even if you register middleware alternately across two (or more) keys, execution will still be grouped by key: all handlers for the first key execute (in their registration order), followed by all handlers for the second key, and so on.
+
+In other words, middleware are ordered first by key, and then by registration order within each key (there's no actual sorting — this example simply illustrates the concept).
+
+// Example 1: single key order
+
+```ts
+import { hook, composeHookKeys, attach } from "@neuronet/hooks";
+
+const oneKey = Symbol("one");
+const one = hook(oneKey, (name: string) => name);
+attach(oneKey, (next, name) => next(name + ":one1")); // one1 added first
+attach(oneKey, (next, name) => next(name + ":one2")); // one2 added second
+one("test"); // test:one1:one2
+```
+
+// Example 2: composite key order
+
+```ts
+import { hook, composeHookKeys, attach } from "@neuronet/hooks";
+
+const key1 = Symbol("key1");
+const key2 = Symbol("key2");
+const composite = hook(composeHookKeys(key1, key2), (name: string) => name);
+attach(key2, (next, name) => next(name + ":key2")); // key2 added first
+attach(key1, (next, name) => next(name + ":key1")); // key1 added second, but runs first because it's the first key in the composition
+composite("test"); // test:key1:key2
+```
+
+// Example 3: multiple middleware
+
+```ts
+import { hook, composeHookKeys, attach } from "@neuronet/hooks";
+
+const key1 = Symbol("key1");
+const key2 = Symbol("key2");
+const key3 = Symbol("key3");
+const composite = hook(composeHookKeys(key1, key2, key3), (name: string) => name);
+
+attach(key1, (next, name) => next(name + "  key1_1"));
+attach(key2, (next, name) => next(name + "  key2_1"));
+attach(key1, (next, name) => next(name + "  key1_2"));
+composite("test"); // test  key1_1  key1_2  key2_1
+
+attach(key3, (next, name) => next(name + "  key3_1"));
+composite("test"); // test  key1_1  key1_2  key2_1  key3_1
+
+attach(key2, (next, name) => next(name + "  key2_2"));
+composite("test"); // test  key1_1  key1_2  key2_1  key2_2  key3_1
 ```
 
 ---
