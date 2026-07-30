@@ -162,7 +162,7 @@ detach();
 
 ### 4. Quick start: ECMA decorators
 
-This style is very convenient when you work with classes directly. For ECMA decorators, you usually need TypeScript or Babel, and the [babel-plugin-proposal-decorators](https://babeljs.io/docs/babel-plugin-proposal-decorators)
+This style is very convenient when you work with classes directly. For ECMA decorators, you usually need TypeScript or Babel, and the [babel-plugin-proposal-decorators](https://babeljs.io/docs/babel-plugin-proposal-decorators) (it depends on your environment).
 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
