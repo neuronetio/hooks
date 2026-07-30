@@ -170,7 +170,15 @@ declare function hook<A extends any[], R>(key: HookKey, name: HookName, args: A,
 declare function Hook(_Class: any, context: ClassDecoratorContext): void;
 type HookDecoratorArgument = HookKeyDynamic | string;
 type HookDecoratedClass = new (...args: any[]) => any;
-type DecoratorResult = (value: any, context: ClassMemberDecoratorContext) => any;
+interface HookDecoratorContext {
+  kind: "method" | "getter" | "setter" | "field" | "accessor";
+  name: string | symbol;
+  static: boolean;
+  private: boolean;
+  metadata: DecoratorMetadataObject;
+  addInitializer(initializer: (this: any) => void): void;
+}
+type DecoratorResult = (value: any, context: HookDecoratorContext) => any;
 /**
  * A decorator for class members (methods, accessors, fields) that wraps them in a hook.
  * Supports ECMA TC39 Stage 3+ decorators.
@@ -515,5 +523,5 @@ declare function inspectHook(hookFn: IHookFn<any, any>): IHookInspection;
 declare function detach(key: HookKey, name: HookName, fn: MiddlewareMethod): void;
 type MiddlewareNext<A extends any[] = any[], R = any> = ((...args: A) => R) | null;
 //#endregion
-export { DEFAULT_HOOK_NAME, DecoratorResult, HOOK, Hook, HookDecoratorBuilder, HookKey, HookKeyDynamicFn, HookKeySingle, HookName, Hooks, IHookData, IHookDecoratorBuilder, IHookFn, IHookInspection, IMiddlewareMethods, MetadataHooks, MiddlewareMethod, MiddlewareNext, attach, composeHookKeys, detach, dynamicHookKey, getCurrentHookKeyContext, hook, hookAccessor, hookClass, hookDecorator, hookField, hookGetter, hookMethod, hookSetter, inspectHook, middlewares };
+export { DEFAULT_HOOK_NAME, DecoratorResult, HOOK, Hook, HookDecoratorBuilder, HookDecoratorContext, HookKey, HookKeyDynamicFn, HookKeySingle, HookName, Hooks, IHookData, IHookDecoratorBuilder, IHookFn, IHookInspection, IMiddlewareMethods, MetadataHooks, MiddlewareMethod, MiddlewareNext, attach, composeHookKeys, detach, dynamicHookKey, getCurrentHookKeyContext, hook, hookAccessor, hookClass, hookDecorator, hookField, hookGetter, hookMethod, hookSetter, inspectHook, middlewares };
 //# sourceMappingURL=index.d.ts.map
