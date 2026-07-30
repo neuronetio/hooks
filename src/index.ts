@@ -838,25 +838,23 @@ export function hookMethod<TClass extends HookDecoratedClass, TName extends Hook
     (candidate) => typeof candidate?.value === "function",
     "hookMethod",
   );
-  const decorate = hookDecorator(arg1 as any, arg2 as any);
-  const { context, initializers } = createManualMethodContext(propertyKey, isStatic);
-  const decoratedMethod = decorate(descriptor.value, context);
+  const { dynamicKey, alternativeName } = resolveHookDecoratorOptions(arg1, arg2);
+  const hookName = (alternativeName ?? propertyKey) as HookName;
 
   if (isStatic) {
+    const wrappedMethod = hook(dynamicKey ?? state.Class, hookName, descriptor.value.bind(state.originalClass));
+
     Object.defineProperty(state.Class, propertyKey, {
       ...descriptor,
-      value: decoratedMethod,
+      value: wrappedMethod,
     });
-
-    for (const initializer of initializers) {
-      initializer.call(state.Class);
-    }
 
     return state.Class;
   }
 
-  const { alternativeName } = resolveHookDecoratorOptions(arg1, arg2);
-  const hookName = (alternativeName ?? propertyKey) as HookName;
+  const decorate = hookDecorator(arg1 as any, arg2 as any);
+  const { context, initializers } = createManualMethodContext(propertyKey, isStatic);
+  const decoratedMethod = decorate(descriptor.value, context);
   const classHook = hook(state.Class, hookName, decoratedMethod);
   const runInitializers = function runHookMethodInitializers(this: any) {
     for (const initializer of initializers) {

@@ -352,7 +352,7 @@ describe("hooks: manual decorators", () => {
     expect(Product.price).toBe(32); // 2 + 20 + 10 = 32
   });
 
-  it("should work with static setters and getters", () => {
+  it("hookGetter & hookSetter should work with static setters and getters", () => {
     let Counter = class Counter {
       static #value = 0;
 
@@ -374,6 +374,19 @@ describe("hooks: manual decorators", () => {
     expect(Counter.value).toBe(1);
     Counter.value = 2;
     expect(Counter.value).toBe(4); // 2 + 1 + 1 = 4
+  });
+
+  it("hookMethod should work with static method and private access", () => {
+    let Counter = class Counter {
+      static #privateValue = " private";
+      static myMethod(x: string) {
+        return x + this.#privateValue;
+      }
+    };
+    expect(Counter.myMethod("test")).toBe("test private");
+    Counter = hookMethod(Counter, "myMethod");
+    attach(Counter, "myMethod", (next, x) => next(x + " attached"));
+    expect(Counter.myMethod("test")).toBe("test attached private");
   });
 
   it("middlewares should not be applied when attached before hookMethod is used", () => {
