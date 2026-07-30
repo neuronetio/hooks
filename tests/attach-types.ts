@@ -1,5 +1,15 @@
-import type { MiddlewareMethod } from "../src/index";
-import { attach, Hook, hook, hookField, hookGetter, hookMethod, Hooks, hookSetter } from "../src/index";
+import type { IHookFn, MiddlewareMethod } from "../src/index";
+import {
+  attach,
+  composeHookKeys,
+  Hook,
+  hook,
+  hookField,
+  hookGetter,
+  hookMethod,
+  Hooks,
+  hookSetter,
+} from "../src/index";
 
 // NOTICE: tests contains a lot of types that are also checked within "test" script
 
@@ -270,3 +280,45 @@ attach(FnManualExample, "staticMethod", (next, x: number) => {
   // @ts-expect-error string is expected
   return next(x.toUpperCase());
 });
+
+const _fn1: IHookFn<[x: number], string, [x: number]> = hook(
+  composeHookKeys(instance, Example),
+  "myMethod",
+  (x: number) => String(x),
+);
+
+const _fn2: IHookFn<[x: number], string, [x: number]> = hook(instance, "myMethod", (x: number) => String(x));
+
+const _fn3: IHookFn<[x: number], string, [x: number]> = hook(Example, "myMethod", (x: number) => String(x));
+
+class Service {
+  #instPrv = "prv";
+
+  getVal = hook(composeHookKeys(this, Service), "getVal", (v: string) => {
+    return v + " " + this.#instPrv.toUpperCase();
+  });
+
+  getValTypeInst = hook(this, "getVal", (v: string) => {
+    return v + " " + this.#instPrv.toUpperCase();
+  });
+
+  getValTypeClass = hook(Service, "getVal", (v: string) => {
+    return v + " " + this.#instPrv.toUpperCase();
+  });
+
+  getValArgs = hook(composeHookKeys(this, Service), "getValArgs", [this.#instPrv], (v: string) => {
+    return v + " " + this.#instPrv.toUpperCase();
+  });
+
+  static #prv = "prv";
+
+  static staticGetVal = hook(this, "staticGetVal", (v: string) => {
+    return v + " " + this.#prv.toUpperCase();
+  });
+
+  static staticGetValArgs = hook(this, "staticGetValArgs", [this.#prv], (v: string) => {
+    return v + " " + this.#prv.toUpperCase();
+  });
+}
+
+const _service = new Service();

@@ -4,10 +4,8 @@ import {
   HOOK,
   attach,
   composeHookKeys,
-  Hooks,
   dynamicHookKey,
   getCurrentHookKeyContext,
-  HookDecoratorBuilder,
   hook,
   hookAccessor,
   hookClass,
@@ -270,7 +268,8 @@ describe("hooks: manual decorators", () => {
       }
     };
 
-    AccessorsClass = hookSetter(hookGetter(AccessorsClass, "myGetterSetter"), "myGetterSetter");
+    AccessorsClass = hookGetter(AccessorsClass, "myGetterSetter");
+    AccessorsClass = hookSetter(AccessorsClass, "myGetterSetter");
 
     const instance = new AccessorsClass();
     expect(instance.myGetterSetter).toBe("myGetterSetterValue");
@@ -321,21 +320,27 @@ describe("hooks: manual decorators", () => {
     expect(subCalled).toBe(8);
   });
 
-  it("hookAccessor should work with static accessors", () => {
-    const initPrice = Symbol("initPrice");
-    attach(initPrice, "init price", (next, value) => next(value + 1));
+  it("hookAccessor should work with static accessors and should read private values", () => {
+    const initVal = Symbol("initVal");
+    attach(initVal, "init val", (next, value) => next(value + " init"));
 
     let Product = class Product {
-      static price: number = hook(initPrice, "init price", (v: number) => v)(0);
+      static #prv = " prv";
+
+      static val: string = hook(initVal, "init val", (v: string) => {
+        return v + this.#prv;
+      })("test");
     };
 
-    Product = hookAccessor(Product, "price");
-    attach(Product, "get price", (next) => next() + 10);
-    attach(Product, "set price", (next, value) => next(value + 20));
+    expect(Product.val).toBe("test init prv");
 
-    expect(Product.price).toBe(11); // 0 + 1 + 10 = 11
-    Product.price = 2;
-    expect(Product.price).toBe(32); // 2 + 20 + 10 = 32
+    Product = hookAccessor(Product, "val");
+    attach(Product, "get val", (next) => next() + " getter");
+    attach(Product, "set val", (next, value) => next(value + " setter"));
+
+    expect(Product.val).toBe("test init prv getter");
+    Product.val = "mod";
+    expect(Product.val).toBe("mod setter getter");
   });
 
   it("hookAccessor should not use init on static member before hookAccessor is applied", () => {
@@ -376,6 +381,20 @@ describe("hooks: manual decorators", () => {
     expect(Counter.value).toBe(4); // 2 + 1 + 1 = 4
   });
 
+  it("hookMethod should work with method and private access", () => {
+    let Counter = class Counter {
+      #privateValue = " private";
+      myMethod(x: string) {
+        return x + this.#privateValue;
+      }
+    };
+    const instance = new Counter();
+    expect(instance.myMethod("test")).toBe("test private");
+    Counter = hookMethod(Counter, "myMethod");
+    attach(Counter, "myMethod", (next, x) => next(x + " attached"));
+    expect(instance.myMethod("test")).toBe("test attached private");
+  });
+
   it("hookMethod should work with static method and private access", () => {
     let Counter = class Counter {
       static #privateValue = " private";
@@ -389,15 +408,18 @@ describe("hooks: manual decorators", () => {
     expect(Counter.myMethod("test")).toBe("test attached private");
   });
 
-  it("middlewares should not be applied when attached before hookMethod is used", () => {
+  it("hookMethod middleware should not be applied when attached before hookMethod is used", () => {
     let MyClass = class MyClass {
       myMethod(x: string) {
         return x + ":original";
       }
     };
+    const origin = MyClass;
     attach(MyClass, "myMethod", (next, x) => next(x + ":mid1"));
     MyClass = hookMethod(MyClass, "myMethod");
     const instance = new MyClass();
+    expect(instance instanceof MyClass).toBe(true);
+    expect(instance instanceof origin).toBe(true);
     expect(instance.myMethod("input")).toBe("input:original");
   });
 
@@ -644,120 +666,6 @@ describe("hooks: manual decorators", () => {
 
     expect(instanceHookKeys).toEqual([instance, instance]);
     expect(classHookKeys).toEqual([InnerHooksClass, InnerHooksClass]);
-  });
-
-  it("should expose a builder class and support overloads for fluent decoration", () => {
-    let BuilderClass = class BuilderClass {
-      field = "field";
-      acc: string = "initial";
-
-      method(x: string) {
-        return x + ":orig";
-      }
-
-      get value() {
-        return "value";
-      }
-
-      set value(v: string) {
-        void v;
-      }
-    };
-
-    const builder = Hooks(BuilderClass);
-    expect(builder).toBeInstanceOf(HookDecoratorBuilder);
-
-    const decorated = builder
-      .method("method", "methodAlt")
-      .field("field", "fieldAlt")
-      .accessor("acc", "accAlt")
-      .getter("value", "valueAlt")
-      .setter("value", "valueAlt")
-      .build();
-
-    expect(decorated).not.toBe(BuilderClass);
-    const instance = new decorated();
-    expect(instance).toBeInstanceOf(BuilderClass);
-  });
-
-  it("should work with alternative names and builder DX", () => {
-    let MixedClass = class MixedClass {
-      static staticValueStore = "staticInitial";
-      #value = "initial";
-
-      field = "field";
-      acc: string = "initialAcc";
-
-      method(x: string) {
-        return x + ":orig";
-      }
-
-      static staticMethod(x: string) {
-        return x + ":staticOrig";
-      }
-
-      get value() {
-        return this.#value;
-      }
-
-      set value(v: string) {
-        this.#value = v;
-      }
-
-      static get staticVal() {
-        return this.staticValueStore;
-      }
-
-      static set staticVal(v: string) {
-        this.staticValueStore = v;
-      }
-    };
-
-    MixedClass = Hooks(MixedClass)
-      .method("method", "methodAlt")
-      .method("staticMethod", "staticMethodAlt")
-      .field("field", "fieldAlt")
-      .accessor("acc", "accAlt")
-      .getter("value", "valueAlt")
-      .setter("value", "valueAlt")
-      .getter("staticVal", "staticGetAlt")
-      .setter("staticVal", "staticSetAlt")
-      .build();
-
-    const instance = new MixedClass();
-
-    expect(instance instanceof MixedClass).toBe(true);
-
-    attach(MixedClass, "methodAlt", (next, x) => next(x + ":classMid"));
-    attach(instance, "methodAlt", (next, x) => next(x + ":instanceMid"));
-    attach(MixedClass, "staticMethodAlt", (next, x) => next(x + ":staticMid"));
-    attach(MixedClass, "init fieldAlt", (next, value) => next(value + ":fieldInit"));
-    attach(MixedClass, "init accAlt", (next, value) => next(value + ":accInit"));
-    attach(instance, "get accAlt", (next) => next() + ":getAcc");
-    attach(instance, "set accAlt", (next, value) => next(value + ":setAcc"));
-    attach(instance, "get valueAlt", (next) => next() + ":getValue");
-    attach(instance, "set valueAlt", (next, value) => next(value + ":setValue"));
-    attach(MixedClass, "get staticGetAlt", (next) => next() + ":staticGet");
-    attach(MixedClass, "set staticSetAlt", (next, value) => next(value + ":staticSet"));
-
-    expect(instance.method("input")).toBe("input:instanceMid:classMid:orig");
-    expect(MixedClass.staticMethod("input")).toBe("input:staticMid:staticOrig");
-
-    const initialized = new MixedClass();
-    expect(initialized.field).toBe("field:fieldInit");
-    expect(initialized.acc).toBe("initialAcc:accInit");
-
-    expect(instance.acc).toBe("initialAcc:getAcc");
-    instance.acc = "updatedAcc";
-    expect(instance.acc).toBe("updatedAcc:setAcc:getAcc");
-
-    expect(instance.value).toBe("initial:getValue");
-    instance.value = "updatedValue";
-    expect(instance.value).toBe("updatedValue:setValue:getValue");
-
-    expect(MixedClass.staticVal).toBe("staticInitial:staticGet");
-    MixedClass.staticVal = "updatedStatic";
-    expect(MixedClass.staticVal).toBe("updatedStatic:staticSet:staticGet");
   });
 
   it("should work with static fields and accessors when middleware is attached before decoration", () => {

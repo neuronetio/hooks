@@ -11,6 +11,7 @@ import {
   composeHookKeys,
   getCurrentHookKeyContext,
   middlewares,
+  getMiddleware,
 } from "../src";
 
 describe("hooks", () => {
@@ -711,6 +712,23 @@ describe("hooks", () => {
       const fn = () => {};
       attach(key, "method", fn);
       expect(() => detach(key, "method", () => {})).not.toThrow();
+    });
+
+    it("should get middlewares attached to key and name", () => {
+      const key = Symbol("getMiddlewares");
+      const name = "method";
+      const fn1 = (next: any, x: any) => next(x);
+      const fn2 = (next: any, x: any) => next(x);
+
+      attach(key, name, fn1);
+      attach(key, name, fn2);
+
+      const methods = getMiddleware(key, name);
+      expect(methods).toBeDefined();
+      expect(methods).toEqual([fn1, fn2]);
+
+      expect(getMiddleware(key, "nonExistentMethod")).toEqual([]);
+      expect(getMiddleware(Symbol("nonExistentKey"), name)).toEqual([]);
     });
   });
 });

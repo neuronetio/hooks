@@ -1166,6 +1166,22 @@ attach(Counter, "get value", (next) => next() + 1);
 new Counter().value; // 2
 ```
 
+Static
+
+```ts
+import { hookGetter, attach } from "@neuronet/hooks";
+
+let Counter = class Counter {
+  static get value() {
+    return 1;
+  }
+};
+
+Counter = hookGetter(Counter, "value");
+attach(Counter, "get value", (next) => next() + 1);
+console.log(Counter.value); // 2
+```
+
 ##### `hookSetter(Class, property)`
 
 Wraps a setter and creates a hook under the name `set <property>`.
