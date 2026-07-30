@@ -1,2 +1,9 @@
 node_modules/
 playground/
+
+# Test coverage artifacts
+coverage/*
+!coverage/clover.xml
+!coverage/coverage-final.json
+.nyc_output/
+*.lcov
