@@ -40,14 +40,14 @@ On top of that, `@neuronet/hooks` is very lightweight, well tested, and has no e
     - [`hook(key, name, args, fn)`](#hookkey-name-args-fn)
     - [`hook(name, fn)`](#hookname-fn)
     - [`hook(name, args, fn)`](#hookname-args-fn)
-  - [Manual decorators](#manual-decorators)
-    - [Using `Hooks(Class)` builder](#using-hooksclass-builder)
-    - [Builder `method` usage](#builder-method-usage)
-    - [Builder `getter` usage](#builder-getter-usage)
-    - [Builder `setter` usage](#builder-setter-usage)
-    - [Builder `field` usage](#builder-field-usage)
-    - [Builder `accessor` usage](#builder-accessor-usage)
-    - [Builder `build`](#builder-build)
+  - [Hooks builder](#hooks-builder)
+    - [`Hooks(Class)`](#using-hooksclass-builder)
+    - [`method`](#method)
+    - [`getter`](#getter)
+    - [`setter`](#setter)
+    - [`field`](#field)
+    - [`accessor`](#accessor)
+    - [`build`](#build)
     - [Sub-hooks in the builder](#sub-hooks-in-the-builder)
   - [Using direct hook functions](#using-direct-hook-functions)
     - [`hookGetter(Class, property)`](#hookgetterclass-property)
@@ -114,6 +114,7 @@ detach();
 #### 2. Quick start: wrap a class member
 
 This style is useful when you want to decorate an existing class without using decorator syntax.
+For `composeHookKeys` see: [Middleware execution order / composite keys](#middleware-execution-order--composite-keys)
 
 ```ts
 import { hook, composeHookKeys, attach } from "@neuronet/hooks";
@@ -471,9 +472,9 @@ parent(); // Child: OK
 
 ---
 
-### Manual decorators
+### Hooks builder
 
-Manual decorators are useful when you want to decorate an already defined class without using the standard decorator syntax.
+Hooks builder is useful when you want to decorate an already defined class without using the standard decorator syntax.
 
 #### Using `Hooks(Class)` builder
 
@@ -481,7 +482,7 @@ The `Hooks(Class)` builder exposes a fluent API for enabling hooks on several me
 
 Note: builder methods accept a property name, an optional alternative hook name (string), or a dynamic key resolver created with `dynamicHookKey(...)`. You can also pass both a dynamic key and an alternative name when needed.
 
-##### Builder `method` usage
+##### method
 
 - `method(property)` — enable hooks for a method where `property` is the method name.
 - `method(property, alternativeName)` — use `alternativeName` as the hook name.
@@ -577,7 +578,7 @@ const service = new Service();
 service.myMethod("test"); // "test:combined:orig"
 ```
 
-##### Builder `getter` usage
+##### getter
 
 - `getter(property)` — enable `get <property>` hook using the member name.
 - `getter(property, alternativeName: string)` — use `alternativeName` as the public `get` hook name.
@@ -673,7 +674,7 @@ const service = new Service();
 service.value; // 4
 ```
 
-##### Builder `setter` usage
+##### setter
 
 - `setter(property)` — enable `set <property>` hook using the member name.
 - `setter(property, alternativeName)` — use `alternativeName` as the public `set` hook name.
@@ -789,7 +790,7 @@ service.value = 2;
 console.log(service.value); // 5
 ```
 
-##### Builder `field` usage
+##### field
 
 - `field(property)` — enable `init <property>` hook using the member name.
 - `field(property, alternativeName: string)` — use `alternativeName` as the public `init` hook name.
@@ -877,7 +878,7 @@ const service = new Service();
 service.value; // "x:combinedInit"
 ```
 
-##### Builder `accessor` usage
+##### accessor
 
 - `accessor(property)` — enable `init <property>`, `get <property>`, and `set <property>` hooks using the member name.
 - `accessor(property, alternativeName: string)` — change the public base name used for the three hooks.
@@ -965,7 +966,7 @@ const service = new Service();
 console.log(service.x); // "a:getAlt"
 ```
 
-##### Builder `build`
+##### build
 
 - `build()` — finalizes the chain and returns the wrapped class constructor that will run initializers for instance members. Use the returned class in place of the original binding.
 
