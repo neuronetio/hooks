@@ -50,6 +50,7 @@ On top of that, `@neuronet/hooks` is very lightweight, well tested, and has no e
     - [`build`](#build)
     - [Sub-hooks in the builder](#sub-hooks-in-the-builder)
   - [Using direct hook utilities](#using-direct-hook-utilities)
+    - [`hookMethod(Class, property)`](#hookmethodclass-property)
     - [`hookGetter(Class, property)`](#hookgetterclass-property)
     - [`hookSetter(Class, property)`](#hooksetterclass-property)
     - [`hookField(Class, property)`](#hookfieldclass-property)
@@ -1059,6 +1060,93 @@ new UserService().greet("Ada"); // Hello, ADA!!!
 ```
 
 #### Using direct hook utilities
+
+##### Multiple utilities at once
+
+You can use multiple utilities at once to wrap a class and create hooks for its members. The following example shows how to wrap a class with `hookMethod`, `hookGetter`, `hookSetter`, `hookField`, and `hookAccessor` utilities.
+
+```ts
+import { hookMethod, hookGetter, hookSetter, hookField, hookAccessor, attach } from "@neuronet/hooks";
+
+let Service = class Service {
+  #value = 1;
+
+  get value() {
+    return this.#value;
+  }
+
+  set value(next: number) {
+    this.#value = next;
+  }
+
+  greet(name: string) {
+    return `Hello, ${name}`;
+  }
+
+  status = "new";
+
+  acc = "accessor";
+};
+
+// create hooks for the class members
+Service = hookMethod(Service, "greet");
+Service = hookGetter(Service, "value");
+Service = hookSetter(Service, "value");
+Service = hookField(Service, "status");
+Service = hookAccessor(Service, "acc");
+
+// attach middleware to the hooks
+attach(Service, "greet", (next, name) => next(name.toUpperCase()));
+attach(Service, "get value", (next) => next() + 1);
+attach(Service, "set value", (next, value) => next(value + 1));
+attach(Service, "init status", (next, value) => next(value.toUpperCase()));
+attach(Service, "init acc", (next) => next() + "_init");
+attach(Service, "get acc", (next) => next() + "_get");
+attach(Service, "set acc", (next, value) => next(value + "_set"));
+```
+
+##### `hookMethod(Class, property)`
+
+Wraps class method and creates a hook under the name `<property>`.
+
+```ts
+import { hookMethod, attach } from "@neuronet/hooks";
+
+let Service = class Service {
+  myMethod(x: string) {
+    return x + " orig";
+  }
+};
+
+// create a hook for the method
+Service = hookMethod(Service, "myMethod");
+
+// attach a middleware to all instances of the class
+attach(Service, "myMethod", (next, x) => next(x + " middleware"));
+
+// call the method with middleware attached
+const service = new Service();
+service.myMethod("test"); // "test middleware orig"
+
+// ...
+
+// you can also attach middleware to specific instances of the class
+const service2 = new Service();
+attach(service2, "myMethod", (next, x) => next(x + " instanceMiddleware"));
+
+service2.myMethod("test"); // "test instanceMiddleware middleware orig"
+// not affected by specific instance middleware
+service.myMethod("test"); // "test middleware orig"
+
+// ...
+
+// do not run class-level middleware - use specific instance middleware only
+const service3 = new Service();
+attach(service3, "myMethod", (next, x) => {
+  return "short-circuit";
+});
+service3.myMethod("test"); // "short-circuit"
+```
 
 ##### `hookGetter(Class, property)`
 
