@@ -507,7 +507,7 @@ function createManualMethodContext(
   propertyKey: PropertyKey,
   isStatic: boolean,
 ): {
-  context: ClassMemberDecoratorContext;
+  context: HookDecoratorContext;
   initializers: Array<(this: any) => void>;
 } {
   const initializers: Array<(this: any) => void> = [];
@@ -522,7 +522,7 @@ function createManualMethodContext(
       addInitializer(initializer: () => void) {
         initializers.push(initializer as (this: any) => void);
       },
-    } as ClassMemberDecoratorContext,
+    } as HookDecoratorContext,
   };
 }
 
@@ -651,7 +651,16 @@ function isPrototypeReceiver(value: any): boolean {
   return Boolean(value && value.constructor && value === value.constructor.prototype);
 }
 
-export type DecoratorResult = (value: any, context: ClassMemberDecoratorContext) => any;
+export interface HookDecoratorContext {
+  kind: "method" | "getter" | "setter" | "field" | "accessor";
+  name: string | symbol;
+  static: boolean;
+  private: boolean;
+  metadata: DecoratorMetadataObject;
+  addInitializer(initializer: (this: any) => void): void;
+}
+
+export type DecoratorResult = (value: any, context: HookDecoratorContext) => any;
 
 /**
  * A decorator for class members (methods, accessors, fields) that wraps them in a hook.
@@ -679,7 +688,7 @@ export function hookDecorator(
   const resolvedOptions = resolveHookDecoratorOptions(dynamicKey, alternativeName);
   dynamicKey = resolvedOptions.dynamicKey;
   alternativeName = resolvedOptions.alternativeName;
-  return function decorate(this: any, value: any, context: ClassMemberDecoratorContext): any {
+  return function decorate(this: any, value: any, context: HookDecoratorContext): any {
     let propertyKey = context.name;
     let hookName = (alternativeName || propertyKey) as string | symbol;
 
