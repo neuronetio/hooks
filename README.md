@@ -49,7 +49,7 @@ On top of that, `@neuronet/hooks` is very lightweight, well tested, and has no e
     - [`accessor`](#accessor)
     - [`build`](#build)
     - [Sub-hooks in the builder](#sub-hooks-in-the-builder)
-  - [Using direct hook functions](#using-direct-hook-functions)
+  - [Using direct hook utilities](#using-direct-hook-utilities)
     - [`hookGetter(Class, property)`](#hookgetterclass-property)
     - [`hookSetter(Class, property)`](#hooksetterclass-property)
     - [`hookField(Class, property)`](#hookfieldclass-property)
@@ -1058,7 +1058,7 @@ attach(subKey, (next, name) => next(name + "!!!"));
 new UserService().greet("Ada"); // Hello, ADA!!!
 ```
 
-#### Using direct hook functions
+#### Using direct hook utilities
 
 ##### `hookGetter(Class, property)`
 
