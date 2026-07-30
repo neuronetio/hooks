@@ -115,10 +115,34 @@ export function dynamicHookKey(fn: HookKeyDynamicFn): HookKeyDynamic {
  */
 export const dynKey = dynamicHookKey;
 
+/**
+ * A utility class to provide the arguments passed to the middleware and hook functions.
+ */
+export class ArgumentsProvider<A extends any[] = any[]> {
+  args: () => A;
+  constructor(args: A | (() => A)) {
+    this.args = typeof args === "function" ? args : () => args;
+  }
+}
+
+export type ArgumentsFromProvider<AP extends ArgumentsProvider<any[]>> =
+  AP extends ArgumentsProvider<infer A> ? A : never;
+
+/**
+ * Creates an ArgumentsProvider instance to provide the arguments passed to the middleware and hook functions.
+ */
+export function argsProvider<A extends any[]>(dynamicArgs: () => A): ArgumentsProvider<A>;
+export function argsProvider<A extends any[]>(...args: A): ArgumentsProvider<A>;
+export function argsProvider<A extends any[]>(...args: any[]): ArgumentsProvider<A> {
+  return new ArgumentsProvider(args.length === 1 && typeof args[0] === "function" ? args[0] : args);
+}
+
 export type HookKeySingle =
   | symbol
   | Function
-  | (Record<PropertyKey, any> & ({ length?: never } | { push?: never } | { pop?: never } | { splice?: never }));
+  | object
+  | (Record<PropertyKey, any> & ({ length?: never } | { push?: never } | { pop?: never } | { splice?: never }))
+  | (Record<PropertyKey, any> & { args?: never });
 
 /**
  * HookKey can be a symbol, an object, or a function (but not an array).
@@ -139,7 +163,7 @@ export interface IHookData<A extends any[] = any[], R = any> {
   /** The name of the hook. */
   name: HookName;
   /** Optional arguments override. */
-  args?: A;
+  argsProvider?: ArgumentsProvider<A>;
 }
 
 /**
@@ -220,7 +244,7 @@ export function hook(dynamic: HookKeyDynamic, alternativeName: string): ReturnTy
 export function hook<F extends (...args: any[]) => any>(fn: F | null): IHookFn<Parameters<F>, ReturnType<F>>;
 /** Wraps a function in a hook with overridden arguments */
 export function hook<F extends (...args: any[]) => any>(
-  args: Parameters<F>,
+  args: ArgumentsProvider<Parameters<F>>,
   fn: F | null,
 ): IHookFn<Parameters<F>, ReturnType<F>, []>;
 /** Wraps a function in a hook with a specific name */
@@ -231,38 +255,43 @@ export function hook<F extends (...args: any[]) => any>(
 /** Wraps a function in a hook with a specific name and overridden arguments */
 export function hook<F extends (...args: any[]) => any>(
   name: HookName,
-  args: Parameters<F>,
+  args: ArgumentsProvider<Parameters<F>>,
   fn: F | null,
 ): IHookFn<Parameters<F>, ReturnType<F>, []>;
 /** Wraps a function in a hook with a specific key */
 export function hook<F extends (...args: any[]) => any>(
-  key: HookKey | object,
+  key: HookKey,
   fn: F | null,
 ): IHookFn<Parameters<F>, ReturnType<F>>;
 /** Wraps a function in a hook with a specific key and overridden arguments */
 export function hook<F extends (...args: any[]) => any>(
-  key: HookKey | object,
-  args: Parameters<F>,
+  key: HookKey,
+  args: ArgumentsProvider<Parameters<F>>,
   fn: F | null,
 ): IHookFn<Parameters<F>, ReturnType<F>, []>;
 /** Wraps a function in a hook with a specific key and name */
 export function hook<F extends (...args: any[]) => any>(
-  key: HookKey | object,
+  key: HookKey,
   name: HookName,
   fn: F | null,
 ): IHookFn<Parameters<F>, ReturnType<F>>;
 /** Wraps a function in a hook with a specific key, name, and overridden arguments */
 export function hook<F extends (...args: any[]) => any>(
-  key: HookKey | object,
+  key: HookKey,
   name: HookName,
-  args: Parameters<F>,
+  args: ArgumentsProvider<Parameters<F>>,
   fn: F | null,
 ): IHookFn<Parameters<F>, ReturnType<F>, []>;
-export function hook<A extends any[] = any[], R = any, F extends (...args: A) => R = (...args: A) => R>(
+export function hook<
+  A extends any[] = any[],
+  AP extends ArgumentsProvider<A> = ArgumentsProvider<A>,
+  R = any,
+  F extends (...args: A) => R = (...args: A) => R,
+>(
   this: any,
-  arg1?: HookKey | F | A | HookName | HookKeyDynamic | null,
-  arg2?: HookName | F | A | null,
-  arg3?: A | F | null,
+  arg1?: HookKey | F | AP | HookName | HookKeyDynamic | null,
+  arg2?: HookName | F | AP | null,
+  arg3?: AP | F | null,
   arg4?: F | null,
 ): IHookFn<A, R, any> | ReturnType<typeof hookDecorator> {
   if (arg1 === undefined) {
@@ -280,14 +309,14 @@ export function hook<A extends any[] = any[], R = any, F extends (...args: A) =>
 
   let key: HookKey;
   let name: HookName = DEFAULT_HOOK_NAME;
-  let argsOverride: A | undefined = undefined;
+  let argsProv: AP | undefined = undefined;
   let fn: F;
 
   if (arg4 !== undefined) {
     // hook(key, name, args, fn)
     key = arg1 as HookKey;
     name = arg2 as HookName;
-    argsOverride = arg3 as A;
+    argsProv = arg3 as AP;
     fn = (arg4 || noop) as F;
   } else if (arg3 !== undefined) {
     // hook(key, name, fn) OR hook(key, args, fn) OR hook(name, args, fn)
@@ -297,7 +326,7 @@ export function hook<A extends any[] = any[], R = any, F extends (...args: A) =>
       }
       key = currentHookKey;
       name = arg1;
-      argsOverride = arg2 as A;
+      argsProv = arg2 as AP;
       fn = (arg3 || noop) as F;
     } else {
       key = arg1 as HookKey;
@@ -305,7 +334,7 @@ export function hook<A extends any[] = any[], R = any, F extends (...args: A) =>
         name = arg2 as HookName;
         fn = (arg3 || noop) as F;
       } else {
-        argsOverride = arg2 as A;
+        argsProv = arg2 as AP;
         fn = (arg3 || noop) as F;
       }
     }
@@ -318,10 +347,13 @@ export function hook<A extends any[] = any[], R = any, F extends (...args: A) =>
       key = currentHookKey;
       name = arg1;
       fn = (arg2 || noop) as F;
-    } else if (Array.isArray(arg1)) {
-      argsOverride = arg1 as A;
+    } else if (arg1 instanceof ArgumentsProvider) {
+      argsProv = arg1 as AP;
       fn = (arg2 || noop) as F;
-      key = fn as any as HookKey;
+      if (fn === noop && !currentHookKey) {
+        throw new Error(`${PREFIX} Hook key must be provided or inferred from the context.`);
+      }
+      key = fn;
     } else {
       key = arg1 as HookKey;
       fn = (arg2 || noop) as F;
@@ -336,10 +368,10 @@ export function hook<A extends any[] = any[], R = any, F extends (...args: A) =>
     origin: fn,
     key,
     name,
-    args: argsOverride,
+    argsProvider: argsProv,
   };
 
-  function runHook(this: any, ...args: any[]) {
+  function runHook(this: any, ...args: A) {
     let key = _hookData.key;
     const oldHookKey = currentHookKey;
 
@@ -355,7 +387,7 @@ export function hook<A extends any[] = any[], R = any, F extends (...args: A) =>
     if (key instanceof HookKeyComposite) {
       const keyComposite = key as HookKeyComposite;
       if (keyComposite.keys.length === 0) {
-        const callArgs = (argsOverride || (args as any as A)) as unknown as A;
+        const callArgs = (argsProv?.args.call(this) || (args as any as A)) as unknown as A;
         const originalFn = _hookData.origin as unknown as (...args: any[]) => R;
         const result = originalFn.apply(this, callArgs as unknown as any[]);
         currentHookKey = oldHookKey;
@@ -372,7 +404,7 @@ export function hook<A extends any[] = any[], R = any, F extends (...args: A) =>
         }
       };
     }
-    const result = runMiddleware(key, _hookData.name, next, this, ...(argsOverride || (args as any as A)));
+    const result = runMiddleware(key, _hookData.name, next, this, ...(argsProv?.args.call(this) || args));
     currentHookKey = oldHookKey;
     return result;
   }

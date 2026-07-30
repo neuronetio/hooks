@@ -311,6 +311,28 @@ function hookAccessor(Class, propertyKey, arg1, arg2) {
 }
 /**
 * Utility functions for hooking into class methods, fields, accessors, and more.
+*
+* These functions allow you to apply hook behavior to class members without using decorator syntax.
+*
+* @example
+* ```ts
+* let UserService = class UserService {
+*   save(user: User) {
+*     // original save logic
+*   }
+* }
+*
+* // Apply hook behavior to the 'save' method
+* UserService = hookUtils.method(UserService, "save");
+*
+* attach(UserService, "save", (next, user) => {
+*   next(user); // Call the original method
+*   console.log("User saved:", user);
+* });
+*
+* const service = new UserService();
+* service.save({ name: "Alice" }); // This will trigger the hook and log "User saved: { name: 'Alice' }"
+* ```
 */
 const hookUtils = {
 	class: hookClass,

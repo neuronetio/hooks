@@ -5,6 +5,7 @@ import {
   DEFAULT_HOOK_NAME,
   HOOK,
   hook,
+  argsProvider,
   attach,
   detach,
   inspectHook,
@@ -187,7 +188,7 @@ describe("hooks", () => {
       const fn = (a: number) => a;
       attach(fn, (next, a) => next(a + 1));
 
-      expect(hook([10], fn)()).toBe(11);
+      expect(hook(argsProvider(10), fn)()).toBe(11);
     });
 
     it("should work with multiple middlewares and symbols as keys", () => {
@@ -197,7 +198,7 @@ describe("hooks", () => {
       attach(key, (next, x) => next(x + 1));
       attach(key, (next, x) => next(x) - 1);
 
-      expect(hook(key, [5], fn)()).toBe((5 + 1) * (5 + 1) - 1); // 35
+      expect(hook(key, argsProvider(5), fn)()).toBe((5 + 1) * (5 + 1) - 1); // 35
       expect(hook(key, fn)(5)).toBe((5 + 1) * (5 + 1) - 1); // 35
     });
 
@@ -259,7 +260,7 @@ describe("hooks", () => {
     const originalFn = (a: number, b: number) => a + b;
     const key = { some: "key" };
     const name = "customName";
-    const args = [10, 20] as [number, number];
+    const _args = [10, 20] as [number, number];
 
     it("hook(fn)", () => {
       const wrapped = hook(originalFn);
@@ -269,10 +270,10 @@ describe("hooks", () => {
     });
 
     it("hook(args, fn)", () => {
-      const wrapped = hook(args, originalFn);
+      const wrapped = hook(argsProvider(..._args), originalFn);
       expect(wrapped()).toBe(30);
       expect(wrapped[HOOK].key).toBe(originalFn);
-      expect(wrapped[HOOK].args).toEqual(args);
+      expect(wrapped[HOOK].argsProvider?.args()).toEqual(_args);
     });
 
     it("hook(key, fn)", () => {
@@ -283,10 +284,14 @@ describe("hooks", () => {
     });
 
     it("hook(key, args, fn)", () => {
-      const wrapped = hook(key, args, originalFn);
+      const wrapped = hook(
+        key,
+        argsProvider(() => _args),
+        originalFn,
+      );
       expect(wrapped()).toBe(30);
       expect(wrapped[HOOK].key).toBe(key);
-      expect(wrapped[HOOK].args).toEqual(args);
+      expect(wrapped[HOOK].argsProvider?.args()).toEqual(_args);
     });
 
     it("hook(key, name, fn)", () => {
@@ -297,11 +302,16 @@ describe("hooks", () => {
     });
 
     it("hook(key, name, args, fn)", () => {
-      const wrapped = hook(key, name, args, originalFn);
+      const wrapped = hook(
+        key,
+        name,
+        argsProvider(() => _args),
+        originalFn,
+      );
       expect(wrapped()).toBe(30);
       expect(wrapped[HOOK].key).toBe(key);
       expect(wrapped[HOOK].name).toBe(name);
-      expect(wrapped[HOOK].args).toEqual(args);
+      expect(wrapped[HOOK].argsProvider?.args()).toEqual(_args);
     });
   });
 
@@ -407,7 +417,7 @@ describe("hooks", () => {
       attach(key, "child", (next, x) => next(x) + 1);
 
       const result = hook(key, "parent", () => {
-        const wrapped = hook("child", [10], (x: number) => x);
+        const wrapped = hook("child", argsProvider(10), (x: number) => x);
         return wrapped();
       })();
 
@@ -426,13 +436,13 @@ describe("hooks", () => {
       attach(key2, "op2", (next, x) => next(x * 2));
 
       const result = hook(key1, "top", () => {
-        const r1 = hook("op1", [10], (x) => x)(); // uses key1 -> 11
+        const r1 = hook("op1", argsProvider(10), (x) => x)(); // uses key1 -> 11
 
         const r2 = hook(key2, "mid", () => {
-          return hook("op2", [r1], (x) => x)(); // uses key2 -> 22
+          return hook("op2", argsProvider(r1), (x) => x)(); // uses key2 -> 22
         })();
 
-        return hook("op1", [r2], (x) => x)(); // back to key1 -> 23
+        return hook("op1", argsProvider(r2), (x) => x)(); // back to key1 -> 23
       })();
 
       expect(result).toBe(23);
@@ -539,7 +549,7 @@ describe("hooks", () => {
     it("should work with hook(name, args, null)", () => {
       const key = Symbol("context");
       const result = hook(key, () => {
-        const h = hook("test", [1], null);
+        const h = hook("test", argsProvider(1), null);
         return h();
       })();
       expect(result).toBeUndefined();
@@ -553,7 +563,7 @@ describe("hooks", () => {
 
     it("should work with hook(key, args, null)", () => {
       const key = Symbol("key");
-      const h = hook(key, [1], null);
+      const h = hook(key, argsProvider(1), null);
       expect(h()).toBeUndefined();
     });
 
@@ -565,7 +575,7 @@ describe("hooks", () => {
 
     it("should work with hook(key, name, args, null)", () => {
       const key = Symbol("key");
-      const h = hook(key, "test", [1], null);
+      const h = hook(key, "test", argsProvider(1), null);
       expect(h()).toBeUndefined();
     });
 
@@ -600,7 +610,7 @@ describe("hooks", () => {
 
     it("should throw when hook(name, args, fn) is called outside of hook context", () => {
       // @ts-expect-error no such overload
-      expect(() => hook("someName", [123], () => {})).toThrow(/key must be provided/);
+      expect(() => hook("someName", argsProvider(123), () => {})).toThrow(/key must be provided/);
     });
 
     it("should work with empty composite hook key keys.length === 0", () => {
@@ -613,7 +623,7 @@ describe("hooks", () => {
     it("should work with empty composite hook key and override args", () => {
       const emptyComposite = composeHookKeys();
       const fn = (x: number) => x + 10;
-      const h = hook(emptyComposite, "someHook", [5], fn);
+      const h = hook(emptyComposite, "someHook", argsProvider(5), fn);
       expect(h()).toBe(15);
     });
 
@@ -729,6 +739,10 @@ describe("hooks", () => {
 
       expect(getMiddleware(key, "nonExistentMethod")).toEqual([]);
       expect(getMiddleware(Symbol("nonExistentKey"), name)).toEqual([]);
+    });
+
+    it("should throw when no key is provided within hook(ArgumentProvider, null)", () => {
+      expect(() => hook(argsProvider(5), null)).toThrow("key");
     });
   });
 });

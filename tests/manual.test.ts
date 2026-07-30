@@ -1,20 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { attach, keys, dynKey, hook, getCurrentHookKeyContext } from "../src";
+import { attach, keys, dynKey, hook, argsProvider, getCurrentHookKeyContext } from "../src";
 
 describe("manual decorators", () => {
   it("instance initializer should work with private fields", () => {
     class Service {
       #prv = "prv";
 
-      val: string = hook(keys(this, Service), "init val", [this.#prv], (v: string) => {
+      val: string = hook(keys(this, Service), "init val", argsProvider(this.#prv), (v: string) => {
         return v + " " + this.#prv.toUpperCase();
       })();
 
       dynVal: string = hook(
         dynKey(() => keys(this, Service)),
         "init val",
-        [this.#prv],
+        argsProvider(this.#prv),
         (v: string) => {
           return v + " " + this.#prv.toUpperCase();
         },
@@ -35,7 +35,7 @@ describe("manual decorators", () => {
     class Product {
       static #prv = "prv";
 
-      static val: string = hook(initVal, "init val", [this.#prv], (v: string) => {
+      static val: string = hook(initVal, "init val", argsProvider(this.#prv), (v: string) => {
         return v + " " + this.#prv.toUpperCase();
       })();
     }

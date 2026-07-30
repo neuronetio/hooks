@@ -89,6 +89,18 @@ function dynamicHookKey(fn) {
 * @returns A new HookKeyDynamic instance.
 */
 const dynKey = dynamicHookKey;
+/**
+* A utility class to provide the arguments passed to the middleware and hook functions.
+*/
+var ArgumentsProvider = class {
+	args;
+	constructor(args) {
+		this.args = typeof args === "function" ? args : () => args;
+	}
+};
+function argsProvider(...args) {
+	return new ArgumentsProvider(args.length === 1 && typeof args[0] === "function" ? args[0] : args);
+}
 let currentHookKey = null;
 /**
 * Retrieves the hook key context for the currently executing hook.
@@ -106,18 +118,18 @@ function hook(arg1, arg2, arg3, arg4) {
 	if (arg1 instanceof HookKeyDynamic && typeof arg2 === "string" && arg3 === void 0) return hookDecorator(arg2, arg1);
 	let key;
 	let name = DEFAULT_HOOK_NAME;
-	let argsOverride = void 0;
+	let argsProv = void 0;
 	let fn;
 	if (arg4 !== void 0) {
 		key = arg1;
 		name = arg2;
-		argsOverride = arg3;
+		argsProv = arg3;
 		fn = arg4 || noop;
 	} else if (arg3 !== void 0) if (typeof arg1 === "string") {
 		if (!currentHookKey) throw new Error(`${PREFIX} Hook key must be provided or inferred from the context.`);
 		key = currentHookKey;
 		name = arg1;
-		argsOverride = arg2;
+		argsProv = arg2;
 		fn = arg3 || noop;
 	} else {
 		key = arg1;
@@ -125,7 +137,7 @@ function hook(arg1, arg2, arg3, arg4) {
 			name = arg2;
 			fn = arg3 || noop;
 		} else {
-			argsOverride = arg2;
+			argsProv = arg2;
 			fn = arg3 || noop;
 		}
 	}
@@ -134,9 +146,10 @@ function hook(arg1, arg2, arg3, arg4) {
 		key = currentHookKey;
 		name = arg1;
 		fn = arg2 || noop;
-	} else if (Array.isArray(arg1)) {
-		argsOverride = arg1;
+	} else if (arg1 instanceof ArgumentsProvider) {
+		argsProv = arg1;
 		fn = arg2 || noop;
+		if (fn === noop && !currentHookKey) throw new Error(`${PREFIX} Hook key must be provided or inferred from the context.`);
 		key = fn;
 	} else {
 		key = arg1;
@@ -150,7 +163,7 @@ function hook(arg1, arg2, arg3, arg4) {
 		origin: fn,
 		key,
 		name,
-		args: argsOverride
+		argsProvider: argsProv
 	};
 	function runHook(...args) {
 		let key = _hookData.key;
@@ -161,7 +174,7 @@ function hook(arg1, arg2, arg3, arg4) {
 		if (key instanceof HookKeyComposite) {
 			const keyComposite = key;
 			if (keyComposite.keys.length === 0) {
-				const callArgs = argsOverride || args;
+				const callArgs = argsProv?.args.call(this) || args;
 				const result = _hookData.origin.apply(this, callArgs);
 				currentHookKey = oldHookKey;
 				return result;
@@ -174,7 +187,7 @@ function hook(arg1, arg2, arg3, arg4) {
 				else return _hookData.origin.apply(this, args);
 			};
 		}
-		const result = runMiddleware(key, _hookData.name, next, this, ...argsOverride || args);
+		const result = runMiddleware(key, _hookData.name, next, this, ...argsProv?.args.call(this) || args);
 		currentHookKey = oldHookKey;
 		return result;
 	}
@@ -435,5 +448,5 @@ function runMiddleware(key, name, next, thisArg, ...args) {
 }
 
 //#endregion
-export { DEFAULT_HOOK_NAME, HOOK, Hook, HookKeyDynamic, _createAccessorDecoratorHooks, _createLazyHookInvoker, _identity, _resolveHookDecoratorOptions, attach, composeHookKeys, detach, dynKey, dynamicHookKey, getCurrentHookKeyContext, getMiddleware, hook, hookDecorator, inspectHook, keys, middlewares };
+export { ArgumentsProvider, DEFAULT_HOOK_NAME, HOOK, Hook, HookKeyDynamic, _createAccessorDecoratorHooks, _createLazyHookInvoker, _identity, _resolveHookDecoratorOptions, argsProvider, attach, composeHookKeys, detach, dynKey, dynamicHookKey, getCurrentHookKeyContext, getMiddleware, hook, hookDecorator, inspectHook, keys, middlewares };
 //# sourceMappingURL=hook.js.map

@@ -1,5 +1,6 @@
 import type { IHookFn, MiddlewareMethod } from "../src/index";
 import {
+  argsProvider,
   attach,
   composeHookKeys,
   Hook,
@@ -306,7 +307,7 @@ class Service {
     return v + " " + this.#instPrv.toUpperCase();
   });
 
-  getValArgs = hook(composeHookKeys(this, Service), "getValArgs", [this.#instPrv], (v: string) => {
+  getValArgs = hook(composeHookKeys(this, Service), "getValArgs", argsProvider(this.#instPrv), (v: string) => {
     return v + " " + this.#instPrv.toUpperCase();
   });
 
@@ -316,7 +317,7 @@ class Service {
     return v + " " + this.#prv.toUpperCase();
   });
 
-  static staticGetValArgs = hook(this, "staticGetValArgs", [this.#prv], (v: string) => {
+  static staticGetValArgs = hook(this, "staticGetValArgs", argsProvider(this.#prv), (v: string) => {
     return v + " " + this.#prv.toUpperCase();
   });
 }
