@@ -1,12 +1,26 @@
 # @neuronet/hooks
 
-@neuronet/hooks is a simple and flexible library for adding hooks and middleware to JavaScript and TypeScript code.
+`@neuronet/hooks` is a simple unified and flexible library for adding hooks and middleware or events to JavaScript and TypeScript code.
 
-It helps you extend behavior without changing the original implementation. In practice, that means you can add logging, validation, retries, caching, instrumentation, or custom logic in a clean and reusable way.
+It helps you extend behavior without changing the original codebase. In practice, that means you can add dependency injection, logging, validation, retries, caching, instrumentation, or custom logic in a clean and reusable way.
+
+## When this library might be useful
+
+- When you need observable events or lifecycle hooks inside your code.
+- When you need to add or change behavior without modifying the original source code (keeping it upgradable).
+- When you want a plugin-style extension mechanism for libraries or applications.
+- When you deliver customer-specific solutions that stay separate from, yet ship with, the core code.
+- Ideal for cross-cutting concerns such as dependency injection, validation, testing, logging, caching, memoization, retries, metrics, and other common tasks.
+- When you want more granular control over the order of execution of multiple middlewares.
+- When you want full control over where to attach middleware (at the function, class, or specific instance level).
+- When you need middlewares that can be attached and detached at runtime.
+- When you want a single, consistent API for injecting behavior into functions, methods, fields, getters, setters, and accessors — across public, static, and private members.
+
+On top of that, `@neuronet/hooks` is very lightweight, well tested, and has no external dependencies. It is written in TypeScript and runs in Node.js, web browsers, Deno, Bun, and other JavaScript runtimes.
 
 ## Table of contents
 
-- [Why this library is useful](#why-this-library-is-useful)
+- [Why this library is useful](#when-this-library-might-be-useful)
 - [The three main ways to use it](#the-three-main-ways-to-use-it)
   - [1. Quick start: wrap a function](#1-quick-start-wrap-a-function)
   - [2. Quick start: manual decorators](#2-quick-start-manual-decorators)
@@ -55,25 +69,17 @@ It helps you extend behavior without changing the original implementation. In pr
     - [Private fields](#private-fields)
     - [Private accessors](#private-accessors)
     - [Private static members](#private-static-members)
-- [Security considerations: private members with hooks](#security-considerations-private-members-with-hooks)
-- [Sub-hooks in ECMA decorators](#sub-hooks-in-ecma-decorators)
-
-## Why this library is useful
-
-- It lets you add new behavior without changing the original source code.
-- It is useful for creating plugins for public libraries.
-- It helps you extend a base system safely, without blocking future updates.
-- It is a good fit for customer-specific solutions, where you keep middleware in one place and apply it only when needed.
-- It gives you a single, consistent way to plug logic into functions and methods dynamically.
-- It is useful for testing, logging, caching, memoization, retrying, metrics, and many other common tasks.
+    - [Security considerations: private members with hooks](#security-considerations-private-members-with-hooks)
+  - [Sub-hooks in ECMA decorators](#sub-hooks-in-ecma-decorators)
 
 ## The three main ways to use it
 
-You can use this library in three simple ways:
+You can use this library in four simple ways:
 
 1. Wrap a function
-2. Decorate an existing class manually
-3. Use ECMA decorators
+2. Wrap a class member
+3. Decorate an existing class manually
+4. Use ECMA decorators
 
 ### 1. Quick start: wrap a function
 
@@ -90,6 +96,26 @@ const detach = attach(greet, (next, name) => {
 greet("Ada"); // Hello, ADA 👋
 
 detach();
+```
+
+### 2. Quick start: wrap a class member
+
+This style is useful when you want to decorate an existing class without using decorator syntax.
+
+```ts
+import { hook, composeHookKeys, attach } from "@neuronet/hooks";
+
+class UserService {
+  greet = hook(composeHookKeys(this, UserService), (name: string) => {
+    return `Hello, ${name}`;
+  });
+}
+
+attach(UserService, "greet", (next, name) => {
+  return next(name.toUpperCase());
+});
+
+new UserService().greet("Ada"); // Hello, ADA
 ```
 
 ### 2. Quick start: manual decorators
