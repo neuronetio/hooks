@@ -646,6 +646,8 @@ describe("hooks: manual decorators", () => {
 
     const instance = new MixedClass();
 
+    expect(instance instanceof MixedClass).toBe(true);
+
     attach(MixedClass, "methodAlt", (next, x) => next(x + ":classMid"));
     attach(instance, "methodAlt", (next, x) => next(x + ":instanceMid"));
     attach(MixedClass, "staticMethodAlt", (next, x) => next(x + ":staticMid"));
