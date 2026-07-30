@@ -1,5 +1,7 @@
 import type { MiddlewareMethod } from "../src/index";
-import { attach, Hook, hook } from "../src/index";
+import { attach, Hook, hook, hookField, hookGetter, hookMethod, Hooks, hookSetter } from "../src/index";
+
+// NOTICE: tests contains a lot of types that are also checked within "test" script
 
 @Hook
 class Example {
@@ -27,6 +29,59 @@ class Example {
   @hook()
   static staticMethod(x: string): boolean {
     return x.length > 0;
+  }
+
+  @hook()
+  #privateMethod(x: number): string {
+    return String(x);
+  }
+
+  privateMethod(x: number): string {
+    return this.#privateMethod(x);
+  }
+
+  @hook()
+  static #privateStaticMethod(x: string): boolean {
+    return x.length > 0;
+  }
+
+  static privateStaticMethod(x: string): boolean {
+    return this.#privateStaticMethod(x);
+  }
+
+  @hook()
+  static initStaticField = "staticValue";
+
+  @hook()
+  static get staticValue(): string {
+    return "static";
+  }
+
+  @hook()
+  static set staticValue(v: string) {}
+
+  @hook()
+  static #privateStaticField = "privateStaticValue";
+
+  @hook()
+  static get privateStaticField(): string {
+    return this.#privateStaticField;
+  }
+
+  @hook()
+  static set privateStaticField(v: string) {
+    this.#privateStaticField = v;
+  }
+
+  @hook()
+  accessor #privateField = "privateValue";
+
+  @hook()
+  #privateFieldInitializer = "privateValue";
+
+  @hook()
+  get privateFieldInitializer(): string {
+    return this.#privateFieldInitializer;
   }
 }
 
@@ -71,3 +126,147 @@ attach(instance, "set value", (next, value: string) => next(value));
 
 const fallbackMiddleware: MiddlewareMethod<any[], unknown> = (next, ...args) => next(...args);
 attach(Symbol("fallback"), "plain-name", fallbackMiddleware);
+
+let ManualExample = class ManualExample {
+  myMethod(x: number): string {
+    return String(x);
+  }
+
+  withThis(this: Example, x: number): string {
+    return String(this.myMethod(x));
+  }
+
+  get value(): number {
+    return 1;
+  }
+
+  set value(v: number) {}
+
+  initField = "value";
+
+  static staticMethod(x: string): boolean {
+    return x.length > 0;
+  }
+};
+
+ManualExample = Hooks(ManualExample)
+  .method("myMethod")
+  .method("withThis")
+  .getter("value")
+  .setter("value")
+  .field("initField")
+  .accessor("initField")
+  .build();
+
+ManualExample = Hooks(ManualExample)
+  // @ts-expect-error method does not exist
+  .method("nonExistingMethod")
+  // @ts-expect-error getter does not exist
+  .getter("nonExistingGetter")
+  // @ts-expect-error setter does not exist
+  .setter("nonExistingSetter")
+  // @ts-expect-error accessor does not exist
+  .accessor("nonExistingAccessor")
+  // @ts-expect-error field does not exist
+  .field("nonExistingField")
+  .build();
+
+attach(ManualExample, "myMethod", (next, x) => {
+  return next(x + 1);
+});
+
+// @ts-expect-error middleware should require a number argument for myMethod
+attach(ManualExample, "myMethod", (next, x: string) => {
+  // @ts-expect-error middleware should require a number argument for myMethod
+  return next(x + 1);
+});
+
+attach(ManualExample, "init value", (next, value) => {
+  return next(value + 1);
+});
+
+// @ts-expect-error middleware should require a number argument for myMethod
+attach(ManualExample, "init value", (next, value: string) => {
+  // @ts-expect-error number is expected
+  return next(value + 1);
+});
+
+attach(ManualExample, "staticMethod", (next, x) => {
+  return next(x.toUpperCase());
+});
+
+// @ts-expect-error middleware should require a string argument for staticMethod
+attach(ManualExample, "staticMethod", (next, x: number) => {
+  // @ts-expect-error string is expected
+  return next(x.toUpperCase());
+});
+
+let FnManualExample = class FnManualExample {
+  myMethod(x: number): string {
+    return String(x);
+  }
+
+  withThis(this: Example, x: number): string {
+    return String(this.myMethod(x));
+  }
+
+  get value(): number {
+    return 1;
+  }
+
+  set value(v: number) {}
+
+  initField = "value";
+
+  static staticMethod(x: string): boolean {
+    return x.length > 0;
+  }
+};
+
+FnManualExample = hookMethod(FnManualExample, "myMethod");
+FnManualExample = hookMethod(FnManualExample, "withThis");
+FnManualExample = hookGetter(FnManualExample, "value");
+FnManualExample = hookSetter(FnManualExample, "value");
+FnManualExample = hookField(FnManualExample, "initField");
+FnManualExample = hookMethod(FnManualExample, "staticMethod");
+
+// @ts-expect-error hookMethod should reject non existing method
+FnManualExample = hookMethod(FnManualExample, "nonExistingMethod");
+// @ts-expect-error hookGetter should reject non existing getter
+FnManualExample = hookGetter(FnManualExample, "nonExistingGetter");
+// @ts-expect-error hookSetter should reject non existing setter
+FnManualExample = hookSetter(FnManualExample, "nonExistingSetter");
+// @ts-expect-error hookField should reject non existing field
+FnManualExample = hookField(FnManualExample, "nonExistingField");
+// @ts-expect-error hookMethod should reject non existing accessor
+FnManualExample = hookMethod(FnManualExample, "nonExistingAccessor");
+
+attach(FnManualExample, "myMethod", (next, x) => {
+  return next(x + 1);
+});
+
+// @ts-expect-error middleware should require a number argument for myMethod
+attach(FnManualExample, "myMethod", (next, x: string) => {
+  // @ts-expect-error middleware should require a number argument for myMethod
+  return next(x + 1);
+});
+
+attach(FnManualExample, "init value", (next, value) => {
+  return next(value + 1);
+});
+
+// @ts-expect-error middleware should require a number argument for myMethod
+attach(FnManualExample, "init value", (next, value: string) => {
+  // @ts-expect-error number is expected
+  return next(value + 1);
+});
+
+attach(FnManualExample, "staticMethod", (next, x) => {
+  return next(x.toUpperCase());
+});
+
+// @ts-expect-error middleware should require a string argument for staticMethod
+attach(FnManualExample, "staticMethod", (next, x: number) => {
+  // @ts-expect-error string is expected
+  return next(x.toUpperCase());
+});
