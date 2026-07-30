@@ -1143,7 +1143,7 @@ service.myMethod("test"); // "test middleware orig"
 // do not run class-level middleware - use specific instance middleware only
 const service3 = new Service();
 attach(service3, "myMethod", (next, x) => {
-  return "short-circuit";
+  return "short-circuit"; // do not call next() to short-circuit the chain
 });
 service3.myMethod("test"); // "short-circuit"
 ```
