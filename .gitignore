@@ -3,6 +3,7 @@ playground/
 
 # Test coverage artifacts
 coverage/*
+!coverage/
 !coverage/clover.xml
 !coverage/coverage-final.json
 .nyc_output/
