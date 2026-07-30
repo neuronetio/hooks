@@ -1,22 +1,30 @@
-import { attach, type MiddlewareMethod } from "../src/index";
+import type { MiddlewareMethod } from "../src/index";
+import { attach, Hook, hook } from "../src/index";
 
+@Hook
 class Example {
+  @hook()
   myMethod(x: number): string {
     return String(x);
   }
 
+  @hook()
   withThis(this: Example, x: number): string {
     return String(this.myMethod(x));
   }
 
+  @hook()
   get value(): number {
     return 1;
   }
 
+  @hook()
   set value(v: number) {}
 
+  @hook()
   initField = "value";
 
+  @hook()
   static staticMethod(x: string): boolean {
     return x.length > 0;
   }
