@@ -192,7 +192,13 @@ detach();
 
 ---
 
+&nbsp;
+
+&nbsp;
+
 Before we dive into the detailed documentation, let's review two core mechanisms: hook keys and middleware behavior.
+
+&nbsp;
 
 ## Middleware execution order / composite keys
 
@@ -208,7 +214,7 @@ As a result, even if you register middleware alternately across two (or more) ke
 
 In other words, middleware are ordered first by key, and then by registration order within each key (there's no actual sorting — this example simply illustrates the concept).
 
-// Example 1: single key order
+**Example 1**: single key order
 
 ```ts
 import { hook, composeHookKeys, attach } from "@neuronet/hooks";
@@ -220,7 +226,7 @@ attach(oneKey, (next, name) => next(name + ":one2")); // one2 added second
 one("test"); // test:one1:one2
 ```
 
-// Example 2: composite key order
+**Example 2**: composite key order
 
 ```ts
 import { hook, composeHookKeys, attach } from "@neuronet/hooks";
@@ -233,7 +239,7 @@ attach(key1, (next, name) => next(name + ":key1")); // key1 added second, but ru
 composite("test"); // test:key1:key2
 ```
 
-// Example 3: multiple middleware
+**Example 3**: multiple middleware
 
 ```ts
 import { hook, composeHookKeys, attach } from "@neuronet/hooks";
@@ -265,7 +271,7 @@ The basic idea is simple:
 
 - you create a hooked function,
 - you attach one or more middlewares,
-- each middleware can call `next()` to continue the chain,
+- each middleware can call `next()` to continue the chain (or not call it to short-circuit the chain),
 - the middleware can also change arguments or the final result.
 
 ### `hook(fn)`
