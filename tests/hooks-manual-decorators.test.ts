@@ -338,6 +338,32 @@ describe("hooks: manual decorators", () => {
     expect(Product.price).toBe(32); // 2 + 20 + 10 = 32
   });
 
+  it("hookAccessor should not use init on static member before hookAccessor is applied", () => {
+    let Product = class Product {
+      static price: number = 0;
+    };
+    attach(Product, "init price", (next, value) => next(value + 1));
+    Product = hookAccessor(Product, "price");
+    attach(Product, "get price", (next) => next() + 10);
+    attach(Product, "set price", (next, value) => next(value + 20));
+
+    expect(Product.price).toBe(10); // 0 + 10 = 10
+    Product.price = 2;
+    expect(Product.price).toBe(32); // 2 + 20 + 10 = 32
+  });
+
+  it("middlewares should not be applied when attached before hookMethod is used", () => {
+    let MyClass = class MyClass {
+      myMethod(x: string) {
+        return x + ":original";
+      }
+    };
+    attach(MyClass, "myMethod", (next, x) => next(x + ":mid1"));
+    MyClass = hookMethod(MyClass, "myMethod");
+    const instance = new MyClass();
+    expect(instance.myMethod("input")).toBe("input:original");
+  });
+
   it("should work with dynamic hook keys for methods", () => {
     const dynamicThis: any[] = [];
     let DynamicHookClass = class DynamicHookClass {
