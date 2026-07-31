@@ -333,6 +333,7 @@ This way you have a control in both sides — from within a hook or from the mid
 
 <img width="400" height="272" alt="flexibility-everywhere" src="https://github.com/user-attachments/assets/7f225777-69f6-4902-9166-7faef15c3c8a" />
 
+&nbsp;
 
 **Example**: dynamic pipeline selection
 
