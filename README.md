@@ -544,7 +544,7 @@ attach(key, "customName", (next, name) => next(name.toUpperCase()));
 greet("Ada"); // Hello, ADA
 ```
 
-In most cases, the hook name should be unique within a given key. If there is a name conflict, multiple hooks will execute the same middleware (which may be the intended effect).
+In most cases, the hook name should be unique within a given key. If there is the same name along with the same key, multiple hooks will execute the same middleware (which may be the intended effect).
 
 ```ts
 import { hook, attach } from "@neuronet/hooks";
