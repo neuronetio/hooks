@@ -12,14 +12,17 @@ It helps you extend behavior without changing the original codebase. In practice
 - you need to add or change behavior without modifying the original source code (keeping it upgradable).
 - you want a plugin-style extension mechanism for libraries or applications.
 - you deliver customer-specific solutions that stay separate from, yet ship with, the core code.
-- you want to chain functions dynamically and achieve a dynamic pipeline.
-- you want more granular control over the order of execution of multiple middlewares.
-- you want full control over where to attach middleware (at the function, class, or specific instance level).
+- you want to create a dynamic composition of functions that can be modified at runtime without manual recomposition.
+- you want granular control and a very flexible way of attaching middleware at different levels (also considering various dynamic conditions).
 - you need middlewares that can be attached and detached at runtime.
 - you want a single, consistent API for injecting behavior into functions, methods, fields, getters, setters, and accessors — across public, static, and private members.
 
-Basically this library can be used for cross-cutting concerns such as dependency injection, validation, testing, logging, caching, memoization, retries, metrics, and other common tasks.
-On top of that, `@neuronet/hooks` is very lightweight, well tested, and has no external dependencies. It is written in TypeScript and runs in Node.js, web browsers, Deno, Bun, and other JavaScript runtimes.
+Basically this library can be used for cross-cutting concerns but in a more flexible manner.
+For example, it can be used for dependency injection, validation, testing, logging, caching, memoization, retries, metrics, and other common tasks.
+The most useful thing is that you can replace your strategies (or choose different ones based on configuration) for those tasks without touching the main business logic.
+
+On top of that, `@neuronet/hooks` is very lightweight, well tested, and has no external dependencies.
+It is written in TypeScript and runs in Node.js, web browsers, Deno, Bun, and other JavaScript runtimes.
 
 ## Table of contents
 
