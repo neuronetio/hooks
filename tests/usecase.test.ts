@@ -14,7 +14,7 @@ describe("use case", () => {
           }
           return [this, Child];
         }),
-        "greet",
+        "child_greet",
         (name: string) => `Hello, ${name}`,
       );
     }
@@ -32,12 +32,12 @@ describe("use case", () => {
     const parent = new Parent();
 
     expect(child.greet("Rafal")).toBe("Hello, Rafal");
-    attach(child, "greet", (next, name) => next(name + " child_instance"));
-    attach(Child, "greet", (next, name) => next(name + " child_class"));
+    attach(child, "child_greet", (next, name) => next(name + " child_instance"));
+    attach(Child, "child_greet", (next, name) => next(name + " child_class"));
     expect(child.greet("Rafal")).toBe("Hello, Rafal child_instance child_class");
 
-    attach(parent, "greet", (next, name) => next(name + " parent_instance"));
-    attach(Parent, "greet", (next, name) => next(name + " parent_class"));
+    attach(parent, "child_greet", (next, name) => next(name + " parent_instance"));
+    attach(Parent, "child_greet", (next, name) => next(name + " parent_class"));
     expect(child.greet("Rafal")).toBe("Hello, Rafal child_instance child_class");
 
     parent.inject(child);
@@ -55,7 +55,7 @@ describe("use case", () => {
           }
           return [this, Child];
         }),
-        "greet",
+        "child_greet",
         (name: string) => `Hello, ${name}`,
       );
 
@@ -85,7 +85,7 @@ describe("use case", () => {
     const parent = new Parent();
 
     // attach middleware to concrete parent instance
-    attach(parent, "greet", (next, name) => log(next, "parent_instance", name));
+    attach(parent, "child_greet", (next, name) => log(next, "parent_instance", name));
 
     const child = new Child();
     child.greet("Alice");
