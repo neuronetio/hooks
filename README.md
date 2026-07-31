@@ -215,9 +215,9 @@ This is particularly useful in classes where you sometimes need to run middlewar
 Using the `[instance, Class]` composition, the algorithm first executes all middleware registered on the instance, followed by all middleware registered on the class — merging them into a single chain.
 
 Composed keys are evaluated in cascade (waterfall) manner: for a composition made of two keys, all middleware registered on the first key runs first (in their registration order), and then all middleware registered on the second key runs.
-Everything is concatenated into a single execution chain, so if you modify the argument in a middleware for the first key, it will be passed to the middleware for the second key, or if any middleware for the first key does not call `next()`, the middleware for the second key will not be executed.
+Everything is concatenated, so if you modify the argument in a middleware for the first key, it will be passed as input to the middleware for the second key, or if any middleware for the first key does not call `next()`, the middleware for the second key will not be executed.
 
-In other words, middleware are ordered first by key, and then by registration order within each key, and they are executed as one chain.
+In other words, middleware functions are ordered first by key, and then by registration order within each key, and they are executed as one big chain.
 
 **Example 1**: single key order
 
@@ -311,11 +311,13 @@ attach(service, "greet", (next, name) => {
   return name + " instance";
 });
 
-service.greet("test"); // test instance (without "class")
+service.greet("test"); // test instance (without "class" which is after the instance)
 
 // because we attached the middleware to concrete instance, other instances are not affected
 const service2 = new Service();
 service2.greet("test"); // test class
+
+// This way we can add instance-specific behavior without affecting other instances or the class itself.
 ```
 
 ---
@@ -405,7 +407,7 @@ attach(parent, "greet", (next, name) => next(name + " [parent_instance]"));
 // and Parent class
 attach(Parent, "greet", (next, name) => next(name + " [parent_class]"));
 
-child.greet("John"); // "Hello, John [child_instance] [child_class]" - not yet affected by parent middleware because parent is not injected yet
+child.greet("John"); // "Hello, John [child_instance] [child_class]" - not injected = not affected by parent middleware
 
 parent.inject(child);
 
