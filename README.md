@@ -328,6 +328,7 @@ service2.greet("test"); // test class
 Dynamic keys (`dynamicHookKey` or the shorter `dhk` alias) are a powerful feature that allows you to resolve the hook key at runtime.
 Dynamic keys are more flexible and can be used in places where your code is more dynamic.
 For example, you can use dynamic keys if your class is injected dynamically into a parent class and you want to attach middleware at a higher level, or when you want to use different pipeline behavior based on runtime conditions.
+This is also useful because you can dynamically decide which middleware to use based on certain conditions **without unregistering them**; they remain registered, and you decide when and which ones to use.
 Basically, dynamic keys allow you to choose which middleware to run at runtime.
 This gives you control from both sides — from within a hook or from the middleware itself.
 
@@ -541,6 +542,22 @@ const greet = hook(key, "customName", (name: string) => `Hello, ${name}`);
 
 attach(key, "customName", (next, name) => next(name.toUpperCase()));
 greet("Ada"); // Hello, ADA
+```
+
+In most cases, the hook name should be unique within a given key. If there is a name conflict, multiple hooks will execute the same middleware (which may be the intended effect).
+
+```ts
+import { hook, attach } from "@neuronet/hooks";
+
+const key = Symbol("myKey");
+
+const greet1 = hook(key, "greet", (name: string) => `Hello, ${name}`);
+const greet2 = hook(key, "greet", (name: string) => `Hi, ${name}`);
+
+attach(key, "greet", (next, name) => next(name.toUpperCase()));
+
+greet1("Ada"); // Hello, ADA
+greet2("Ada"); // Hi, ADA
 ```
 
 #### `hook(args, fn)`
