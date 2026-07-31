@@ -379,14 +379,14 @@ class Child {
   greet = hook(
     // use dynamic hook key
     dhk(() => {
-      // if we are attached...
+      // if we have a parent...
       if (this.#parent) {
         // we will use parent middleware
 
-        // this.#parent to use parent instance-specific middleware
-        // Parent to use parent middleware for all Parent instances
-        // this to use child instance-specific middleware
-        // Child to use child middleware for all Child instances
+        // `this.#parent` to use parent instance-specific middleware
+        // `Parent` to use parent middleware for all Parent instances
+        // `this` to use child instance-specific middleware
+        // `Child` to use child middleware for all Child instances
         return [this.#parent, Parent, this, Child];
       }
       return [this, Child];
