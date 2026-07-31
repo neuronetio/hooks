@@ -47,7 +47,7 @@ export function dynamicHookKey(fn: HookKeyDynamicFn): HookKeyDynamic {
  * @param fn A function that returns a HookKey.
  * @returns A new HookKeyDynamic instance.
  */
-export const dynamic = dynamicHookKey;
+export const dhk = dynamicHookKey;
 
 /**
  * A utility class to provide the arguments passed to the middleware and hook functions.
@@ -70,6 +70,8 @@ export function argsProvider<A extends any[]>(...args: A): ArgumentsProvider<A>;
 export function argsProvider<A extends any[]>(...args: any[]): ArgumentsProvider<A> {
   return new ArgumentsProvider(args.length === 1 && typeof args[0] === "function" ? args[0] : args);
 }
+
+export const args = argsProvider;
 
 export type HookKeySingle = symbol | Function | object;
 export type HookKeyComposite = [HookKeySingle, ...HookKeySingle[]]; // at least one key is required, otherwise ts may have problems with type inference
