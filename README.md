@@ -205,19 +205,19 @@ detach();
 
 &nbsp;
 
-### Middleware execution order / composite keys
+### Middleware execution order / key composition
 
 By default, middleware runs in the order it was registered (the most recently added middleware runs at the end of the chain).
 
-`composeHookKeys` is a utility that merges multiple hook keys into a single composite key, so you can attach middleware at multiple levels simultaneously.
-For example, you can register middleware for a specific instance or for all instances of a class — though the mechanism is not limited to classes.
+You can also use multiple keys in a hook (by using an array).
+This allows you to trigger middleware from multiple entry points simultaneously and combine them into a single chain.
+This is particularly useful in classes where you sometimes need to run middleware across all instances, and other times only need to attach to a specific instance.
+Using the `[instance, Class]` composition, the algorithm first executes all middleware registered on the instance, followed by all middleware registered on the class — merging them into a single chain.
 
-Composed keys are evaluated in cascade (waterfall): for a composition made of two keys, all middleware registered on the first key runs first (in registration order), and then all middleware registered on the second key runs.
-The individual lists are concatenated into a single execution chain.
+Composed keys are evaluated in cascade (waterfall) manner: for a composition made of two keys, all middleware registered on the first key runs first (in their registration order), and then all middleware registered on the second key runs.
+Everything is concatenated into a single execution chain, so if you modify the argument in a middleware for the first key, it will be passed to the middleware for the second key, or if any middleware for the first key does not call `next()`, the middleware for the second key will not be executed.
 
-As a result, even if you register middleware alternately across two (or more) keys, execution will still be grouped by key: all handlers for the first key execute (in their registration order), followed by all handlers for the second key, and so on.
-
-In other words, middleware are ordered first by key, and then by registration order within each key (there's no actual sorting — this example simply illustrates the concept).
+In other words, middleware are ordered first by key, and then by registration order within each key, and they are executed as one chain.
 
 **Example 1**: single key order
 
@@ -226,9 +226,9 @@ import { hook, attach } from "@neuronet/hooks";
 
 const oneKey = Symbol("one");
 const one = hook(oneKey, (name: string) => name);
-attach(oneKey, (next, name) => next(name + ":one1")); // one1 added first
-attach(oneKey, (next, name) => next(name + ":one2")); // one2 added second
-one("test"); // test:one1:one2
+attach(oneKey, (next, name) => next(name + " one1")); // one1 added first
+attach(oneKey, (next, name) => next(name + " one2")); // one2 added second
+one("test"); // test one1 one2
 ```
 
 **Example 2**: composite key order
@@ -239,9 +239,9 @@ import { hook, attach } from "@neuronet/hooks";
 const key1 = Symbol("key1");
 const key2 = Symbol("key2");
 const composite = hook([key1, key2], (name: string) => name);
-attach(key2, (next, name) => next(name + ":key2")); // key2 added first
-attach(key1, (next, name) => next(name + ":key1")); // key1 added second, but runs first because it's the first key in the composition
-composite("test"); // test:key1:key2
+attach(key2, (next, name) => next(name + " key2")); // key2 added first
+attach(key1, (next, name) => next(name + " key1")); // key1 added second, but runs first because it's the first key in the composition
+composite("test"); // test key1 key2
 ```
 
 **Example 3**: multiple middleware
@@ -264,6 +264,58 @@ composite("test"); // test  key1_1  key1_2  key2_1  key3_1
 
 attach(key2, (next, name) => next(name + "  key2_2"));
 composite("test"); // test  key1_1  key1_2  key2_1  key2_2  key3_1
+```
+
+**Example 4**: class / instance middleware
+
+```ts
+import { hook, attach } from "@neuronet/hooks";
+
+class Service {
+  // by using two entry levels we can attach middleware to the class (which affects all instances) or to a specific instance
+  greet = hook([this, Service], "greet", (name: string) => name);
+}
+
+attach(Service, "greet", (next, name) => next(name + " class")); // affects all instances
+
+const service1 = new Service();
+service1.greet("test"); // test class
+
+const service2 = new Service();
+attach(service2, "greet", (next, name) => next(name + " instance")); // affects only service2 instance
+
+service2.greet("test"); // test instance class
+
+// service 1 should not be affected by service2 middleware
+service1.greet("test"); // test class
+```
+
+**Example 5**: class / instance middleware short-circuiting
+
+```ts
+import { hook, attach } from "@neuronet/hooks";
+
+class Service {
+  // by using two entry levels we can attach middleware to the class (which affects all instances) or to a specific instance
+  greet = hook([this, Service], "greet", (name: string) => name);
+}
+
+// attach middleware to the class (affects all instances)
+attach(Service, "greet", (next, name) => next(name + " class")); // affects all instances
+
+const service = new Service();
+
+// attach middleware to the instance (affects only this instance)
+attach(service, "greet", (next, name) => {
+  // prevent further execution of the chain (short-circuit) by not calling next()
+  return name + " instance";
+});
+
+service.greet("test"); // test instance (without "class")
+
+// because we attached the middleware to concrete instance, other instances are not affected
+const service2 = new Service();
+service2.greet("test"); // test class
 ```
 
 ---
