@@ -307,35 +307,6 @@ usePipeline = 2; // configuration changed
 greet("Ada"); // Hello, Ada:pipeline2
 ```
 
-`dynamicHookKey` callback can also return an array of keys, so you can combine multiple keys dynamically.
-
-```ts
-import { hook, attach, dynamicHookKey } from "@neuronet/hooks";
-
-const key1 = Symbol("key1");
-const key2 = Symbol("key2");
-const key3 = Symbol("key3");
-const key4 = Symbol("key4");
-
-attach(key1, (next, name) => next(name + ":key1"));
-attach(key2, (next, name) => next(name + ":key2"));
-attach(key3, (next, name) => next(name + ":key3"));
-attach(key4, (next, name) => next(name + ":key4"));
-
-let pipeline = [key1, key2];
-
-const composite = hook(
-  dynamicHookKey(() => pipeline),
-  (name: string) => name,
-);
-
-composite("test"); // test:key1:key2
-
-pipeline = [key3, key4]; // configuration changed
-
-composite("test"); // test:key3:key4
-```
-
 **Example**: dynamic key with key on parent class (using `dhk` alias)
 
 ```ts
@@ -377,9 +348,9 @@ attach(Child, "greet", (next, name) => next(name + " [child_class]"));
 
 child.greet("John"); // "Hello, John [child_instance] [child_class]"
 
-// attach middleware to concrete parent instance (affects only this instance)
+// attach middleware to concrete parent instance
 attach(parent, "greet", (next, name) => next(name + " [parent_instance]"));
-// and Parent class (affects all instances of Parent) - just to demonstrate things
+// and Parent class
 attach(Parent, "greet", (next, name) => next(name + " [parent_class]"));
 
 child.greet("John"); // "Hello, John [child_instance] [child_class]" - not yet affected by parent middleware because parent is not injected yet
@@ -398,13 +369,18 @@ class Child {
   #parent: Parent | null = null;
 
   greet = hook(
+    // use dynamic hook key
     dhk(() => {
       if (this.#parent) {
         return [this.#parent, Parent, this, Child];
       }
       return [this, Child];
     }),
-    "greet",
+
+    // use custom name for the hook
+    "child_greet",
+
+    // method body
     (name: string) => {
       const result = `Hello, ${name}`;
       console.log(result);
@@ -436,13 +412,14 @@ function log(next: (name: string) => string, level: string, name: string) {
 const parent = new Parent();
 
 // attach middleware to concrete parent instance which will log operations from injected children
-attach(parent, "greet", (next, name) => log(next, "parent_instance", name));
+attach(parent, "child_greet", (next, name) => log(next, "parent_instance", name));
 
 const child = new Child();
 child.greet("Alice");
 // Hello, Alice (not yet affected by parent middleware because child is not injected yet)
 
 parent.inject(child);
+
 child.greet("Alice");
 // [LOG] parent_instance middleware called with name: Alice
 // Hello, Alice
