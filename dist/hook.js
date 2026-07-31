@@ -11,56 +11,6 @@ const noop = (..._args) => {};
 */
 const _identity = (value) => value;
 /**
-* Represents a composition of multiple hook keys.
-* Used to support hierarchical or multi-layered hook contexts.
-*/
-var HookKeyComposite = class HookKeyComposite {
-	keys;
-	constructor(keys = []) {
-		this.keys = keys;
-	}
-	/**
-	* Flattens the composite keys into a single-level array of non-composite keys.
-	* @param keys The keys to flatten. Defaults to the keys of this composite.
-	* @returns An array of non-composite hook keys.
-	*/
-	flat(keys = this.keys) {
-		const result = [];
-		for (const key of keys) if (key instanceof HookKeyComposite) result.push(...key.flat(key.keys));
-		else result.push(key);
-		return result;
-	}
-	/**
-	* Iterates over all non-composite keys in this composite (recursive).
-	*/
-	*[Symbol.iterator]() {
-		for (const key of this.keys) if (key instanceof HookKeyComposite) yield* key;
-		else yield key;
-	}
-};
-/**
-* Composes multiple hook keys into a single composite key.
-* Useful for scenarios where a hook should trigger middleware attached to multiple contexts
-* (e.g., an instance and its class).
-*
-* @param keys The hook keys to compose.
-* @returns A new HookKeyComposite instance.
-*/
-function composeHookKeys(...keys) {
-	return new HookKeyComposite(keys);
-}
-/**
-* An alias for `composeHookKeys` to provide a shorter and more convenient name.
-*
-* Composes multiple hook keys into a single composite key.
-* Useful for scenarios where a hook should trigger middleware attached to multiple contexts
-* (e.g., an instance and its class).
-*
-* @param keys The hook keys to compose.
-* @returns A new HookKeyComposite instance.
-*/
-const keys = composeHookKeys;
-/**
 * Represents a hook key that is resolved dynamically at runtime.
 * The key is resolved by calling the provided function, usually with the `this` context
 * of the hooked method.
@@ -116,23 +66,23 @@ function hook(arg1, arg2, arg3, arg4) {
 	if ((arg1 instanceof HookKeyDynamic || typeof arg1 === "string") && arg2 === void 0) return hookDecorator(arg1);
 	if (typeof arg1 === "string" && arg2 instanceof HookKeyDynamic && arg3 === void 0) return hookDecorator(arg2, arg1);
 	if (arg1 instanceof HookKeyDynamic && typeof arg2 === "string" && arg3 === void 0) return hookDecorator(arg2, arg1);
-	let key;
+	let keyOrKeys;
 	let name = DEFAULT_HOOK_NAME;
 	let argsProv = void 0;
 	let fn;
 	if (arg4 !== void 0) {
-		key = arg1;
+		keyOrKeys = arg1;
 		name = arg2;
 		argsProv = arg3;
 		fn = arg4 || noop;
 	} else if (arg3 !== void 0) if (typeof arg1 === "string") {
 		if (!currentHookKey) throw new Error(`${PREFIX} Hook key must be provided or inferred from the context.`);
-		key = currentHookKey;
+		keyOrKeys = currentHookKey;
 		name = arg1;
 		argsProv = arg2;
 		fn = arg3 || noop;
 	} else {
-		key = arg1;
+		keyOrKeys = arg1;
 		if (typeof arg2 === "string" || typeof arg2 === "symbol") {
 			name = arg2;
 			fn = arg3 || noop;
@@ -143,47 +93,46 @@ function hook(arg1, arg2, arg3, arg4) {
 	}
 	else if (arg2 !== void 0) if (typeof arg1 === "string") {
 		if (!currentHookKey) throw new Error(`${PREFIX} Hook key must be provided or inferred from the context.`);
-		key = currentHookKey;
+		keyOrKeys = currentHookKey;
 		name = arg1;
 		fn = arg2 || noop;
 	} else if (arg1 instanceof ArgumentsProvider) {
 		argsProv = arg1;
 		fn = arg2 || noop;
 		if (fn === noop && !currentHookKey) throw new Error(`${PREFIX} Hook key must be provided or inferred from the context.`);
-		key = fn;
+		keyOrKeys = fn;
 	} else {
-		key = arg1;
+		keyOrKeys = arg1;
 		fn = arg2 || noop;
 	}
 	else {
 		fn = arg1 || noop;
-		key = fn;
+		keyOrKeys = fn;
 	}
 	const _hookData = {
 		origin: fn,
-		key,
+		keyOrKeys,
 		name,
 		argsProvider: argsProv
 	};
 	function runHook(...args) {
-		let key = _hookData.key;
+		let key = _hookData.keyOrKeys;
 		const oldHookKey = currentHookKey;
 		while (key instanceof HookKeyDynamic) key = key.fn.call(this);
 		currentHookKey = key;
 		let next = _hookData.origin;
-		if (key instanceof HookKeyComposite) {
-			const keyComposite = key;
-			if (keyComposite.keys.length === 0) {
+		if (Array.isArray(key)) {
+			if (key.length === 0) {
 				const callArgs = argsProv?.args.call(this) || args;
 				const result = _hookData.origin.apply(this, callArgs);
 				currentHookKey = oldHookKey;
 				return result;
 			}
-			const flat = keyComposite.flat();
 			let i = 1;
-			key = flat[0];
+			const _keys = key;
+			key = _keys[0];
 			next = (...args) => {
-				if (i < keyComposite.keys.length) return runMiddleware(flat[i++], _hookData.name, next, this, ...args);
+				if (i < _keys.length) return runMiddleware(_keys[i++], _hookData.name, next, this, ...args);
 				else return _hookData.origin.apply(this, args);
 			};
 		}
@@ -209,7 +158,7 @@ function Hook(_Class, context) {
 			const hooked = this.prototype[propertyKey];
 			if (hooked && hooked[HOOK] === void 0) hooked[HOOK] = {
 				origin: hooked,
-				key: this,
+				keyOrKeys: this,
 				name: propertyKey
 			};
 		}
@@ -257,7 +206,7 @@ function _createLazyHookInvoker(propertyKey, hookName, value, dynamicKey, owner)
 	return function runHook(...args) {
 		if (!this[hookKey]) {
 			const receiver = owner ?? this;
-			this[hookKey] = hook(dynamicKey ?? composeHookKeys(this, this.constructor), hookName, value.bind(receiver));
+			this[hookKey] = hook(dynamicKey ?? [this, this.constructor], hookName, value.bind(receiver));
 		}
 		return this[hookKey](...args);
 	};
@@ -285,19 +234,19 @@ function _createAccessorDecoratorHooks(propertyKey, hookName, get, set, dynamicK
 		get: function runHook(...args) {
 			if (!this[getHookKey]) {
 				const receiver = owner ?? this;
-				this[getHookKey] = hook(dynamicKey ?? composeHookKeys(this, this.constructor), "get " + String(hookName), get.bind(receiver));
+				this[getHookKey] = hook(dynamicKey ?? [this, this.constructor], "get " + String(hookName), get.bind(receiver));
 			}
 			return this[getHookKey](...args);
 		},
 		set: function runHook(...args) {
 			if (!this[setHookKey]) {
 				const receiver = owner ?? this;
-				this[setHookKey] = hook(dynamicKey ?? composeHookKeys(this, this.constructor), "set " + String(hookName), set.bind(receiver));
+				this[setHookKey] = hook(dynamicKey ?? [this, this.constructor], "set " + String(hookName), set.bind(receiver));
 			}
 			return this[setHookKey](...args);
 		},
 		init: function runHook(initialValue) {
-			if (!this[initHookKey]) this[initHookKey] = hook(dynamicKey ?? composeHookKeys(this, this.constructor), "init " + String(hookName), _identity);
+			if (!this[initHookKey]) this[initHookKey] = hook(dynamicKey ?? [this, this.constructor], "init " + String(hookName), _identity);
 			return this[initHookKey](initialValue);
 		}
 	};
@@ -314,7 +263,7 @@ function hookDecorator(dynamicKey, alternativeName) {
 			(metadata.hooks || (metadata.hooks = [])).push(propertyKey);
 			context.addInitializer(function() {
 				if (context.static) this[propertyKey] = hook(dynamicKey ?? this, hookName, value.bind(this));
-				else this[propertyKey] = hook(dynamicKey ?? composeHookKeys(this, this.constructor), hookName, value.bind(this));
+				else this[propertyKey] = hook(dynamicKey ?? [this, this.constructor], hookName, value.bind(this));
 			});
 			return value;
 		}
@@ -343,7 +292,7 @@ function attach(arg1, arg2, arg3) {
 	let fn;
 	const maybeHook = arg1[HOOK];
 	if (maybeHook) {
-		key = maybeHook.key;
+		key = maybeHook.keyOrKeys;
 		name = maybeHook.name;
 	} else key = arg1;
 	if (arg3) {
@@ -352,7 +301,10 @@ function attach(arg1, arg2, arg3) {
 	} else if (typeof arg2 === "function") fn = arg2;
 	else throw new Error(`${PREFIX}[attach] Invalid arguments`);
 	if (key instanceof HookKeyDynamic) throw new Error(`${PREFIX}[attach] Cannot attach middleware to dynamic hook key. Use static hook key or composite keys instead.`);
-	if (key instanceof HookKeyComposite) key = key.flat()[0];
+	if (Array.isArray(key)) {
+		if (key.length === 0) return noop;
+		key = key[0];
+	}
 	const methods = middlewares.getOrInsert(key, {});
 	let method = methods[name];
 	if (!method) {
@@ -372,13 +324,13 @@ function attach(arg1, arg2, arg3) {
 function inspectHook(hookFn) {
 	const maybeHook = hookFn[HOOK];
 	if (!maybeHook) throw new Error(`${PREFIX}[inspectHook] Hook function metadata not found.`);
-	const methods = middlewares.get(maybeHook.key);
+	const methods = middlewares.get(maybeHook.keyOrKeys);
 	const middlewareNames = Object.keys(methods || {});
 	const middlewareCount = middlewareNames.reduce((count, methodName) => {
 		return count + (methods?.[methodName]?.length || 0);
 	}, 0);
 	return {
-		key: maybeHook.key,
+		key: maybeHook.keyOrKeys,
 		name: maybeHook.name,
 		middlewareCount,
 		middlewareNames
@@ -448,5 +400,5 @@ function runMiddleware(key, name, next, thisArg, ...args) {
 }
 
 //#endregion
-export { ArgumentsProvider, DEFAULT_HOOK_NAME, HOOK, Hook, HookKeyDynamic, _createAccessorDecoratorHooks, _createLazyHookInvoker, _identity, _resolveHookDecoratorOptions, argsProvider, attach, composeHookKeys, detach, dynKey, dynamicHookKey, getCurrentHookKeyContext, getMiddleware, hook, hookDecorator, inspectHook, keys, middlewares };
+export { ArgumentsProvider, DEFAULT_HOOK_NAME, HOOK, Hook, HookKeyDynamic, _createAccessorDecoratorHooks, _createLazyHookInvoker, _identity, _resolveHookDecoratorOptions, argsProvider, attach, detach, dynKey, dynamicHookKey, getCurrentHookKeyContext, getMiddleware, hook, hookDecorator, inspectHook, middlewares, noop };
 //# sourceMappingURL=hook.js.map

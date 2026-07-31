@@ -1,16 +1,5 @@
-import type { IHookFn, MiddlewareMethod } from "../src/index";
-import {
-  argsProvider,
-  attach,
-  composeHookKeys,
-  Hook,
-  hook,
-  hookField,
-  hookGetter,
-  hookMethod,
-  Hooks,
-  hookSetter,
-} from "../src/index";
+import type { HookKeySingle, IHookFn, MiddlewareMethod } from "../src/index";
+import { argsProvider, attach, Hook, hook, hookField, hookGetter, hookMethod, Hooks, hookSetter } from "../src/index";
 
 // NOTICE: tests contains a lot of types that are also checked within "test" script
 
@@ -282,20 +271,24 @@ attach(FnManualExample, "staticMethod", (next, x: number) => {
   return next(x.toUpperCase());
 });
 
-const _fn1: IHookFn<[x: number], string, [x: number]> = hook(
-  composeHookKeys(instance, Example),
+const _fn1: IHookFn<[x: number], string, [x: number]> = hook([instance, Example], "myMethod", (x: number) => String(x));
+const _fn2: IHookFn<[x: number], string, [x: number]> = hook(
+  [instance, Example],
   "myMethod",
+  argsProvider(4),
   (x: number) => String(x),
 );
-
-const _fn2: IHookFn<[x: number], string, [x: number]> = hook(instance, "myMethod", (x: number) => String(x));
-
-const _fn3: IHookFn<[x: number], string, [x: number]> = hook(Example, "myMethod", (x: number) => String(x));
+const _fn3: IHookFn<[x: number], string, [x: number]> = hook(instance, "myMethod", (x: number) => String(x));
+const _fn4: IHookFn<[x: number], string, [x: number]> = hook(Example, "myMethod", (x: number) => String(x));
 
 class Service {
   #instPrv = "prv";
 
-  getVal = hook(composeHookKeys(this, Service), "getVal", (v: string) => {
+  getVal = hook([this, Service], "getVal", (v: string) => {
+    return v + " " + this.#instPrv.toUpperCase();
+  });
+
+  getValArgs = hook([this, Service], "getValArgs", argsProvider(this.#instPrv), (v: string) => {
     return v + " " + this.#instPrv.toUpperCase();
   });
 
@@ -304,10 +297,6 @@ class Service {
   });
 
   getValTypeClass = hook(Service, "getVal", (v: string) => {
-    return v + " " + this.#instPrv.toUpperCase();
-  });
-
-  getValArgs = hook(composeHookKeys(this, Service), "getValArgs", argsProvider(this.#instPrv), (v: string) => {
     return v + " " + this.#instPrv.toUpperCase();
   });
 

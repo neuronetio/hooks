@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
-import type { HookKey } from "../src";
+import type { HookKeyOrKeys } from "../src";
 import {
   DEFAULT_HOOK_NAME,
   HOOK,
@@ -9,10 +9,10 @@ import {
   attach,
   detach,
   inspectHook,
-  composeHookKeys,
   getCurrentHookKeyContext,
   middlewares,
   getMiddleware,
+  noop,
 } from "../src";
 
 describe("hooks", () => {
@@ -95,7 +95,7 @@ describe("hooks", () => {
     });
 
     it("should run middleware before the original function", () => {
-      const key: HookKey = Symbol("test");
+      const key: HookKeyOrKeys = Symbol("test");
       const name = "testMethod";
       const originalFn = vi.fn((a: number) => a * 2);
 
@@ -265,21 +265,21 @@ describe("hooks", () => {
     it("hook(fn)", () => {
       const wrapped = hook(originalFn);
       expect(wrapped(1, 2)).toBe(3);
-      expect(wrapped[HOOK].key).toBe(originalFn);
+      expect(wrapped[HOOK].keyOrKeys).toBe(originalFn);
       expect(wrapped[HOOK].name).toBe(DEFAULT_HOOK_NAME);
     });
 
     it("hook(args, fn)", () => {
       const wrapped = hook(argsProvider(..._args), originalFn);
       expect(wrapped()).toBe(30);
-      expect(wrapped[HOOK].key).toBe(originalFn);
+      expect(wrapped[HOOK].keyOrKeys).toBe(originalFn);
       expect(wrapped[HOOK].argsProvider?.args()).toEqual(_args);
     });
 
     it("hook(key, fn)", () => {
       const wrapped = hook(key, originalFn);
       expect(wrapped(1, 2)).toBe(3);
-      expect(wrapped[HOOK].key).toBe(key);
+      expect(wrapped[HOOK].keyOrKeys).toBe(key);
       expect(wrapped[HOOK].name).toBe(DEFAULT_HOOK_NAME);
     });
 
@@ -290,14 +290,14 @@ describe("hooks", () => {
         originalFn,
       );
       expect(wrapped()).toBe(30);
-      expect(wrapped[HOOK].key).toBe(key);
+      expect(wrapped[HOOK].keyOrKeys).toBe(key);
       expect(wrapped[HOOK].argsProvider?.args()).toEqual(_args);
     });
 
     it("hook(key, name, fn)", () => {
       const wrapped = hook(key, name, originalFn);
       expect(wrapped(1, 2)).toBe(3);
-      expect(wrapped[HOOK].key).toBe(key);
+      expect(wrapped[HOOK].keyOrKeys).toBe(key);
       expect(wrapped[HOOK].name).toBe(name);
     });
 
@@ -309,7 +309,7 @@ describe("hooks", () => {
         originalFn,
       );
       expect(wrapped()).toBe(30);
-      expect(wrapped[HOOK].key).toBe(key);
+      expect(wrapped[HOOK].keyOrKeys).toBe(key);
       expect(wrapped[HOOK].name).toBe(name);
       expect(wrapped[HOOK].argsProvider?.args()).toEqual(_args);
     });
@@ -404,7 +404,7 @@ describe("hooks", () => {
 
       const result = hook(key, "parent", () => {
         const wrapped = hook("child", (x: number) => x);
-        expect(wrapped[HOOK].key).toBe(key);
+        expect(wrapped[HOOK].keyOrKeys).toBe(key);
         return wrapped(10);
       })();
 
@@ -507,13 +507,13 @@ describe("hooks", () => {
       });
 
       let subHookCalled = 0;
-      hook(composeHookKeys(key1, key2), "top", () => {
-        expect(getCurrentHookKeyContext()).toEqual(composeHookKeys(key1, key2));
+      hook([key1, key2], "top", () => {
+        expect(getCurrentHookKeyContext()).toEqual([key1, key2]);
         hook("subHook", () => {
-          expect(getCurrentHookKeyContext()).toEqual(composeHookKeys(key1, key2));
+          expect(getCurrentHookKeyContext()).toEqual([key1, key2]);
           subHookCalled++;
         })(); // uses key1 -> 11
-        expect(getCurrentHookKeyContext()).toEqual(composeHookKeys(key1, key2));
+        expect(getCurrentHookKeyContext()).toEqual([key1, key2]);
       })();
 
       expect(key1Called).toBe(1);
@@ -593,38 +593,29 @@ describe("hooks", () => {
   });
 
   describe("additional coverage tests", () => {
-    it("should recursively flatten and iterate over nested HookKeyComposite", () => {
-      const key1 = Symbol("key1");
-      const key2 = Symbol("key2");
-      const key3 = Symbol("key3");
-
-      const compositeInner = composeHookKeys(key1, key2);
-      const compositeOuter = composeHookKeys(compositeInner, key3);
-
-      const flatKeys = (compositeOuter as any).flat();
-      expect(flatKeys).toEqual([key1, key2, key3]);
-
-      const iteratedKeys = Array.from(compositeOuter as any);
-      expect(iteratedKeys).toEqual([key1, key2, key3]);
-    });
-
     it("should throw when hook(name, args, fn) is called outside of hook context", () => {
       // @ts-expect-error no such overload
       expect(() => hook("someName", argsProvider(123), () => {})).toThrow(/key must be provided/);
     });
 
     it("should work with empty composite hook key keys.length === 0", () => {
-      const emptyComposite = composeHookKeys();
+      const emptyComposite: any[] = [];
       const fn = (x: number) => x + 10;
       const h = hook(emptyComposite, "someHook", fn);
       expect(h(5)).toBe(15);
     });
 
     it("should work with empty composite hook key and override args", () => {
-      const emptyComposite = composeHookKeys();
+      const emptyComposite: any[] = [];
       const fn = (x: number) => x + 10;
       const h = hook(emptyComposite, "someHook", argsProvider(5), fn);
       expect(h()).toBe(15);
+    });
+
+    it("should work with empty keys array", () => {
+      const fn = (x: number) => x + 10;
+      expect(hook([], "someHook", fn)(5)).toBe(15);
+      expect(hook([], "someHook", argsProvider(5), fn)()).toBe(15);
     });
 
     it("should throw when attach is called with invalid arguments", () => {
@@ -743,6 +734,29 @@ describe("hooks", () => {
 
     it("should throw when no key is provided within hook(ArgumentProvider, null)", () => {
       expect(() => hook(argsProvider(5), null)).toThrow("key");
+    });
+
+    it("should handle hook keys as array hook([], name, fn)", () => {
+      const key1 = Symbol("key1");
+      const key2 = Symbol("key2");
+      const h = hook([key1, key2], "test", (x: number) => x + 1);
+      attach(key1, "test", (next, x) => next(x + 1));
+      attach(key2, "test", (next, x) => next(x * 2));
+      expect(h(5)).toBe(13); // ((5 + 1) * 2) + 1
+    });
+
+    it("should handle hook keys as array hook([], name, args, fn)", () => {
+      const key1 = Symbol("key1");
+      const key2 = Symbol("key2");
+      const h = hook([key1, key2], "test", argsProvider(5), (x: number) => x + 1);
+      attach(key1, "test", (next, x) => next(x + 1));
+      attach(key2, "test", (next, x) => next(x * 2));
+      expect(h()).toBe(13); // ((5 + 1) * 2) + 1
+    });
+
+    it("should handle attach with empty array of keys", () => {
+      expect(attach([], (next, x) => next(x + 1))).toBe(noop);
+      expect(attach([], "test", (next, x) => next(x + 1))).toBe(noop);
     });
   });
 });

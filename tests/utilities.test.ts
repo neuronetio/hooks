@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { HOOK, attach, composeHookKeys, dynamicHookKey, getCurrentHookKeyContext, hook, hookUtils } from "../src";
+import type { IHookData } from "../src";
+import { HOOK, attach, dynamicHookKey, getCurrentHookKeyContext, hook, hookUtils } from "../src";
 
 describe("hooks: manual decorators", () => {
   it("should work with static methods", () => {
@@ -76,15 +77,15 @@ describe("hooks: manual decorators", () => {
     MethodsClass = hookUtils.method(MethodsClass, "myMethod");
 
     const instance = new MethodsClass();
-    const classHookData = (MethodsClass.prototype.myMethod as any)[HOOK];
+    const classHookData = (MethodsClass.prototype.myMethod as any)[HOOK] as IHookData;
     expect(classHookData).toBeDefined();
     expect(classHookData.name).toBe("myMethod");
-    expect(classHookData.key).toBe(MethodsClass);
+    expect(classHookData.keyOrKeys).toBe(MethodsClass);
 
-    const instanceHookData = (instance.myMethod as any)[HOOK];
+    const instanceHookData = (instance.myMethod as any)[HOOK] as IHookData;
     expect(instanceHookData).toBeDefined();
     expect(instanceHookData.name).toBe("myMethod");
-    expect(instanceHookData.key).toEqual(composeHookKeys(instance, MethodsClass));
+    expect(instanceHookData.keyOrKeys).toEqual([instance, MethodsClass]);
 
     expect(instance.myMethod("a")).toBe("a:original");
     const logs: string[] = [];
@@ -424,7 +425,7 @@ describe("hooks: manual decorators", () => {
       "dynamicMethod",
       dynamicHookKey(function (this: InstanceType<typeof DynamicHookClass>) {
         dynamicThis.push(this);
-        return composeHookKeys(this, DynamicHookClass);
+        return [this, DynamicHookClass];
       }),
     );
 
@@ -477,7 +478,7 @@ describe("hooks: manual decorators", () => {
       "myValue",
       dynamicHookKey(function (this: InstanceType<typeof DynamicHookClass>) {
         dynamicThis.push(this);
-        return composeHookKeys(this, DynamicHookClass);
+        return [this, DynamicHookClass];
       }),
     );
     DynamicHookClass = hookUtils.field(
@@ -485,7 +486,7 @@ describe("hooks: manual decorators", () => {
       "myField",
       dynamicHookKey(function (this: InstanceType<typeof DynamicHookClass>) {
         dynamicThis.push(this);
-        return composeHookKeys(this, DynamicHookClass);
+        return [this, DynamicHookClass];
       }),
     );
 
@@ -532,7 +533,7 @@ describe("hooks: manual decorators", () => {
 
     const track = dynamicHookKey(function (this: InstanceType<typeof DynamicHookClass>) {
       dynamicThis.push(this);
-      return composeHookKeys(this, DynamicHookClass);
+      return [this, DynamicHookClass];
     });
 
     DynamicHookClass = hookUtils.getter(DynamicHookClass, "myValue", track);

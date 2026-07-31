@@ -7,80 +7,14 @@ export const DEFAULT_HOOK_NAME = Symbol("DEFAULT_HOOK_NAME");
  */
 export const HOOK = Symbol("HOOK");
 
-const noop = (..._args: any[]): any => {};
+export const noop = (..._args: any[]): any => {};
 
 /**
  * @internal
  */
 export const _identity = <T>(value: T): T => value;
 
-/**
- * Represents a composition of multiple hook keys.
- * Used to support hierarchical or multi-layered hook contexts.
- */
-class HookKeyComposite {
-  keys: HookKey[];
-
-  constructor(keys: HookKey[] = []) {
-    this.keys = keys;
-  }
-
-  /**
-   * Flattens the composite keys into a single-level array of non-composite keys.
-   * @param keys The keys to flatten. Defaults to the keys of this composite.
-   * @returns An array of non-composite hook keys.
-   */
-  flat(keys: HookKey[] = this.keys): Exclude<HookKey, HookKeyComposite>[] {
-    const result: HookKey[] = [];
-    for (const key of keys) {
-      if (key instanceof HookKeyComposite) {
-        result.push(...key.flat(key.keys));
-      } else {
-        result.push(key);
-      }
-    }
-    return result;
-  }
-
-  /**
-   * Iterates over all non-composite keys in this composite (recursive).
-   */
-  *[Symbol.iterator](): Generator<HookKey, void, undefined> {
-    for (const key of this.keys) {
-      if (key instanceof HookKeyComposite) {
-        yield* key;
-      } else {
-        yield key;
-      }
-    }
-  }
-}
-
-/**
- * Composes multiple hook keys into a single composite key.
- * Useful for scenarios where a hook should trigger middleware attached to multiple contexts
- * (e.g., an instance and its class).
- *
- * @param keys The hook keys to compose.
- * @returns A new HookKeyComposite instance.
- */
-export function composeHookKeys(...keys: HookKey[]): HookKey {
-  return new HookKeyComposite(keys);
-}
-
-/**
- * An alias for `composeHookKeys` to provide a shorter and more convenient name.
- *
- * Composes multiple hook keys into a single composite key.
- * Useful for scenarios where a hook should trigger middleware attached to multiple contexts
- * (e.g., an instance and its class).
- *
- * @param keys The hook keys to compose.
- * @returns A new HookKeyComposite instance.
- */
-export const keys = composeHookKeys;
-
-export type HookKeyDynamicFn = () => HookKey;
+export type HookKeyDynamicFn = () => HookKeyOrKeys;
 
 /**
  * Represents a hook key that is resolved dynamically at runtime.
@@ -137,18 +71,13 @@ export function argsProvider<A extends any[]>(...args: any[]): ArgumentsProvider
   return new ArgumentsProvider(args.length === 1 && typeof args[0] === "function" ? args[0] : args);
 }
 
-export type HookKeySingle =
-  | symbol
-  | Function
-  | object
-  | (Record<PropertyKey, any> & ({ length?: never } | { push?: never } | { pop?: never } | { splice?: never }))
-  | (Record<PropertyKey, any> & { args?: never });
-
+export type HookKeySingle = symbol | Function | object;
+export type HookKeyComposite = [...HookKeySingle[]];
 /**
  * HookKey can be a symbol, an object, or a function (but not an array).
  * It is used to identify a specific hook context.
  */
-export type HookKey = HookKeySingle | HookKeyComposite;
+export type HookKeyOrKeys = HookKeySingle | HookKeyComposite;
 
 export type HookName = string | symbol;
 
@@ -159,7 +88,7 @@ export interface IHookData<A extends any[] = any[], R = any> {
   /** The original function being hooked. */
   origin: (...args: A) => R;
   /** The key associated with this hook. */
-  key: HookKey;
+  keyOrKeys: HookKeyOrKeys;
   /** The name of the hook. */
   name: HookName;
   /** Optional arguments override. */
@@ -177,7 +106,7 @@ export interface IHookFn<A extends any[] = any[], R = any, CallArgs extends any[
 
 export type MetadataHooks = (string | symbol)[];
 
-let currentHookKey: HookKey | null = null;
+let currentHookKey: HookKeyOrKeys | null = null;
 
 /**
  * Retrieves the hook key context for the currently executing hook.
@@ -185,7 +114,7 @@ let currentHookKey: HookKey | null = null;
  *
  * @returns The current HookKey or null if no hook is executing.
  */
-export function getCurrentHookKeyContext(): HookKey | null {
+export function getCurrentHookKeyContext(): HookKeyOrKeys | null {
   return currentHookKey;
 }
 
@@ -231,6 +160,34 @@ export function getCurrentHookKeyContext(): HookKey | null {
  *
  * See `https://github.com/neuronet/hooks#readme` for more examples and full documentation.
  */
+
+// COMPOSITES must go first, because HookKeySingle might be an object which is array also
+
+/** Wraps a function in a hook with a specific key */
+export function hook<const C extends HookKeyComposite, Args extends any[], R extends any>(
+  keys: C,
+  fn: (...args: Args) => R | null,
+): IHookFn<Args, R>;
+/** Wraps a function in a hook with a specific key and overridden arguments */
+export function hook<const C extends HookKeyComposite, Args extends any[], R extends any>(
+  keys: C,
+  args: ArgumentsProvider<Args>,
+  fn: (...args: Args) => R | null,
+): IHookFn<Args, R, []>;
+/** Wraps a function in a hook with a specific key and name */
+export function hook<const C extends HookKeyComposite, Args extends any[], R extends any>(
+  keys: C,
+  name: HookName,
+  fn: (...args: Args) => R | null,
+): IHookFn<Args, R>;
+/** Wraps a function in a hook with a specific key, name, and overridden arguments */
+export function hook<const C extends HookKeyComposite, Args extends any[], R extends any>(
+  keys: C,
+  name: HookName,
+  args: ArgumentsProvider<Args>,
+  fn: (...args: Args) => R | null,
+): IHookFn<Args, R, []>;
+
 export function hook(): ReturnType<typeof hookDecorator>; // decorator
 /** Decorator with alternative name */
 export function hook(alternativeName: string): ReturnType<typeof hookDecorator>; // decorator
@@ -258,30 +215,32 @@ export function hook<F extends (...args: any[]) => any>(
   args: ArgumentsProvider<Parameters<F>>,
   fn: F | null,
 ): IHookFn<Parameters<F>, ReturnType<F>, []>;
+
 /** Wraps a function in a hook with a specific key */
 export function hook<F extends (...args: any[]) => any>(
-  key: HookKey,
+  key: HookKeySingle,
   fn: F | null,
 ): IHookFn<Parameters<F>, ReturnType<F>>;
 /** Wraps a function in a hook with a specific key and overridden arguments */
 export function hook<F extends (...args: any[]) => any>(
-  key: HookKey,
+  key: HookKeySingle,
   args: ArgumentsProvider<Parameters<F>>,
   fn: F | null,
 ): IHookFn<Parameters<F>, ReturnType<F>, []>;
 /** Wraps a function in a hook with a specific key and name */
 export function hook<F extends (...args: any[]) => any>(
-  key: HookKey,
+  key: HookKeySingle,
   name: HookName,
   fn: F | null,
 ): IHookFn<Parameters<F>, ReturnType<F>>;
 /** Wraps a function in a hook with a specific key, name, and overridden arguments */
 export function hook<F extends (...args: any[]) => any>(
-  key: HookKey,
+  key: HookKeySingle,
   name: HookName,
   args: ArgumentsProvider<Parameters<F>>,
   fn: F | null,
 ): IHookFn<Parameters<F>, ReturnType<F>, []>;
+
 export function hook<
   A extends any[] = any[],
   AP extends ArgumentsProvider<A> = ArgumentsProvider<A>,
@@ -289,7 +248,7 @@ export function hook<
   F extends (...args: A) => R = (...args: A) => R,
 >(
   this: any,
-  arg1?: HookKey | F | AP | HookName | HookKeyDynamic | null,
+  arg1?: HookKeyOrKeys | F | AP | HookName | HookKeyDynamic | null,
   arg2?: HookName | F | AP | null,
   arg3?: AP | F | null,
   arg4?: F | null,
@@ -307,14 +266,14 @@ export function hook<
     return hookDecorator(arg2, arg1); // decorator
   }
 
-  let key: HookKey;
+  let keyOrKeys: HookKeyOrKeys;
   let name: HookName = DEFAULT_HOOK_NAME;
   let argsProv: AP | undefined = undefined;
   let fn: F;
 
   if (arg4 !== undefined) {
     // hook(key, name, args, fn)
-    key = arg1 as HookKey;
+    keyOrKeys = arg1 as HookKeyOrKeys;
     name = arg2 as HookName;
     argsProv = arg3 as AP;
     fn = (arg4 || noop) as F;
@@ -324,12 +283,12 @@ export function hook<
       if (!currentHookKey) {
         throw new Error(`${PREFIX} Hook key must be provided or inferred from the context.`);
       }
-      key = currentHookKey;
+      keyOrKeys = currentHookKey;
       name = arg1;
       argsProv = arg2 as AP;
       fn = (arg3 || noop) as F;
     } else {
-      key = arg1 as HookKey;
+      keyOrKeys = arg1 as HookKeyOrKeys;
       if (typeof arg2 === "string" || typeof arg2 === "symbol") {
         name = arg2 as HookName;
         fn = (arg3 || noop) as F;
@@ -344,7 +303,7 @@ export function hook<
       if (!currentHookKey) {
         throw new Error(`${PREFIX} Hook key must be provided or inferred from the context.`);
       }
-      key = currentHookKey;
+      keyOrKeys = currentHookKey;
       name = arg1;
       fn = (arg2 || noop) as F;
     } else if (arg1 instanceof ArgumentsProvider) {
@@ -353,26 +312,26 @@ export function hook<
       if (fn === noop && !currentHookKey) {
         throw new Error(`${PREFIX} Hook key must be provided or inferred from the context.`);
       }
-      key = fn;
+      keyOrKeys = fn;
     } else {
-      key = arg1 as HookKey;
+      keyOrKeys = arg1 as HookKeyOrKeys;
       fn = (arg2 || noop) as F;
     }
   } else {
     // hook(fn)
     fn = (arg1 || noop) as F;
-    key = fn as any as HookKey;
+    keyOrKeys = fn as any as HookKeyOrKeys;
   }
 
   const _hookData: IHookData<A, R> = {
     origin: fn,
-    key,
+    keyOrKeys: keyOrKeys,
     name,
     argsProvider: argsProv,
   };
 
   function runHook(this: any, ...args: A) {
-    let key = _hookData.key;
+    let key = _hookData.keyOrKeys;
     const oldHookKey = currentHookKey;
 
     // we need to resolve dynamic keys for nested hooks here, because otherwise it will cause incorrect `this` inside dynamic key function
@@ -384,21 +343,20 @@ export function hook<
 
     let next: MiddlewareNext<A, R> = _hookData.origin;
 
-    if (key instanceof HookKeyComposite) {
-      const keyComposite = key as HookKeyComposite;
-      if (keyComposite.keys.length === 0) {
+    if (Array.isArray(key)) {
+      if (key.length === 0) {
         const callArgs = (argsProv?.args.call(this) || (args as any as A)) as unknown as A;
         const originalFn = _hookData.origin as unknown as (...args: any[]) => R;
         const result = originalFn.apply(this, callArgs as unknown as any[]);
         currentHookKey = oldHookKey;
         return result;
       }
-      const flat = keyComposite.flat();
       let i = 1;
-      key = flat[0]!;
+      const _keys = key;
+      key = _keys[0]!;
       next = (...args: A) => {
-        if (i < keyComposite.keys.length) {
-          return runMiddleware(flat[i++]!, _hookData.name, next, this, ...args);
+        if (i < _keys.length) {
+          return runMiddleware(_keys[i++]!, _hookData.name, next, this, ...args);
         } else {
           return _hookData.origin.apply(this, args);
         }
@@ -430,9 +388,9 @@ export function Hook(_Class: any, context: ClassDecoratorContext) {
       if (hooked && (hooked as any)[HOOK] === undefined) {
         (hooked as any)[HOOK] = {
           origin: hooked,
-          key: this,
+          keyOrKeys: this,
           name: propertyKey,
-        };
+        } satisfies IHookData;
       }
     }
   });
@@ -512,7 +470,7 @@ export function _createLazyHookInvoker(
   return function runHook(this: any, ...args: any[]) {
     if (!this[hookKey]) {
       const receiver = owner ?? this;
-      this[hookKey] = hook(dynamicKey ?? composeHookKeys(this, this.constructor), hookName, value.bind(receiver));
+      this[hookKey] = hook(dynamicKey ?? [this, this.constructor], hookName, value.bind(receiver));
     }
     return this[hookKey](...args);
   };
@@ -549,32 +507,20 @@ export function _createAccessorDecoratorHooks(
     get: function runHook(this: any, ...args: any[]) {
       if (!this[getHookKey]) {
         const receiver = owner ?? this;
-        this[getHookKey] = hook(
-          dynamicKey ?? composeHookKeys(this, this.constructor),
-          "get " + String(hookName),
-          get.bind(receiver),
-        );
+        this[getHookKey] = hook(dynamicKey ?? [this, this.constructor], "get " + String(hookName), get.bind(receiver));
       }
       return this[getHookKey](...args);
     },
     set: function runHook(this: any, ...args: any[]) {
       if (!this[setHookKey]) {
         const receiver = owner ?? this;
-        this[setHookKey] = hook(
-          dynamicKey ?? composeHookKeys(this, this.constructor),
-          "set " + String(hookName),
-          set.bind(receiver),
-        );
+        this[setHookKey] = hook(dynamicKey ?? [this, this.constructor], "set " + String(hookName), set.bind(receiver));
       }
       return this[setHookKey](...args);
     },
     init: function runHook(this: any, initialValue: any) {
       if (!this[initHookKey]) {
-        this[initHookKey] = hook(
-          dynamicKey ?? composeHookKeys(this, this.constructor),
-          "init " + String(hookName),
-          _identity,
-        );
+        this[initHookKey] = hook(dynamicKey ?? [this, this.constructor], "init " + String(hookName), _identity);
       }
       return this[initHookKey](initialValue);
     },
@@ -636,7 +582,7 @@ export function hookDecorator(
           this[propertyKey] = hook(dynamicKey ?? this, hookName, value.bind(this));
         } else {
           // instance has higher priority than class, so we can override middleware for specific instance and it can suppress calling class middlewares
-          this[propertyKey] = hook(dynamicKey ?? composeHookKeys(this, this.constructor), hookName, value.bind(this));
+          this[propertyKey] = hook(dynamicKey ?? [this, this.constructor], hookName, value.bind(this));
         }
       });
 
@@ -760,7 +706,7 @@ export interface IMiddlewareMethods {
   [key: string | symbol]: MiddlewareMethod[];
 }
 
-export const middlewares: WeakMap<HookKey, IMiddlewareMethods> = new WeakMap();
+export const middlewares: WeakMap<HookKeyOrKeys, IMiddlewareMethods> = new WeakMap();
 
 /**
  * Attaches a middleware function to a hook.
@@ -775,7 +721,7 @@ export function attach<T extends (...args: any[]) => any>(
   fn: MiddlewareMethod<HookOriginArgs<T>, HookOriginResult<T>, HookOriginThis<T>>,
 ): () => void;
 /** Attaches middleware to a specific hook key */
-export function attach<A extends any[] = any[], R = any>(key: HookKey, fn: MiddlewareMethod<A, R>): () => void;
+export function attach<A extends any[] = any[], R = any>(key: HookKeyOrKeys, fn: MiddlewareMethod<A, R>): () => void;
 /** Attaches middleware to a specific member of a class/instance */
 export function attach<TObject, TName extends HookName>(
   key: TObject,
@@ -787,23 +733,24 @@ export function attach<TObject, TName extends HookName>(
   >,
 ): () => void;
 /** Attaches middleware with a specific key and name */
-export function attach(key: HookKey, name: HookName, fn: MiddlewareMethod<any[], unknown>): () => void;
+export function attach(key: HookKeyOrKeys, name: HookName, fn: MiddlewareMethod<any[], unknown>): () => void;
 
 export function attach<A extends any[] = any[], R = any>(
-  arg1: HookKey | IHookFn<A, R>,
+  arg1: HookKeyOrKeys | IHookFn<A, R>,
   arg2: HookName | MiddlewareMethod<A, R>,
   arg3?: MiddlewareMethod<A, R>,
 ) {
-  let key: HookKey;
+  let key: HookKeyOrKeys;
   let name: HookName = DEFAULT_HOOK_NAME;
   let fn: MiddlewareMethod<A, R>;
 
   const maybeHook = (arg1 as IHookFn<A, R>)[HOOK];
+
   if (maybeHook) {
-    key = maybeHook.key;
+    key = maybeHook.keyOrKeys;
     name = maybeHook.name;
   } else {
-    key = arg1 as HookKey;
+    key = arg1 as HookKeyOrKeys;
   }
 
   if (arg3) {
@@ -823,14 +770,15 @@ export function attach<A extends any[] = any[], R = any>(
     );
   }
 
-  if (key instanceof HookKeyComposite) {
+  if (Array.isArray(key)) {
     // by default use first key to attach middleware as if it was normal middleware with no levels
     // because first key is the instance key that might be overridden
     // if you want to attach middleware to the key from level below, then you need to specify it explicitly
-    const flat = key.flat();
-    key = flat[0]!;
+    if (key.length === 0) {
+      return noop;
+    }
+    key = key[0]!;
   }
-
   const methods = middlewares.getOrInsert(key, {});
   let method = methods[name] as MiddlewareMethod[] | undefined;
 
@@ -844,7 +792,7 @@ export function attach<A extends any[] = any[], R = any>(
 }
 
 export interface IHookInspection {
-  key: HookKey;
+  key: HookKeyOrKeys;
   name: HookName;
   middlewareCount: number;
   middlewareNames: HookName[];
@@ -863,21 +811,21 @@ export function inspectHook(hookFn: IHookFn<any, any>): IHookInspection {
     throw new Error(`${PREFIX}[inspectHook] Hook function metadata not found.`);
   }
 
-  const methods = middlewares.get(maybeHook.key);
+  const methods = middlewares.get(maybeHook.keyOrKeys);
   const middlewareNames = Object.keys(methods || {}) as HookName[];
   const middlewareCount = middlewareNames.reduce((count, methodName) => {
     return count + (methods?.[methodName]?.length || 0);
   }, 0);
 
   return {
-    key: maybeHook.key,
+    key: maybeHook.keyOrKeys,
     name: maybeHook.name,
     middlewareCount,
     middlewareNames,
   };
 }
 
-export function getMiddleware(key: HookKey, name: HookName): MiddlewareMethod[] {
+export function getMiddleware(key: HookKeyOrKeys, name: HookName): MiddlewareMethod[] {
   const methods = middlewares.get(key);
   if (!methods) {
     return [];
@@ -898,7 +846,7 @@ export function getMiddleware(key: HookKey, name: HookName): MiddlewareMethod[] 
  * @param name The hook name.
  * @param fn The middleware function to remove.
  */
-export function detach(key: HookKey, name: HookName, fn: MiddlewareMethod): void {
+export function detach(key: HookKeyOrKeys, name: HookName, fn: MiddlewareMethod): void {
   const methods = middlewares.get(key);
   if (!methods) {
     return;

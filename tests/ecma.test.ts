@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { HOOK, hook, attach, Hook, composeHookKeys, dynamicHookKey, getCurrentHookKeyContext } from "../src";
+import { HOOK, hook, attach, Hook, dynamicHookKey, getCurrentHookKeyContext, type IHookData } from "../src";
 
 describe("hooks: decorators", () => {
   it("should work with private methods", () => {
@@ -223,15 +223,15 @@ describe("hooks: decorators", () => {
     }
 
     const instance = new MethodsClass();
-    const classHookData = (MethodsClass.prototype.myMethod as any)[HOOK];
+    const classHookData = (MethodsClass.prototype.myMethod as any)[HOOK] as IHookData;
     expect(classHookData).toBeDefined();
     expect(classHookData.name).toBe("myMethod");
-    expect(classHookData.key).toBe(MethodsClass);
+    expect(classHookData.keyOrKeys).toBe(MethodsClass);
 
     const instanceHookData = (instance.myMethod as any)[HOOK];
     expect(instanceHookData).toBeDefined();
     expect(instanceHookData.name).toBe("myMethod");
-    expect(instanceHookData.key).toEqual(composeHookKeys(instance, MethodsClass));
+    expect(instanceHookData.keyOrKeys).toEqual([instance, MethodsClass]);
 
     expect(instance.myMethod("a")).toBe("a:original");
     const logs: string[] = [];
@@ -331,7 +331,7 @@ describe("hooks: decorators", () => {
       @hook(
         dynamicHookKey(function (this: DynamicHookClass) {
           dynamicThis.push(this);
-          return composeHookKeys(this, DynamicHookClass);
+          return [this, DynamicHookClass];
         }),
       )
       dynamicMethod(x: string) {
@@ -413,7 +413,7 @@ describe("hooks: decorators", () => {
       @hook(
         dynamicHookKey(function (this: DynamicHookClass) {
           dynamicThis.push(this);
-          return composeHookKeys(this, DynamicHookClass);
+          return [this, DynamicHookClass];
         }),
       )
       accessor myValue: string = "initial";
@@ -487,7 +487,7 @@ describe("hooks: decorators", () => {
       @hook(
         dynamicHookKey(function (this: DynamicHookClass) {
           dynamicThis.push(this);
-          return composeHookKeys(this, DynamicHookClass);
+          return [this, DynamicHookClass];
         }),
       )
       get myValue(): string {
@@ -498,7 +498,7 @@ describe("hooks: decorators", () => {
       @hook(
         dynamicHookKey(function (this: DynamicHookClass) {
           dynamicThis.push(this);
-          return composeHookKeys(this, DynamicHookClass);
+          return [this, DynamicHookClass];
         }),
       )
       set myValue(value: string) {
@@ -578,7 +578,7 @@ describe("hooks: decorators", () => {
       @hook(
         dynamicHookKey(function (this: DynamicHookClass) {
           dynamicThis.push(this);
-          return composeHookKeys(this, DynamicHookClass);
+          return [this, DynamicHookClass];
         }),
       )
       myValue: string = "initial";
@@ -586,14 +586,14 @@ describe("hooks: decorators", () => {
       @hook(
         "myValue2Alt",
         dynamicHookKey(function (this: DynamicHookClass) {
-          return composeHookKeys(this, DynamicHookClass);
+          return [this, DynamicHookClass];
         }),
       )
       myValue2: string = "initial2";
 
       @hook(
         dynamicHookKey(function (this: DynamicHookClass) {
-          return composeHookKeys(this, DynamicHookClass);
+          return [this, DynamicHookClass];
         }),
         "myValue3Alt",
       )
@@ -663,7 +663,7 @@ describe("hooks: decorators", () => {
     class InnerHooksClass {
       @hook()
       myMethod(x: string) {
-        expect(getCurrentHookKeyContext()).toEqual(composeHookKeys(this, InnerHooksClass));
+        expect(getCurrentHookKeyContext()).toEqual([this, InnerHooksClass]);
         return x + ":original";
       }
     }
@@ -718,7 +718,7 @@ describe("hooks: decorators", () => {
     class InnerHooksClass {
       @hook("myMethodAlt")
       myMethod(x: string) {
-        expect(getCurrentHookKeyContext()).toEqual(composeHookKeys(this, InnerHooksClass));
+        expect(getCurrentHookKeyContext()).toEqual([this, InnerHooksClass]);
         return x + ":original";
       }
     }
@@ -1090,7 +1090,7 @@ describe("hooks: decorators", () => {
       function track(target: string) {
         return dynamicHookKey(function (this: any) {
           tracks.push({ target, self: this });
-          return composeHookKeys(this, this.constructor);
+          return [this, this.constructor];
         });
       }
 
@@ -1115,7 +1115,7 @@ describe("hooks: decorators", () => {
       function track(target: string) {
         return dynamicHookKey(function (this: any) {
           tracks.push({ target, self: this });
-          return composeHookKeys(this, this.constructor);
+          return [this, this.constructor];
         });
       }
 
@@ -1140,7 +1140,7 @@ describe("hooks: decorators", () => {
       function track(target: string) {
         return dynamicHookKey(function (this: any) {
           tracks.push({ target, self: this });
-          return composeHookKeys(this, this.constructor);
+          return [this, this.constructor];
         });
       }
 
@@ -1181,7 +1181,7 @@ describe("hooks: decorators", () => {
       function track(target: string) {
         return dynamicHookKey(function (this: any) {
           tracks.push({ target, self: this });
-          return composeHookKeys(this, this.constructor);
+          return [this, this.constructor];
         });
       }
 
@@ -1207,7 +1207,7 @@ describe("hooks: decorators", () => {
       function track(target: string) {
         return dynamicHookKey(function (this: any) {
           tracks.push({ target, self: this });
-          return composeHookKeys(this, this.constructor);
+          return [this, this.constructor];
         });
       }
 
@@ -1233,7 +1233,7 @@ describe("hooks: decorators", () => {
       function track(target: string) {
         return dynamicHookKey(function (this: any) {
           tracks.push({ target, self: this });
-          return composeHookKeys(this, this.constructor);
+          return [this, this.constructor];
         });
       }
 
@@ -1272,7 +1272,7 @@ describe("hooks: decorators", () => {
       function track(target: string) {
         return dynamicHookKey(function (this: any) {
           tracks.push({ target, self: this });
-          return composeHookKeys(this, this.constructor);
+          return [this, this.constructor];
         });
       }
 
@@ -1295,7 +1295,7 @@ describe("hooks: decorators", () => {
       function track(target: string) {
         return dynamicHookKey(function (this: any) {
           tracks.push({ target, self: this });
-          return composeHookKeys(this, this.constructor);
+          return [this, this.constructor];
         });
       }
 
@@ -1318,7 +1318,7 @@ describe("hooks: decorators", () => {
       function track(target: string) {
         return dynamicHookKey(function (this: any) {
           tracks.push({ target, self: this });
-          return composeHookKeys(this, this.constructor);
+          return [this, this.constructor];
         });
       }
 
@@ -1373,7 +1373,7 @@ describe("hooks: decorators", () => {
       function track(target: string) {
         return dynamicHookKey(function (this: any) {
           tracks.push({ target, self: this });
-          return composeHookKeys(this, this.constructor);
+          return [this, this.constructor];
         });
       }
 
@@ -1408,7 +1408,7 @@ describe("hooks: decorators", () => {
       function track(target: string) {
         return dynamicHookKey(function (this: any) {
           tracks.push({ target, self: this });
-          return composeHookKeys(this, this.constructor);
+          return [this, this.constructor];
         });
       }
 
@@ -1443,7 +1443,7 @@ describe("hooks: decorators", () => {
       function track(target: string) {
         return dynamicHookKey(function (this: any) {
           tracks.push({ target, self: this });
-          return composeHookKeys(this, this.constructor);
+          return [this, this.constructor];
         });
       }
 
@@ -1478,9 +1478,9 @@ describe("hooks: decorators", () => {
       return dynamicHookKey(function (this: any) {
         tracks.push({ target, self: this });
         if (this.constructor !== Function) {
-          return composeHookKeys(this, this.constructor);
+          return [this, this.constructor];
         }
-        return composeHookKeys(this);
+        return [this];
       });
     }
 
@@ -1801,7 +1801,7 @@ describe("hooks: decorators", () => {
     function track(target: string) {
       return dynamicHookKey(function (this: any) {
         tracks.push({ target, self: this });
-        return composeHookKeys(this, this.constructor);
+        return [this, this.constructor];
       });
     }
 
@@ -2213,9 +2213,9 @@ describe("hooks: decorators", () => {
       return dynamicHookKey(function (this: any) {
         tracks.push({ target, self: this });
         if (this.constructor !== Function) {
-          return composeHookKeys(this, this.constructor);
+          return [this, this.constructor];
         }
-        return composeHookKeys(this);
+        return [this];
       });
     }
 

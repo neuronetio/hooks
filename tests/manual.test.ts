@@ -1,18 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { attach, keys, dynKey, hook, argsProvider, getCurrentHookKeyContext } from "../src";
+import { attach, dynKey, hook, argsProvider, getCurrentHookKeyContext } from "../src";
 
 describe("manual decorators", () => {
   it("instance initializer should work with private fields", () => {
     class Service {
       #prv = "prv";
 
-      val: string = hook(keys(this, Service), "init val", argsProvider(this.#prv), (v: string) => {
+      val: string = hook([this, Service], "init val", argsProvider(this.#prv), (v: string) => {
         return v + " " + this.#prv.toUpperCase();
       })();
 
       dynVal: string = hook(
-        dynKey(() => keys(this, Service)),
+        dynKey(() => [this, Service]),
         "init val",
         argsProvider(this.#prv),
         (v: string) => {
@@ -48,15 +48,15 @@ describe("manual decorators", () => {
     class Service {
       #instPrv = "prv";
 
-      getVal = hook(keys(this, Service), "getVal", (v: string) => {
+      getVal = hook([this, Service], "getVal", (v: string) => {
         // check nested context
-        expect(getCurrentHookKeyContext()).toEqual(keys(this, Service));
+        expect(getCurrentHookKeyContext()).toEqual([this, Service]);
         hook("getValSub", (v: string) => {
           sub.push(v);
-          expect(getCurrentHookKeyContext()).toEqual(keys(this, Service));
+          expect(getCurrentHookKeyContext()).toEqual([this, Service]);
           expect(
             hook("getValSubSub", (v: string) => {
-              expect(getCurrentHookKeyContext()).toEqual(keys(this, Service));
+              expect(getCurrentHookKeyContext()).toEqual([this, Service]);
               return v + " subSub";
             })(v),
           ).toBe(v + " subSub");
@@ -67,13 +67,13 @@ describe("manual decorators", () => {
 
       getValWrap(v: string) {
         // check nested context
-        return hook(keys(this, Service), "getValWrap", (v: string) => {
+        return hook([this, Service], "getValWrap", (v: string) => {
           hook("getValWrapSub", (v: string) => {
             sub.push(v);
-            expect(getCurrentHookKeyContext()).toEqual(keys(this, Service));
+            expect(getCurrentHookKeyContext()).toEqual([this, Service]);
             expect(
               hook("getValWrapSubSub", (v: string) => {
-                expect(getCurrentHookKeyContext()).toEqual(keys(this, Service));
+                expect(getCurrentHookKeyContext()).toEqual([this, Service]);
                 return v + " subSub";
               })(v),
             ).toBe(v + " subSub");
@@ -178,15 +178,15 @@ describe("manual decorators", () => {
       #prv = "prv";
 
       get val() {
-        return hook(keys(this, Service), "get val", () => {
+        return hook([this, Service], "get val", () => {
           // check nested context
-          expect(getCurrentHookKeyContext()).toEqual(keys(this, Service));
+          expect(getCurrentHookKeyContext()).toEqual([this, Service]);
           hook("getValSub", (v: string) => {
             sub.push(v);
-            expect(getCurrentHookKeyContext()).toEqual(keys(this, Service));
+            expect(getCurrentHookKeyContext()).toEqual([this, Service]);
             expect(
               hook("getValSubSub", (v: string) => {
-                expect(getCurrentHookKeyContext()).toEqual(keys(this, Service));
+                expect(getCurrentHookKeyContext()).toEqual([this, Service]);
                 return v + " subSub";
               })(v),
             ).toBe(v + " subSub");
@@ -197,15 +197,15 @@ describe("manual decorators", () => {
       }
 
       set val(value: string) {
-        hook(keys(this, Service), "set val", (v: string) => {
+        hook([this, Service], "set val", (v: string) => {
           // check nested context
-          expect(getCurrentHookKeyContext()).toEqual(keys(this, Service));
+          expect(getCurrentHookKeyContext()).toEqual([this, Service]);
           hook("setValSub", (v: string) => {
             sub.push(v);
-            expect(getCurrentHookKeyContext()).toEqual(keys(this, Service));
+            expect(getCurrentHookKeyContext()).toEqual([this, Service]);
             expect(
               hook("setValSubSub", (v: string) => {
-                expect(getCurrentHookKeyContext()).toEqual(keys(this, Service));
+                expect(getCurrentHookKeyContext()).toEqual([this, Service]);
                 return v + " subSub";
               })(v),
             ).toBe(v + " subSub");
