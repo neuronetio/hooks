@@ -281,8 +281,18 @@ const _fn2: IHookFn<[x: number], string, [x: number]> = hook(
 const _fn3: IHookFn<[x: number], string, [x: number]> = hook(instance, "myMethod", (x: number) => String(x));
 const _fn4: IHookFn<[x: number], string, [x: number]> = hook(Example, "myMethod", (x: number) => String(x));
 
+const predefinedKeys = [instance, Example];
+
 class Service {
   #instPrv = "prv";
+
+  pre = hook(predefinedKeys, "getVal", (v: string) => {
+    return v + " " + this.#instPrv.toUpperCase();
+  });
+
+  pre2 = hook(predefinedKeys, "getVal", argsProvider("hello"), (v: string) => {
+    return v + " " + this.#instPrv.toUpperCase();
+  });
 
   getVal = hook([this, Service], "getVal", (v: string) => {
     return v + " " + this.#instPrv.toUpperCase();
