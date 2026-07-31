@@ -99,4 +99,16 @@ describe("use case", () => {
       "[LOG] middleware parent_instance returned: Hello, Alice",
     ]);
   });
+
+  it("different hook should use the same middleware when the same name is used", () => {
+    const key = Symbol("myKey");
+
+    const greet1 = hook(key, "greet", (name: string) => `Hello, ${name}`);
+    const greet2 = hook(key, "greet", (name: string) => `Hi, ${name}`);
+
+    attach(key, "greet", (next, name) => next(name.toUpperCase()));
+
+    expect(greet1("Ada")).toBe("Hello, ADA");
+    expect(greet2("Ada")).toBe("Hi, ADA");
+  });
 });
