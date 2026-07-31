@@ -328,8 +328,8 @@ service2.greet("test"); // test class
 Dynamic keys (`dynamicHookKey` or the shorter `dhk` alias) are a powerful feature that allows you to resolve the hook key at runtime.
 Dynamic keys are more flexible and can be used in places where your code is more dynamic.
 For example, you can use dynamic keys if your class is injected dynamically into a parent class and you want to attach middleware at a higher level, or when you want to use different pipeline behavior based on runtime conditions.
-Basically, dynamic keys allow you to choose which middleware to run dynamically.
-This way you have a control in both sides — from within a hook or from the middleware itself.
+Basically, dynamic keys allow you to choose which middleware to run at runtime.
+This gives you control from both sides — from within a hook or from the middleware itself.
 
 <img width="400" height="272" alt="flexibility-everywhere" src="https://github.com/user-attachments/assets/7f225777-69f6-4902-9166-7faef15c3c8a" />
 
@@ -379,7 +379,14 @@ class Child {
   greet = hook(
     // use dynamic hook key
     dhk(() => {
+      // if we are attached...
       if (this.#parent) {
+        // we will use parent middleware
+
+        // this.#parent to use parent instance-specific middleware
+        // Parent to use parent middleware for all Parent instances
+        // this to use child instance-specific middleware
+        // Child to use child middleware for all Child instances
         return [this.#parent, Parent, this, Child];
       }
       return [this, Child];
@@ -424,7 +431,7 @@ attach(parent, "child_greet", (next, name) => log(next, "parent_instance", name)
 
 const child = new Child();
 child.greet("Alice");
-// Hello, Alice (not affected by parent middleware because child is not injected)
+// Hello, Alice (child is not injected = not affected by parent middleware)
 
 parent.inject(child); // now child will use parent middleware
 
