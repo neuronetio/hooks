@@ -28,7 +28,7 @@ On top of that, `@neuronet/hooks` is very lightweight, well tested, and has no e
     - [2. Quick start: wrap a class member](#2-quick-start-wrap-a-class-member)
     - [3. Quick start: manual decorators](#3-quick-start-manual-decorators)
     - [4. Quick start: ECMA decorators](#4-quick-start-ecma-decorators)
-  - [Middleware execution order / composite keys](#middleware-execution-order--composite-keys)
+  - [Middleware execution order / key composition](#middleware-execution-order--key-composition)
   - [Dynamic keys](#dynamic-keys)
 - [API](#api)
   - [Function hooks](#function-hooks)
