@@ -4,24 +4,26 @@
 
 It helps you extend behavior without changing the original codebase. In practice, that means you can add dependency injection, logging, validation, retries, caching, instrumentation, or custom logic in a clean and reusable way.
 
-## When this library might be useful
+## When to use this library
 
-- When you need observable events or lifecycle hooks inside your code.
-- When you need to add or change behavior without modifying the original source code (keeping it upgradable).
-- When you want a plugin-style extension mechanism for libraries or applications.
-- When you deliver customer-specific solutions that stay separate from, yet ship with, the core code.
-- Ideal for cross-cutting concerns such as dependency injection, validation, testing, logging, caching, memoization, retries, metrics, and other common tasks.
-- When you want to chain functions dynamically and achieve a dynamic pipeline.
-- When you want more granular control over the order of execution of multiple middlewares.
-- When you want full control over where to attach middleware (at the function, class, or specific instance level).
-- When you need middlewares that can be attached and detached at runtime.
-- When you want a single, consistent API for injecting behavior into functions, methods, fields, getters, setters, and accessors — across public, static, and private members.
+`@neuronet/hooks` are especially useful when:
 
+- you need observable events or lifecycle hooks inside your code.
+- you need to add or change behavior without modifying the original source code (keeping it upgradable).
+- you want a plugin-style extension mechanism for libraries or applications.
+- you deliver customer-specific solutions that stay separate from, yet ship with, the core code.
+- you want to chain functions dynamically and achieve a dynamic pipeline.
+- you want more granular control over the order of execution of multiple middlewares.
+- you want full control over where to attach middleware (at the function, class, or specific instance level).
+- you need middlewares that can be attached and detached at runtime.
+- you want a single, consistent API for injecting behavior into functions, methods, fields, getters, setters, and accessors — across public, static, and private members.
+
+Basically this library can be used for cross-cutting concerns such as dependency injection, validation, testing, logging, caching, memoization, retries, metrics, and other common tasks.
 On top of that, `@neuronet/hooks` is very lightweight, well tested, and has no external dependencies. It is written in TypeScript and runs in Node.js, web browsers, Deno, Bun, and other JavaScript runtimes.
 
 ## Table of contents
 
-- [Why this library is useful](#when-this-library-might-be-useful)
+- [When to use this library](#when-to-use-this-library)
 - [Basic concepts](#basic-concepts)
   - [The four main ways to use it](#the-four-main-ways-to-use-it)
     - [1. Quick start: wrap a function](#1-quick-start-wrap-a-function)
