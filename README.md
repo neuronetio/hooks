@@ -222,7 +222,7 @@ In other words, middleware are ordered first by key, and then by registration or
 **Example 1**: single key order
 
 ```ts
-import { hook, composeHookKeys, attach } from "@neuronet/hooks";
+import { hook, attach } from "@neuronet/hooks";
 
 const oneKey = Symbol("one");
 const one = hook(oneKey, (name: string) => name);
@@ -234,11 +234,11 @@ one("test"); // test:one1:one2
 **Example 2**: composite key order
 
 ```ts
-import { hook, composeHookKeys, attach } from "@neuronet/hooks";
+import { hook, attach } from "@neuronet/hooks";
 
 const key1 = Symbol("key1");
 const key2 = Symbol("key2");
-const composite = hook(composeHookKeys(key1, key2), (name: string) => name);
+const composite = hook([key1, key2], (name: string) => name);
 attach(key2, (next, name) => next(name + ":key2")); // key2 added first
 attach(key1, (next, name) => next(name + ":key1")); // key1 added second, but runs first because it's the first key in the composition
 composite("test"); // test:key1:key2
@@ -247,12 +247,12 @@ composite("test"); // test:key1:key2
 **Example 3**: multiple middleware
 
 ```ts
-import { hook, composeHookKeys, attach } from "@neuronet/hooks";
+import { hook, attach } from "@neuronet/hooks";
 
 const key1 = Symbol("key1");
 const key2 = Symbol("key2");
 const key3 = Symbol("key3");
-const composite = hook(composeHookKeys(key1, key2, key3), (name: string) => name);
+const composite = hook([key1, key2, key3], (name: string) => name);
 
 attach(key1, (next, name) => next(name + "  key1_1"));
 attach(key2, (next, name) => next(name + "  key2_1"));
@@ -270,7 +270,9 @@ composite("test"); // test  key1_1  key1_2  key2_1  key2_2  key3_1
 
 ### Dynamic keys
 
-Dynamic keys are a powerful feature that allows you to resolve the hook key at runtime. This is useful when you want to use different pipeline behavior based on runtime conditions or you don't know the key in advance.
+Dynamic keys (`dynamicHookKey` or the shorter `dhk` alias) are a powerful feature that allows you to resolve the hook key at runtime.
+Dynamic keys are more flexible and can be used in places where your code is more dynamic.
+For example, you can use dynamic keys if your class is injected dynamically into a parent class and you want to attach middleware at a higher level, or when you want to use different pipeline behavior based on runtime conditions.
 
 **Example**: dynamic pipeline selection
 
@@ -305,10 +307,10 @@ usePipeline = 2; // configuration changed
 greet("Ada"); // Hello, Ada:pipeline2
 ```
 
-`dynamicHookKey` callback can also return a composite key, so you can combine multiple keys dynamically.
+`dynamicHookKey` callback can also return an array of keys, so you can combine multiple keys dynamically.
 
 ```ts
-import { hook, attach, dynamicHookKey, composeHookKeys } from "@neuronet/hooks";
+import { hook, attach, dynamicHookKey } from "@neuronet/hooks";
 
 const key1 = Symbol("key1");
 const key2 = Symbol("key2");
@@ -323,7 +325,7 @@ attach(key4, (next, name) => next(name + ":key4"));
 let pipeline = [key1, key2];
 
 const composite = hook(
-  dynamicHookKey(() => composeHookKeys(...pipeline)),
+  dynamicHookKey(() => pipeline),
   (name: string) => name,
 );
 
@@ -332,6 +334,119 @@ composite("test"); // test:key1:key2
 pipeline = [key3, key4]; // configuration changed
 
 composite("test"); // test:key3:key4
+```
+
+**Example**: dynamic key with key on parent class (using `dhk` alias)
+
+```ts
+import { hook, attach, dhk } from "@neuronet/hooks";
+
+class Child {
+  parent: Parent | null = null;
+
+  greet = hook(
+    dhk(() => {
+      if (this.parent) {
+        return [this.parent, Parent, this, Child];
+      }
+      return [this, Child];
+    }),
+    "greet",
+    (name: string) => `Hello, ${name}`,
+  );
+}
+
+class Parent {
+  injected: Child | null = null;
+
+  inject(child: Child) {
+    this.injected = child;
+    child.parent = this;
+  }
+}
+
+const child = new Child();
+const parent = new Parent();
+
+child.greet("John"); // "Hello, John"
+
+// attach middleware to concrete child instance (affects only this instance)
+attach(child, "greet", (next, name) => next(name + " [child_instance]"));
+// and Child class (affects all instances of Child) - just to demonstrate things
+attach(Child, "greet", (next, name) => next(name + " [child_class]"));
+
+child.greet("John"); // "Hello, John [child_instance] [child_class]"
+
+// attach middleware to concrete parent instance (affects only this instance)
+attach(parent, "greet", (next, name) => next(name + " [parent_instance]"));
+// and Parent class (affects all instances of Parent) - just to demonstrate things
+attach(Parent, "greet", (next, name) => next(name + " [parent_class]"));
+
+child.greet("John"); // "Hello, John [child_instance] [child_class]" - not yet affected by parent middleware because parent is not injected yet
+
+parent.inject(child);
+
+child.greet("John"); // "Hello, John [parent_instance] [parent_class] [child_instance] [child_class]" now you're talking...
+```
+
+**Example**: Log only connected instances
+
+```ts
+import { hook, attach, dhk } from "@neuronet/hooks";
+
+class Child {
+  #parent: Parent | null = null;
+
+  greet = hook(
+    dhk(() => {
+      if (this.#parent) {
+        return [this.#parent, Parent, this, Child];
+      }
+      return [this, Child];
+    }),
+    "greet",
+    (name: string) => {
+      const result = `Hello, ${name}`;
+      console.log(result);
+      return result;
+    },
+  );
+
+  setParent(parent: Parent) {
+    this.#parent = parent;
+  }
+}
+
+class Parent {
+  injected: Child[] = [];
+
+  inject(child: Child) {
+    child.setParent(this);
+    this.injected.push(child);
+  }
+}
+
+function log(next: (name: string) => string, level: string, name: string) {
+  console.log(`[LOG] ${level} middleware called with name: ${name}`);
+  const result = next(name);
+  console.log(`[LOG] ${level} middleware returned: ${result}`);
+  return result;
+}
+
+const parent = new Parent();
+
+// attach middleware to concrete parent instance which will log operations from injected children
+attach(parent, "greet", (next, name) => log(next, "parent_instance", name));
+
+const child = new Child();
+child.greet("Alice");
+// Hello, Alice (not yet affected by parent middleware because child is not injected yet)
+
+parent.inject(child);
+child.greet("Alice");
+// [LOG] parent_instance middleware called with name: Alice
+// Hello, Alice
+// [LOG] parent_instance middleware returned: Hello, Alice
 ```
 
 ---
