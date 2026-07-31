@@ -1,4 +1,4 @@
-import type { HookKeySingle, IHookFn, MiddlewareMethod } from "../src/index";
+import type { IHookFn, MiddlewareMethod } from "../src/index";
 import { argsProvider, attach, Hook, hook, hookField, hookGetter, hookMethod, Hooks, hookSetter } from "../src/index";
 
 // NOTICE: tests contains a lot of types that are also checked within "test" script
