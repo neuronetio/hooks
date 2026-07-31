@@ -288,7 +288,6 @@ class Service {
   #instPrv = "prv";
 
   pre = hook(predefinedKeys, "getVal", (v: string) => {
-    predefinedKeys.push(instance);
     return v + " " + this.#instPrv.toUpperCase();
   });
 
@@ -297,7 +296,6 @@ class Service {
   });
 
   pre3 = hook(predefinedKeysAny, "getVal", (v: string) => {
-    predefinedKeysAny.push(Symbol("key"));
     return v + " " + this.#instPrv.toUpperCase();
   });
 
