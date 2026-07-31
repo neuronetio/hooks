@@ -329,7 +329,7 @@ Dynamic keys (`dynamicHookKey` or the shorter `dhk` alias) are a powerful featur
 Dynamic keys are more flexible and can be used in places where your code is more dynamic.
 For example, you can use dynamic keys if your class is injected dynamically into a parent class and you want to attach middleware at a higher level, or when you want to use different pipeline behavior based on runtime conditions.
 Basically, dynamic keys allow you to choose which middleware to run dynamically.
-This way you have a control in both sides — from within a hook or from the middleware itself (flexibility everywhere...).
+This way you have a control in both sides — from within a hook or from the middleware itself.
 
 <img width="400" height="272" alt="flexibility-everywhere" src="https://github.com/user-attachments/assets/7f225777-69f6-4902-9166-7faef15c3c8a" />
 
