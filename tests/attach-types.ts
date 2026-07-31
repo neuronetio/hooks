@@ -297,7 +297,7 @@ class Service {
   });
 
   pre3 = hook(predefinedKeysAny, "getVal", (v: string) => {
-    predefinedKeys.push(instance);
+    predefinedKeysAny.push(Symbol("key"));
     return v + " " + this.#instPrv.toUpperCase();
   });
 
