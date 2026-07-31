@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { attach, dynKey, hook, argsProvider, getCurrentHookKeyContext } from "../src";
+import { attach, dynKey, hook, argsProvider, getCurrentHookKeyContext, HookKeyDynamic } from "../src";
 
 describe("manual decorators", () => {
   it("instance initializer should work with private fields", () => {
@@ -313,5 +313,46 @@ describe("manual decorators", () => {
       "setValSub _set_sub_",
       "getValSub _get_sub_",
     ]);
+  });
+
+  it("should work with parent-child class hierarchy", () => {
+    class Child {
+      parent: Parent | null = null;
+
+      greet = hook(
+        dynKey(() => {
+          if (this.parent) {
+            return [this.parent, Parent, this, Child];
+          }
+          return [this, Child];
+        }),
+        "greet",
+        (name: string) => `Hello, ${name}`,
+      );
+    }
+
+    class Parent {
+      injected: Child | null = null;
+
+      inject(child: Child) {
+        this.injected = child;
+        child.parent = this;
+      }
+    }
+
+    const child = new Child();
+    const parent = new Parent();
+
+    expect(child.greet("Rafal")).toBe("Hello, Rafal");
+    attach(child, "greet", (next, name) => next(name + " child_instance"));
+    attach(Child, "greet", (next, name) => next(name + " child_class"));
+    expect(child.greet("Rafal")).toBe("Hello, Rafal child_instance child_class");
+
+    attach(parent, "greet", (next, name) => next(name + " parent_instance"));
+    attach(Parent, "greet", (next, name) => next(name + " parent_class"));
+    expect(child.greet("Rafal")).toBe("Hello, Rafal child_instance child_class");
+
+    parent.inject(child);
+    expect(child.greet("Rafal")).toBe("Hello, Rafal parent_instance parent_class child_instance child_class");
   });
 });

@@ -72,12 +72,12 @@ export function argsProvider<A extends any[]>(...args: any[]): ArgumentsProvider
 }
 
 export type HookKeySingle = symbol | Function | object;
-export type HookKeyComposite = [...HookKeySingle[]];
+export type HookKeyComposite = [HookKeySingle, ...HookKeySingle[]]; // at least one key is required, otherwise ts may have problems with type inference
 /**
  * HookKey can be a symbol, an object, or a function (but not an array).
  * It is used to identify a specific hook context.
  */
-export type HookKeyOrKeys = HookKeySingle | HookKeyComposite;
+export type HookKeyOrKeys = HookKeyComposite | HookKeySingle;
 
 export type HookName = string | symbol;
 
