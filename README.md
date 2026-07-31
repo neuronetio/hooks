@@ -362,59 +362,6 @@ usePipeline = 2; // configuration changed
 greet("Ada"); // Hello, Ada:pipeline2
 ```
 
-**Example**: dynamic key with key on parent class (using `dhk` alias)
-
-```ts
-import { hook, attach, dhk } from "@neuronet/hooks";
-
-class Child {
-  parent: Parent | null = null;
-
-  greet = hook(
-    dhk(() => {
-      if (this.parent) {
-        return [this.parent, Parent, this, Child];
-      }
-      return [this, Child];
-    }),
-    "greet",
-    (name: string) => `Hello, ${name}`,
-  );
-}
-
-class Parent {
-  injected: Child | null = null;
-
-  inject(child: Child) {
-    this.injected = child;
-    child.parent = this;
-  }
-}
-
-const child = new Child();
-const parent = new Parent();
-
-child.greet("John"); // "Hello, John"
-
-// attach middleware to concrete child instance (affects only this instance)
-attach(child, "greet", (next, name) => next(name + " [child_instance]"));
-// and Child class (affects all instances of Child) - just to demonstrate things
-attach(Child, "greet", (next, name) => next(name + " [child_class]"));
-
-child.greet("John"); // "Hello, John [child_instance] [child_class]"
-
-// attach middleware to concrete parent instance
-attach(parent, "greet", (next, name) => next(name + " [parent_instance]"));
-// and Parent class
-attach(Parent, "greet", (next, name) => next(name + " [parent_class]"));
-
-child.greet("John"); // "Hello, John [child_instance] [child_class]" - not injected = not affected by parent middleware
-
-parent.inject(child);
-
-child.greet("John"); // "Hello, John [parent_instance] [parent_class] [child_instance] [child_class]" now you're talking...
-```
-
 **Example**: Log only connected instances
 
 ```ts
@@ -471,14 +418,67 @@ attach(parent, "child_greet", (next, name) => log(next, "parent_instance", name)
 
 const child = new Child();
 child.greet("Alice");
-// Hello, Alice (not yet affected by parent middleware because child is not injected yet)
+// Hello, Alice (not affected by parent middleware because child is not injected)
 
-parent.inject(child);
+parent.inject(child); // now child will use parent middleware
 
 child.greet("Alice");
 // [LOG] parent_instance middleware called with name: Alice
 // Hello, Alice
 // [LOG] parent_instance middleware returned: Hello, Alice
+```
+
+**Example**: dynamic key with key on parent class (using `dhk` alias)
+
+```ts
+import { hook, attach, dhk } from "@neuronet/hooks";
+
+class Child {
+  parent: Parent | null = null;
+
+  greet = hook(
+    dhk(() => {
+      if (this.parent) {
+        return [this.parent, Parent, this, Child];
+      }
+      return [this, Child];
+    }),
+    "greet",
+    (name: string) => `Hello, ${name}`,
+  );
+}
+
+class Parent {
+  injected: Child | null = null;
+
+  inject(child: Child) {
+    this.injected = child;
+    child.parent = this;
+  }
+}
+
+const child = new Child();
+const parent = new Parent();
+
+child.greet("John"); // "Hello, John"
+
+// attach middleware to concrete child instance (affects only this instance)
+attach(child, "greet", (next, name) => next(name + " [child_instance]"));
+// and Child class (affects all instances of Child) - just to demonstrate things
+attach(Child, "greet", (next, name) => next(name + " [child_class]"));
+
+child.greet("John"); // "Hello, John [child_instance] [child_class]"
+
+// attach middleware to concrete parent instance
+attach(parent, "greet", (next, name) => next(name + " [parent_instance]"));
+// and Parent class
+attach(Parent, "greet", (next, name) => next(name + " [parent_class]"));
+
+child.greet("John"); // "Hello, John [child_instance] [child_class]" - not injected = not affected by parent middleware
+
+parent.inject(child);
+
+child.greet("John"); // "Hello, John [parent_instance] [parent_class] [child_instance] [child_class]" now you're talking...
 ```
 
 ---
