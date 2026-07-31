@@ -447,7 +447,7 @@ export function _resolveHookDecoratorOptions(
 }
 
 /**
- * Creates a lazy hook wrapper for members that should initialize on first use.
+ * Creates a hook wrapper for members that should initialize on first use.
  *
  * This keeps the runtime behavior close to decorator semantics. The actual hook function
  * is created only when the member is called for the first time on a concrete receiver.
@@ -461,7 +461,7 @@ export function _resolveHookDecoratorOptions(
  *
  * @internal
  */
-export function _createLazyHookInvoker(
+export function _createHookInvoker(
   propertyKey: PropertyKey,
   hookName: HookName,
   value: (...args: any[]) => any,
@@ -489,11 +489,12 @@ export function _createLazyHookInvoker(
  * @param get The original getter implementation.
  * @param set The original setter implementation.
  * @param dynamicKey Optional runtime key resolver.
+ * @param owner Optional owner to bind the original member to, instead of `this`.
  * @returns An object with lazy hook handlers for `get`, `set`, and `init`.
  *
  * @internal
  */
-export function _createAccessorDecoratorHooks(
+export function _createAccessorDecorator(
   propertyKey: PropertyKey,
   hookName: HookName,
   get: (...args: any[]) => any,
@@ -566,6 +567,7 @@ export function hookDecorator(
   const resolvedOptions = _resolveHookDecoratorOptions(dynamicKey, alternativeName);
   dynamicKey = resolvedOptions.dynamicKey;
   alternativeName = resolvedOptions.alternativeName;
+
   return function decorate(this: any, value: any, context: HookDecoratorContext): any {
     let propertyKey = context.name;
     let hookName = (alternativeName || propertyKey) as string | symbol;
@@ -593,7 +595,7 @@ export function hookDecorator(
 
     if (context.kind === "accessor") {
       const { get, set } = value;
-      return _createAccessorDecoratorHooks(propertyKey, hookName, get, set, dynamicKey);
+      return _createAccessorDecorator(propertyKey, hookName, get, set, dynamicKey);
     }
 
     if (context.kind === "field") {
@@ -608,7 +610,7 @@ export function hookDecorator(
       hookName = "set " + String(hookName);
     }
 
-    return _createLazyHookInvoker(propertyKey, hookName, value, dynamicKey);
+    return _createHookInvoker(propertyKey, hookName, value, dynamicKey);
   };
 }
 

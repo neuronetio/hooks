@@ -8,8 +8,8 @@ import type {
 } from "./index.js";
 import {
   _resolveHookDecoratorOptions,
-  _createAccessorDecoratorHooks,
-  _createLazyHookInvoker,
+  _createAccessorDecorator,
+  _createHookInvoker,
   hook,
   hookDecorator,
   _identity,
@@ -398,7 +398,7 @@ export function hookGetter<TClass extends HookDecoratedClass, TName extends Hook
   const hookName = (alternativeName ?? propertyKey) as HookName;
   Object.defineProperty(target, propertyKey, {
     ...descriptor,
-    get: _createLazyHookInvoker(
+    get: _createHookInvoker(
       "get " + String(propertyKey),
       "get " + String(hookName),
       descriptor.get!,
@@ -477,7 +477,7 @@ export function hookSetter<TClass extends HookDecoratedClass, TName extends Hook
 
   Object.defineProperty(target, propertyKey, {
     ...descriptor,
-    set: _createLazyHookInvoker(
+    set: _createHookInvoker(
       "set " + String(propertyKey),
       "set " + String(hookName),
       descriptor.set!,
@@ -551,7 +551,7 @@ export function hookField<TClass extends HookDecoratedClass, TName extends HookP
   const isStatic = resolveFieldPlacement(state.Class, propertyKey);
   const { dynamicKey, alternativeName } = _resolveHookDecoratorOptions(arg1, arg2);
   const hookName = (alternativeName ?? propertyKey) as HookName;
-  const runInitializer = _createLazyHookInvoker(
+  const runInitializer = _createHookInvoker(
     "init " + String(propertyKey),
     "init " + String(hookName),
     _identity,
@@ -632,7 +632,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
   if (typeof staticDescriptor?.get === "function" && typeof staticDescriptor?.set === "function") {
     const originalGet = staticDescriptor.get;
     const originalSet = staticDescriptor.set;
-    const decoratedAccessor = _createAccessorDecoratorHooks(
+    const decoratedAccessor = _createAccessorDecorator(
       propertyKey,
       hookName,
       originalGet,
@@ -671,13 +671,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
   if (typeof instanceDescriptor?.get === "function" && typeof instanceDescriptor?.set === "function") {
     const originalGet = instanceDescriptor.get;
     const originalSet = instanceDescriptor.set;
-    const decoratedAccessor = _createAccessorDecoratorHooks(
-      propertyKey,
-      hookName,
-      originalGet,
-      originalSet,
-      dynamicKey,
-    );
+    const decoratedAccessor = _createAccessorDecorator(propertyKey, hookName, originalGet, originalSet, dynamicKey);
     const initializedKey = Symbol(`[hook][utilities-initialized ${String(propertyKey)}]`);
     const ensureInitialized = function runHookAccessorInitializer(this: any) {
       if (this[initializedKey]) {
@@ -733,7 +727,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
   const originalSet = function setFieldBackedAccessorValue(this: any, value: any) {
     this[storageKey] = value;
   };
-  const decoratedAccessor = _createAccessorDecoratorHooks(propertyKey, hookName, originalGet, originalSet, dynamicKey);
+  const decoratedAccessor = _createAccessorDecorator(propertyKey, hookName, originalGet, originalSet, dynamicKey);
   const isStatic = Boolean(staticDescriptor);
   const target = isStatic ? state.Class : state.Class.prototype;
 
