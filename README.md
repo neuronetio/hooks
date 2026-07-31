@@ -206,10 +206,6 @@ detach();
 
 ---
 
-&nbsp;
-
-&nbsp;
-
 ### Middleware execution order / key composition
 
 By default, middleware runs in the order it was registered (the most recently added middleware runs at the end of the chain).
@@ -487,11 +483,7 @@ child.greet("Alice");
 
 ---
 
-&nbsp;
-
 ## API
-
-&nbsp;
 
 ### Function hooks
 
