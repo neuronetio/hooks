@@ -328,6 +328,8 @@ service2.greet("test"); // test class
 Dynamic keys (`dynamicHookKey` or the shorter `dhk` alias) are a powerful feature that allows you to resolve the hook key at runtime.
 Dynamic keys are more flexible and can be used in places where your code is more dynamic.
 For example, you can use dynamic keys if your class is injected dynamically into a parent class and you want to attach middleware at a higher level, or when you want to use different pipeline behavior based on runtime conditions.
+Basically, dynamic keys allow you to choose which middleware to run dynamically.
+This way you have a control in both sides — from within a hook or from the middleware itself (flexibility everywhere...).
 
 **Example**: dynamic pipeline selection
 
@@ -462,23 +464,16 @@ const parent = new Parent();
 
 child.greet("John"); // "Hello, John"
 
-// attach middleware to concrete child instance (affects only this instance)
-attach(child, "greet", (next, name) => next(name + " [child_instance]"));
-// and Child class (affects all instances of Child) - just to demonstrate things
-attach(Child, "greet", (next, name) => next(name + " [child_class]"));
-
-child.greet("John"); // "Hello, John [child_instance] [child_class]"
-
 // attach middleware to concrete parent instance
-attach(parent, "greet", (next, name) => next(name + " [parent_instance]"));
-// and Parent class
-attach(Parent, "greet", (next, name) => next(name + " [parent_class]"));
+attach(parent, "greet", (next, name) => next(name.toUpperCase().split("").join("-")));
+// or Parent class to affect all Parent instances and all connected children
+// attach(Parent, "greet", (next, name) => next(name + " [parent_class]"));
 
-child.greet("John"); // "Hello, John [child_instance] [child_class]" - not injected = not affected by parent middleware
+child.greet("John"); // "Hello, John" - not injected = not affected by parent middleware
 
 parent.inject(child);
 
-child.greet("John"); // "Hello, John [parent_instance] [parent_class] [child_instance] [child_class]" now you're talking...
+child.greet("John"); // "Hello, J-O-H-N" - injected = affected
 ```
 
 ---
