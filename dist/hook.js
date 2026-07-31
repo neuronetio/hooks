@@ -38,7 +38,7 @@ function dynamicHookKey(fn) {
 * @param fn A function that returns a HookKey.
 * @returns A new HookKeyDynamic instance.
 */
-const dynKey = dynamicHookKey;
+const dhk = dynamicHookKey;
 /**
 * A utility class to provide the arguments passed to the middleware and hook functions.
 */
@@ -51,6 +51,7 @@ var ArgumentsProvider = class {
 function argsProvider(...args) {
 	return new ArgumentsProvider(args.length === 1 && typeof args[0] === "function" ? args[0] : args);
 }
+const args = argsProvider;
 let currentHookKey = null;
 /**
 * Retrieves the hook key context for the currently executing hook.
@@ -400,5 +401,5 @@ function runMiddleware(key, name, next, thisArg, ...args) {
 }
 
 //#endregion
-export { ArgumentsProvider, DEFAULT_HOOK_NAME, HOOK, Hook, HookKeyDynamic, _createAccessorDecoratorHooks, _createLazyHookInvoker, _identity, _resolveHookDecoratorOptions, argsProvider, attach, detach, dynKey, dynamicHookKey, getCurrentHookKeyContext, getMiddleware, hook, hookDecorator, inspectHook, middlewares, noop };
+export { ArgumentsProvider, DEFAULT_HOOK_NAME, HOOK, Hook, HookKeyDynamic, _createAccessorDecoratorHooks, _createLazyHookInvoker, _identity, _resolveHookDecoratorOptions, args, argsProvider, attach, detach, dhk, dynamicHookKey, getCurrentHookKeyContext, getMiddleware, hook, hookDecorator, inspectHook, middlewares, noop };
 //# sourceMappingURL=hook.js.map

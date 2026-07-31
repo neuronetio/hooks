@@ -30,7 +30,7 @@ declare function dynamicHookKey(fn: HookKeyDynamicFn): HookKeyDynamic;
  * @param fn A function that returns a HookKey.
  * @returns A new HookKeyDynamic instance.
  */
-declare const dynKey: typeof dynamicHookKey;
+declare const dhk: typeof dynamicHookKey;
 /**
  * A utility class to provide the arguments passed to the middleware and hook functions.
  */
@@ -44,13 +44,14 @@ type ArgumentsFromProvider<AP extends ArgumentsProvider<any[]>> = AP extends Arg
  */
 declare function argsProvider<A extends any[]>(dynamicArgs: () => A): ArgumentsProvider<A>;
 declare function argsProvider<A extends any[]>(...args: A): ArgumentsProvider<A>;
+declare const args: typeof argsProvider;
 type HookKeySingle = symbol | Function | object;
-type HookKeyComposite = [...HookKeySingle[]];
+type HookKeyComposite = [HookKeySingle, ...HookKeySingle[]];
 /**
  * HookKey can be a symbol, an object, or a function (but not an array).
  * It is used to identify a specific hook context.
  */
-type HookKeyOrKeys = HookKeySingle | HookKeyComposite;
+type HookKeyOrKeys = HookKeyComposite | HookKeySingle;
 type HookName = string | symbol;
 /**
  * Metadata stored on a hook function.
@@ -270,5 +271,5 @@ declare function getMiddleware(key: HookKeyOrKeys, name: HookName): MiddlewareMe
 declare function detach(key: HookKeyOrKeys, name: HookName, fn: MiddlewareMethod): void;
 type MiddlewareNext<A extends any[] = any[], R = any> = ((...args: A) => R) | null;
 //#endregion
-export { ArgumentsFromProvider, ArgumentsProvider, DEFAULT_HOOK_NAME, DecoratorResult, HOOK, Hook, HookDecoratedClass, HookDecoratorArgument, HookDecoratorContext, HookKeyComposite, HookKeyDynamic, HookKeyDynamicFn, HookKeyOrKeys, HookKeySingle, HookName, HookPropertyName, IHookData, IHookFn, IHookInspection, IMiddlewareMethods, MetadataHooks, MiddlewareMethod, MiddlewareNext, argsProvider, attach, detach, dynKey, dynamicHookKey, getCurrentHookKeyContext, getMiddleware, hook, hookDecorator, inspectHook, middlewares, noop };
+export { ArgumentsFromProvider, ArgumentsProvider, DEFAULT_HOOK_NAME, DecoratorResult, HOOK, Hook, HookDecoratedClass, HookDecoratorArgument, HookDecoratorContext, HookKeyComposite, HookKeyDynamic, HookKeyDynamicFn, HookKeyOrKeys, HookKeySingle, HookName, HookPropertyName, IHookData, IHookFn, IHookInspection, IMiddlewareMethods, MetadataHooks, MiddlewareMethod, MiddlewareNext, args, argsProvider, attach, detach, dhk, dynamicHookKey, getCurrentHookKeyContext, getMiddleware, hook, hookDecorator, inspectHook, middlewares, noop };
 //# sourceMappingURL=hook.d.ts.map
