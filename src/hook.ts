@@ -47,7 +47,7 @@ export function dynamicHookKey(fn: HookKeyDynamicFn): HookKeyDynamic {
  * @param fn A function that returns a HookKey.
  * @returns A new HookKeyDynamic instance.
  */
-export const dynKey = dynamicHookKey;
+export const dynamic = dynamicHookKey;
 
 /**
  * A utility class to provide the arguments passed to the middleware and hook functions.

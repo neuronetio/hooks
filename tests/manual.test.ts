@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { attach, dynKey, hook, argsProvider, getCurrentHookKeyContext, HookKeyDynamic } from "../src";
+import { attach, dynamic, hook, argsProvider, getCurrentHookKeyContext, HookKeyDynamic } from "../src";
 
 describe("manual decorators", () => {
   it("instance initializer should work with private fields", () => {
@@ -12,7 +12,7 @@ describe("manual decorators", () => {
       })();
 
       dynVal: string = hook(
-        dynKey(() => [this, Service]),
+        dynamic(() => [this, Service]),
         "init val",
         argsProvider(this.#prv),
         (v: string) => {
@@ -320,7 +320,7 @@ describe("manual decorators", () => {
       parent: Parent | null = null;
 
       greet = hook(
-        dynKey(() => {
+        dynamic(() => {
           if (this.parent) {
             return [this.parent, Parent, this, Child];
           }
