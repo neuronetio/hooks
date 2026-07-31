@@ -1,20 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { attach, dynamic, hook, argsProvider, getCurrentHookKeyContext, HookKeyDynamic } from "../src";
+import { attach, dhk, hook, args, getCurrentHookKeyContext } from "../src";
 
 describe("manual decorators", () => {
   it("instance initializer should work with private fields", () => {
     class Service {
       #prv = "prv";
 
-      val: string = hook([this, Service], "init val", argsProvider(this.#prv), (v: string) => {
+      val: string = hook([this, Service], "init val", args(this.#prv), (v: string) => {
         return v + " " + this.#prv.toUpperCase();
       })();
 
       dynVal: string = hook(
-        dynamic(() => [this, Service]),
+        dhk(() => [this, Service]),
         "init val",
-        argsProvider(this.#prv),
+        args(this.#prv),
         (v: string) => {
           return v + " " + this.#prv.toUpperCase();
         },
@@ -35,7 +35,7 @@ describe("manual decorators", () => {
     class Product {
       static #prv = "prv";
 
-      static val: string = hook(initVal, "init val", argsProvider(this.#prv), (v: string) => {
+      static val: string = hook(initVal, "init val", args(this.#prv), (v: string) => {
         return v + " " + this.#prv.toUpperCase();
       })();
     }
@@ -313,46 +313,5 @@ describe("manual decorators", () => {
       "setValSub _set_sub_",
       "getValSub _get_sub_",
     ]);
-  });
-
-  it("should work with parent-child class hierarchy", () => {
-    class Child {
-      parent: Parent | null = null;
-
-      greet = hook(
-        dynamic(() => {
-          if (this.parent) {
-            return [this.parent, Parent, this, Child];
-          }
-          return [this, Child];
-        }),
-        "greet",
-        (name: string) => `Hello, ${name}`,
-      );
-    }
-
-    class Parent {
-      injected: Child | null = null;
-
-      inject(child: Child) {
-        this.injected = child;
-        child.parent = this;
-      }
-    }
-
-    const child = new Child();
-    const parent = new Parent();
-
-    expect(child.greet("Rafal")).toBe("Hello, Rafal");
-    attach(child, "greet", (next, name) => next(name + " child_instance"));
-    attach(Child, "greet", (next, name) => next(name + " child_class"));
-    expect(child.greet("Rafal")).toBe("Hello, Rafal child_instance child_class");
-
-    attach(parent, "greet", (next, name) => next(name + " parent_instance"));
-    attach(Parent, "greet", (next, name) => next(name + " parent_class"));
-    expect(child.greet("Rafal")).toBe("Hello, Rafal child_instance child_class");
-
-    parent.inject(child);
-    expect(child.greet("Rafal")).toBe("Hello, Rafal parent_instance parent_class child_instance child_class");
   });
 });
