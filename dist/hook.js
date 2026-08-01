@@ -188,7 +188,7 @@ function _resolveHookDecoratorOptions(arg1, arg2) {
 	};
 }
 /**
-* Creates a lazy hook wrapper for members that should initialize on first use.
+* Creates a hook wrapper for members that should initialize on first use.
 *
 * This keeps the runtime behavior close to decorator semantics. The actual hook function
 * is created only when the member is called for the first time on a concrete receiver.
@@ -202,7 +202,7 @@ function _resolveHookDecoratorOptions(arg1, arg2) {
 *
 * @internal
 */
-function _createLazyHookInvoker(propertyKey, hookName, value, dynamicKey, owner) {
+function _createHookInvoker(propertyKey, hookName, value, dynamicKey, owner) {
 	const hookKey = Symbol(`[hook][${String(propertyKey)}]`);
 	return function runHook(...args) {
 		if (!this[hookKey]) {
@@ -223,11 +223,12 @@ function _createLazyHookInvoker(propertyKey, hookName, value, dynamicKey, owner)
 * @param get The original getter implementation.
 * @param set The original setter implementation.
 * @param dynamicKey Optional runtime key resolver.
+* @param owner Optional owner to bind the original member to, instead of `this`.
 * @returns An object with lazy hook handlers for `get`, `set`, and `init`.
 *
 * @internal
 */
-function _createAccessorDecoratorHooks(propertyKey, hookName, get, set, dynamicKey, owner) {
+function _createAccessorDecorator(propertyKey, hookName, get, set, dynamicKey, owner) {
 	const getHookKey = Symbol(`[hook][get ${String(propertyKey)}]`);
 	const setHookKey = Symbol(`[hook][set ${String(propertyKey)}]`);
 	const initHookKey = Symbol(`[hook][init ${String(propertyKey)}]`);
@@ -270,7 +271,7 @@ function hookDecorator(dynamicKey, alternativeName) {
 		}
 		if (context.kind === "accessor") {
 			const { get, set } = value;
-			return _createAccessorDecoratorHooks(propertyKey, hookName, get, set, dynamicKey);
+			return _createAccessorDecorator(propertyKey, hookName, get, set, dynamicKey);
 		}
 		if (context.kind === "field") {
 			propertyKey = "init " + String(propertyKey);
@@ -283,7 +284,7 @@ function hookDecorator(dynamicKey, alternativeName) {
 			propertyKey = "set " + String(propertyKey);
 			hookName = "set " + String(hookName);
 		}
-		return _createLazyHookInvoker(propertyKey, hookName, value, dynamicKey);
+		return _createHookInvoker(propertyKey, hookName, value, dynamicKey);
 	};
 }
 const middlewares = /* @__PURE__ */ new WeakMap();
@@ -401,5 +402,5 @@ function runMiddleware(key, name, next, thisArg, ...args) {
 }
 
 //#endregion
-export { ArgumentsProvider, DEFAULT_HOOK_NAME, HOOK, Hook, HookKeyDynamic, _createAccessorDecoratorHooks, _createLazyHookInvoker, _identity, _resolveHookDecoratorOptions, args, argsProvider, attach, detach, dhk, dynamicHookKey, getCurrentHookKeyContext, getMiddleware, hook, hookDecorator, inspectHook, middlewares, noop };
+export { ArgumentsProvider, DEFAULT_HOOK_NAME, HOOK, Hook, HookKeyDynamic, _createAccessorDecorator, _createHookInvoker, _identity, _resolveHookDecoratorOptions, args, argsProvider, attach, detach, dhk, dynamicHookKey, getCurrentHookKeyContext, getMiddleware, hook, hookDecorator, inspectHook, middlewares, noop };
 //# sourceMappingURL=hook.js.map
