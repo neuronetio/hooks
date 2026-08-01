@@ -93,15 +93,16 @@ function ensureUtilitiesHookState<TClass extends HookDecoratedClass>(Class: TCla
 
   (HookedClass as any)[UTILITIES_HOOK_STATE] = state;
   (Class as any)[UTILITIES_HOOK_STATE] = state;
+
   // because we are using [this, this.constructor] and returned HookedClass is not a Class
   // and we are attaching to (returned) HookedClass, Class.prototype.constructor also must point to HookedClass
   // because instance.constructor will use constructor from the prototype - Class.prototype.constructor
   // so instance.constructor will be HookedClass not Class and this may lead to unexpected behavior in some rare situations
   // class Class {}
   // const instance = new Class();
-  // if(instance.constructor === Class) { ... } // this will be false if we don't set Class.prototype.constructor = HookedClass
+  // if(instance.constructor === Class) { ... }
   // but if the user uses our HookedClass and never saves or uses the original class, there won't be any problem
-  // and similar problem is with extend - when B extends A, inside A this.constructor will be B
+  // and similar problem is with standard js extend behavior - when B extends A, inside A this.constructor will be B
 
   Class.prototype.constructor = HookedClass;
 
