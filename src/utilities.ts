@@ -18,7 +18,7 @@ import {
 const PREFIX = `[@neuronet/hooks][hookUtils]`;
 
 interface IUtilitiesHookState<TClass extends HookDecoratedClass = HookDecoratedClass> {
-  Class: TClass;
+  HookedClass: TClass;
   originalClass: HookDecoratedClass;
   instanceInitializers: Array<(instance: any) => void>;
 }
@@ -86,14 +86,24 @@ function ensureUtilitiesHookState<TClass extends HookDecoratedClass>(Class: TCla
   }) as TClass;
 
   const state: IUtilitiesHookState<TClass> = {
-    Class: HookedClass,
+    HookedClass: HookedClass,
     originalClass: Class as HookDecoratedClass,
     instanceInitializers,
   };
 
   (HookedClass as any)[UTILITIES_HOOK_STATE] = state;
   (Class as any)[UTILITIES_HOOK_STATE] = state;
-  HookedClass.prototype.constructor = HookedClass;
+  // because we are using [this, this.constructor] and returned HookedClass is not a Class
+  // and we are attaching to (returned) HookedClass, Class.prototype.constructor also must point to HookedClass
+  // because instance.constructor will use constructor from the prototype - Class.prototype.constructor
+  // so instance.constructor will be HookedClass not Class and this may lead to unexpected behavior in some rare situations
+  // class Class {}
+  // const instance = new Class();
+  // if(instance.constructor === Class) { ... } // this will be false if we don't set Class.prototype.constructor = HookedClass
+  // but if the user uses our HookedClass and never saves or uses the original class, there won't be any problem
+  // and similar problem is with extend - when B extends A, inside A this.constructor will be B
+
+  Class.prototype.constructor = HookedClass;
 
   return state;
 }
@@ -201,7 +211,7 @@ function isPrototypeReceiver(value: any): boolean {
  * @returns The wrapped class constructor that should replace the original binding.
  */
 export function hookClass<TClass extends HookDecoratedClass>(Class: TClass): TClass {
-  return ensureUtilitiesHookState(Class).Class;
+  return ensureUtilitiesHookState(Class).HookedClass;
 }
 
 /**
@@ -270,7 +280,7 @@ export function hookMethod<TClass extends HookDecoratedClass, TName extends Hook
 ): TClass {
   const state = ensureUtilitiesHookState(Class);
   const { descriptor, isStatic } = resolveMemberDescriptor(
-    state.Class,
+    state.HookedClass,
     propertyKey,
     (candidate) => typeof candidate?.value === "function",
     "method",
@@ -279,27 +289,27 @@ export function hookMethod<TClass extends HookDecoratedClass, TName extends Hook
   const hookName = (alternativeName ?? propertyKey) as HookName;
 
   if (isStatic) {
-    const wrappedMethod = hook(dynamicKey ?? state.Class, hookName, descriptor.value.bind(state.originalClass));
+    const wrappedMethod = hook(dynamicKey ?? state.HookedClass, hookName, descriptor.value.bind(state.originalClass));
 
-    Object.defineProperty(state.Class, propertyKey, {
+    Object.defineProperty(state.HookedClass, propertyKey, {
       ...descriptor,
       value: wrappedMethod,
     });
 
-    return state.Class;
+    return state.HookedClass;
   }
 
   const decorate = hookDecorator(arg1 as any, arg2 as any);
   const { context, initializers } = createUtilitiesMethodContext(propertyKey, isStatic);
   const decoratedMethod = decorate(descriptor.value, context);
-  const classHook = hook(state.Class, hookName, decoratedMethod);
+  const classHook = hook(state.HookedClass, hookName, decoratedMethod);
   const runInitializers = function runHookMethodInitializers(this: any) {
     for (const initializer of initializers) {
       initializer.call(this);
     }
   };
 
-  Object.defineProperty(state.Class.prototype, propertyKey, {
+  Object.defineProperty(state.HookedClass.prototype, propertyKey, {
     configurable: descriptor.configurable,
     enumerable: descriptor.enumerable,
     get: function getHookedMethod(this: any) {
@@ -329,7 +339,7 @@ export function hookMethod<TClass extends HookDecoratedClass, TName extends Hook
     }
   });
 
-  return state.Class;
+  return state.HookedClass;
 }
 
 /**
@@ -389,7 +399,7 @@ export function hookGetter<TClass extends HookDecoratedClass, TName extends Hook
 ): TClass {
   const state = ensureUtilitiesHookState(Class);
   const { descriptor, target, isStatic } = resolveMemberDescriptor(
-    state.Class,
+    state.HookedClass,
     propertyKey,
     (candidate) => typeof candidate?.get === "function",
     "getter",
@@ -407,7 +417,7 @@ export function hookGetter<TClass extends HookDecoratedClass, TName extends Hook
     ),
   });
 
-  return state.Class;
+  return state.HookedClass;
 }
 
 /**
@@ -467,7 +477,7 @@ export function hookSetter<TClass extends HookDecoratedClass, TName extends Hook
 ): TClass {
   const state = ensureUtilitiesHookState(Class);
   const { descriptor, target, isStatic } = resolveMemberDescriptor(
-    state.Class,
+    state.HookedClass,
     propertyKey,
     (candidate) => typeof candidate?.set === "function",
     "setter",
@@ -486,7 +496,7 @@ export function hookSetter<TClass extends HookDecoratedClass, TName extends Hook
     ),
   });
 
-  return state.Class;
+  return state.HookedClass;
 }
 
 /**
@@ -548,7 +558,7 @@ export function hookField<TClass extends HookDecoratedClass, TName extends HookP
   arg2?: HookDecoratorArgument,
 ): TClass {
   const state = ensureUtilitiesHookState(Class);
-  const isStatic = resolveFieldPlacement(state.Class, propertyKey);
+  const isStatic = resolveFieldPlacement(state.HookedClass, propertyKey);
   const { dynamicKey, alternativeName } = _resolveHookDecoratorOptions(arg1, arg2);
   const hookName = (alternativeName ?? propertyKey) as HookName;
   const runInitializer = _createHookInvoker(
@@ -559,15 +569,18 @@ export function hookField<TClass extends HookDecoratedClass, TName extends HookP
   );
 
   if (isStatic) {
-    (state.Class as any)[propertyKey] = runInitializer.call(state.Class, (state.Class as any)[propertyKey]);
-    return state.Class;
+    (state.HookedClass as any)[propertyKey] = runInitializer.call(
+      state.HookedClass,
+      (state.HookedClass as any)[propertyKey],
+    );
+    return state.HookedClass;
   }
 
   state.instanceInitializers.push((instance) => {
     instance[propertyKey] = runInitializer.call(instance, instance[propertyKey]);
   });
 
-  return state.Class;
+  return state.HookedClass;
 }
 
 /**
@@ -626,8 +639,8 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
   const state = ensureUtilitiesHookState(Class);
   const { dynamicKey, alternativeName } = _resolveHookDecoratorOptions(arg1, arg2);
   const hookName = (alternativeName ?? propertyKey) as HookName;
-  const staticDescriptor = Object.getOwnPropertyDescriptor(state.Class, propertyKey);
-  const instanceDescriptor = Object.getOwnPropertyDescriptor(state.Class.prototype, propertyKey);
+  const staticDescriptor = Object.getOwnPropertyDescriptor(state.HookedClass, propertyKey);
+  const instanceDescriptor = Object.getOwnPropertyDescriptor(state.HookedClass.prototype, propertyKey);
 
   if (typeof staticDescriptor?.get === "function" && typeof staticDescriptor?.set === "function") {
     const originalGet = staticDescriptor.get;
@@ -652,7 +665,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
       this[initializedKey] = true;
     };
 
-    Object.defineProperty(state.Class, propertyKey, {
+    Object.defineProperty(state.HookedClass, propertyKey, {
       ...staticDescriptor,
       get: function getHookedAccessor(this: any, ...args: any[]) {
         ensureInitialized.call(this);
@@ -664,8 +677,8 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
       },
     });
 
-    ensureInitialized.call(state.Class);
-    return state.Class;
+    ensureInitialized.call(state.HookedClass);
+    return state.HookedClass;
   }
 
   if (typeof instanceDescriptor?.get === "function" && typeof instanceDescriptor?.set === "function") {
@@ -684,7 +697,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
       this[initializedKey] = true;
     };
 
-    Object.defineProperty(state.Class.prototype, propertyKey, {
+    Object.defineProperty(state.HookedClass.prototype, propertyKey, {
       ...instanceDescriptor,
       get: function getHookedAccessor(this: any, ...args: any[]) {
         ensureInitialized.call(this);
@@ -700,7 +713,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
       ensureInitialized.call(instance);
     });
 
-    return state.Class;
+    return state.HookedClass;
   }
 
   if (instanceDescriptor) {
@@ -729,7 +742,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
   };
   const decoratedAccessor = _createAccessorDecorator(propertyKey, hookName, originalGet, originalSet, dynamicKey);
   const isStatic = Boolean(staticDescriptor);
-  const target = isStatic ? state.Class : state.Class.prototype;
+  const target = isStatic ? state.HookedClass : state.HookedClass.prototype;
 
   Object.defineProperty(target, propertyKey, {
     configurable: staticDescriptor?.configurable ?? true,
@@ -743,9 +756,9 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
   });
 
   if (isStatic) {
-    const nextValue = decoratedAccessor.init.call(state.Class, staticDescriptor!.value);
-    originalSet.call(state.Class, nextValue);
-    return state.Class;
+    const nextValue = decoratedAccessor.init.call(state.HookedClass, staticDescriptor!.value);
+    originalSet.call(state.HookedClass, nextValue);
+    return state.HookedClass;
   }
 
   state.instanceInitializers.push((instance) => {
@@ -755,7 +768,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
     originalSet.call(instance, nextValue);
   });
 
-  return state.Class;
+  return state.HookedClass;
 }
 
 /**
