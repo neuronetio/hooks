@@ -314,4 +314,26 @@ describe("manual decorators", () => {
       "getValSub _get_sub_",
     ]);
   });
+
+  it("should extend class properly", () => {
+    class Base {
+      test = hook([this, this.constructor], "test", (v: string) => v + " base");
+    }
+    class Derived extends Base {}
+    const derived = new Derived();
+    expect(derived.test("hello")).toEqual("hello base");
+
+    attach(Derived, "test", (next, v) => next(v + " derived"));
+    expect(derived.test("hello")).toEqual("hello derived base");
+
+    class A {
+      test = hook([this, A], "test", (v: string) => v + " A");
+    }
+    class B extends A {}
+    const b = new B();
+    expect(b.test("hello")).toEqual("hello A");
+
+    attach(B, "test", (next, v) => next(v + " B"));
+    expect(b.test("hello")).toEqual("hello A");
+  });
 });

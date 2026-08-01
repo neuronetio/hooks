@@ -116,4 +116,19 @@ describe("builder", () => {
     MixedClass.staticVal = "updatedStatic";
     expect(MixedClass.staticVal).toBe("updatedStatic:staticSet:staticGet");
   });
+
+  it("should wrap class instantly", () => {
+    const API = Hooks(
+      class API {
+        method(x: string) {
+          return x + " orig";
+        }
+      },
+    )
+      .method("method")
+      .build();
+
+    attach(API, "method", (next, x) => next(x + " mid"));
+    expect(new API().method("input")).toBe("input mid orig");
+  });
 });

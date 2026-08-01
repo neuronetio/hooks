@@ -331,3 +331,14 @@ class Service {
 }
 
 const _service = new Service();
+
+const h1 = hook((a: string, b: number) => Symbol(a + b));
+
+attach(h1, (_next, _a, _b) => {
+  return Symbol("s");
+});
+
+// @ts-expect-error return symbol
+attach(h1, (_next, _a, _b) => {
+  return 4;
+});
