@@ -123,10 +123,10 @@ This style is useful when you want to decorate an existing class without using d
 For `composeHookKeys` see: [Middleware execution order / composite keys](#middleware-execution-order--composite-keys)
 
 ```ts
-import { hook, composeHookKeys, attach } from "@neuronet/hooks";
+import { hook, attach } from "@neuronet/hooks";
 
 class UserService {
-  greet = hook(composeHookKeys(this, UserService), (name: string) => {
+  greet = hook([this, this.constructor], (name: string) => {
     return `Hello, ${name}`;
   });
 }
@@ -143,24 +143,23 @@ service.greet("Ada"); // Hello, ADA
 detach();
 ```
 
-#### 3. Quick start: manual decorators
+#### 3. Quick start: builder style
 
 This style is useful when you want to decorate an existing class without using decorator syntax.
 
 ```ts
 import { Hooks, attach, hookMethod } from "@neuronet/hooks";
 
-let UserService = class UserService {
-  greet(name: string) {
-    return `Hello, ${name}`;
-  }
-};
-
-// convert the class to a hooked class with builder
-UserService = Hooks(UserService).method("greet").build();
-
-// or with the `hookMethod` utility function
-UserService = hookMethod(UserService, "greet");
+// wrap original class with Hooks
+const UserService = Hooks(
+  class {
+    greet(name: string) {
+      return `Hello, ${name}`;
+    }
+  },
+)
+  .method("greet")
+  .build();
 
 // attach a middleware to the hook
 const detach = attach(UserService, "greet", (next, name) => {
@@ -274,7 +273,7 @@ import { hook, attach } from "@neuronet/hooks";
 
 class Service {
   // by using two entry levels we can attach middleware to the class (which affects all instances) or to a specific instance
-  greet = hook([this, Service], "greet", (name: string) => name);
+  greet = hook([this, this.constructor], "greet", (name: string) => name);
 }
 
 attach(Service, "greet", (next, name) => next(name + " class")); // affects all instances
@@ -298,7 +297,7 @@ import { hook, attach } from "@neuronet/hooks";
 
 class Service {
   // by using two entry levels we can attach middleware to the class (which affects all instances) or to a specific instance
-  greet = hook([this, Service], "greet", (name: string) => name);
+  greet = hook([this, this.constructor], "greet", (name: string) => name);
 }
 
 // attach middleware to the class (affects all instances)
@@ -385,12 +384,12 @@ class Child {
         // we will use parent middleware
 
         // `this.#parent` to use parent instance-specific middleware
-        // `Parent` to use parent middleware for all Parent instances
+        // `this.#parent.constructor` to use parent middleware for all Parent instances
         // `this` to use child instance-specific middleware
-        // `Child` to use child middleware for all Child instances
-        return [this.#parent, Parent, this, Child];
+        // `this.constructor` to use child middleware for all Child instances
+        return [this.#parent, this.#parent.constructor, this, this.constructor];
       }
-      return [this, Child];
+      return [this, this.constructor];
     }),
 
     // use custom name for the hook
@@ -453,7 +452,7 @@ class Child {
   greet = hook(
     dhk(() => {
       if (this.parent) {
-        return [this.parent, Parent, this, Child];
+        return [this.parent, this.parent.constructor, this, this.constructor];
       }
       return [this, Child];
     }),
@@ -662,12 +661,15 @@ Note: builder methods accept a property name, an optional alternative hook name 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-let Service = class Service {
-  myMethod(x: string) {
-    return x + ":orig";
-  }
-};
-Service = Hooks(Service).method("myMethod").build();
+const Service = Hooks(
+  class {
+    myMethod(x: string) {
+      return x + ":orig";
+    }
+  },
+)
+  .method("myMethod")
+  .build();
 
 attach(Service, "myMethod", (next, x) => next(x + ":mid"));
 
@@ -680,12 +682,15 @@ service.myMethod("test"); // "test:mid:orig"
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-let Service = class Service {
-  myMethod(x: string) {
-    return x + ":orig";
-  }
-};
-Service = Hooks(Service).method("myMethod", "myMethodAlt").build();
+const Service = Hooks(
+  class {
+    myMethod(x: string) {
+      return x + ":orig";
+    }
+  },
+)
+  .method("myMethod", "myMethodAlt")
+  .build();
 
 attach(Service, "myMethodAlt", (next, x) => next(x + ":alt"));
 
@@ -698,15 +703,15 @@ service.myMethod("test"); // "test:alt:orig"
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
 
-let Service = class Service {
-  myMethod(x: string) {
-    return x + ":orig";
-  }
-};
-
 const key = Symbol("k");
 
-Service = Hooks(Service)
+const Service = Hooks(
+  class {
+    myMethod(x: string) {
+      return x + ":orig";
+    }
+  },
+)
   .method(
     "myMethod",
     dynamicHookKey(() => key),
@@ -724,15 +729,15 @@ service.myMethod("test"); // "test:dyn:orig"
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
 
-let Service = class Service {
-  myMethod(x: string) {
-    return x + ":orig";
-  }
-};
-
 const key = Symbol("k");
 
-Service = Hooks(Service)
+const Service = Hooks(
+  class {
+    myMethod(x: string) {
+      return x + ":orig";
+    }
+  },
+)
   .method(
     "myMethod",
     "myMethodAlt",
@@ -758,12 +763,15 @@ service.myMethod("test"); // "test:combined:orig"
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-let Service = class Service {
-  get value() {
-    return 1;
-  }
-};
-Service = Hooks(Service).getter("value").build();
+const Service = Hooks(
+  class {
+    get value() {
+      return 1;
+    }
+  },
+)
+  .getter("value")
+  .build();
 
 attach(Service, "get value", (next) => next() + 1);
 
@@ -776,12 +784,15 @@ service.value; // 2
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-let Service = class Service {
-  get value() {
-    return 1;
-  }
-};
-Service = Hooks(Service).getter("value", "valueAlt").build();
+const Service = Hooks(
+  class {
+    get value() {
+      return 1;
+    }
+  },
+)
+  .getter("value", "valueAlt")
+  .build();
 
 attach(Service, "get valueAlt", (next) => next() + 2);
 
@@ -796,13 +807,13 @@ import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
 
 const key = Symbol("gk");
 
-let Service = class Service {
-  get value() {
-    return 1;
-  }
-};
-
-Service = Hooks(Service)
+const Service = Hooks(
+  class {
+    get value() {
+      return 1;
+    }
+  },
+)
   .getter(
     "value",
     dynamicHookKey(() => key),
@@ -822,13 +833,13 @@ import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
 
 const key = Symbol("gk");
 
-let Service = class Service {
-  get value() {
-    return 1;
-  }
-};
-
-Service = Hooks(Service)
+const Service = Hooks(
+  class {
+    get value() {
+      return 1;
+    }
+  },
+)
   .getter(
     "value",
     "valueAlt",
@@ -854,16 +865,19 @@ service.value; // 4
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-let Service = class Service {
-  #_ = 0;
-  set value(v: number) {
-    this.#_ = v;
-  }
-  get value() {
-    return this.#_;
-  }
-};
-Service = Hooks(Service).setter("value").build();
+const Service = Hooks(
+  class {
+    #val = 0;
+    set value(v: number) {
+      this.#val = v;
+    }
+    get value() {
+      return this.#val;
+    }
+  },
+)
+  .setter("value")
+  .build();
 
 attach(Service, "set value", (next, v) => next(v + 1));
 
@@ -877,16 +891,19 @@ console.log(service.value); // 3
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-let Service = class Service {
-  #_ = 0;
-  set value(v: number) {
-    this.#_ = v;
-  }
-  get value() {
-    return this.#_;
-  }
-};
-Service = Hooks(Service).setter("value", "valueAlt").build();
+const Service = Hooks(
+  class {
+    #val = 0;
+    set value(v: number) {
+      this.#val = v;
+    }
+    get value() {
+      return this.#val;
+    }
+  },
+)
+  .setter("value", "valueAlt")
+  .build();
 
 attach(Service, "set valueAlt", (next, v) => next(v + 2));
 
@@ -902,17 +919,17 @@ import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
 
 const key = Symbol("sk");
 
-let Service = class Service {
-  #_ = 0;
-  set value(v: number) {
-    this.#_ = v;
-  }
-  get value() {
-    return this.#_;
-  }
-};
-
-Service = Hooks(Service)
+const Service = Hooks(
+  class {
+    #val = 0;
+    set value(v: number) {
+      this.#val = v;
+    }
+    get value() {
+      return this.#val;
+    }
+  },
+)
   .setter(
     "value",
     dynamicHookKey(() => key),
@@ -933,17 +950,17 @@ import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
 
 const key = Symbol("sk");
 
-let Service = class Service {
-  #_ = 0;
-  set value(v: number) {
-    this.#_ = v;
-  }
-  get value() {
-    return this.#_;
-  }
-};
-
-Service = Hooks(Service)
+const Service = Hooks(
+  class {
+    #val = 0;
+    set value(v: number) {
+      this.#val = v;
+    }
+    get value() {
+      return this.#val;
+    }
+  },
+)
   .setter(
     "value",
     "valueAlt",
@@ -970,10 +987,13 @@ console.log(service.value); // 5
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-let Service = class Service {
-  value = "x";
-};
-Service = Hooks(Service).field("value").build();
+const Service = Hooks(
+  class {
+    value = "x";
+  },
+)
+  .field("value")
+  .build();
 
 attach(Service, "init value", (next, v) => next(v + ":init"));
 
@@ -986,10 +1006,13 @@ service.value; // "x:init"
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-let Service = class Service {
-  value = "x";
-};
-Service = Hooks(Service).field("value", "valueInit").build();
+const Service = Hooks(
+  class {
+    value = "x";
+  },
+)
+  .field("value", "valueInit")
+  .build();
 
 attach(Service, "init valueInit", (next, v) => next(v + ":altInit"));
 
@@ -1004,11 +1027,11 @@ import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
 
 const key = Symbol("fk");
 
-let Service = class Service {
-  value = "x";
-};
-
-Service = Hooks(Service)
+const Service = Hooks(
+  class {
+    value = "x";
+  },
+)
   .field(
     "value",
     dynamicHookKey(() => key),
@@ -1028,11 +1051,11 @@ import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
 
 const key = Symbol("fk");
 
-let Service = class Service {
-  value = "x";
-};
-
-Service = Hooks(Service)
+const Service = Hooks(
+  class {
+    value = "x";
+  },
+)
   .field(
     "value",
     "valueInit",
@@ -1058,10 +1081,13 @@ service.value; // "x:combinedInit"
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-let Service = class Service {
-  x: string = "a";
-};
-Service = Hooks(Service).accessor("x").build();
+const Service = Hooks(
+  class {
+    x: string = "a";
+  },
+)
+  .accessor("x")
+  .build();
 
 attach(Service, "get x", (next) => next() + ":getMid");
 
@@ -1074,10 +1100,13 @@ console.log(service.x); // "a:getMid"
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-let Service = class Service {
-  x: string = "a";
-};
-Service = Hooks(Service).accessor("x", "xAlt").build();
+const Service = Hooks(
+  class {
+    x: string = "a";
+  },
+)
+  .accessor("x", "xAlt")
+  .build();
 
 attach(Service, "init xAlt", (next, v) => next(v + ":initAlt"));
 
@@ -1092,11 +1121,11 @@ import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
 
 const key = Symbol("ak");
 
-let Service = class Service {
-  x: string = "a";
-};
-
-Service = Hooks(Service)
+const Service = Hooks(
+  class {
+    x: string = "a";
+  },
+)
   .accessor(
     "x",
     dynamicHookKey(() => key),
@@ -1116,11 +1145,11 @@ import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
 
 const key = Symbol("ak");
 
-let Service = class Service {
-  x: string = "a";
-};
-
-Service = Hooks(Service)
+const Service = Hooks(
+  class {
+    x: string = "a";
+  },
+)
   .accessor(
     "x",
     "xAlt",
@@ -1143,17 +1172,21 @@ Example — chaining multiple operations
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-let Product = class Product {
-  price = 10;
-  get total() {
-    return this.price;
-  }
-  set total(v: number) {
-    this.price = v;
-  }
-};
-
-Product = Hooks(Product).field("price").getter("total").setter("total").build();
+const Product = Hooks(
+  class {
+    price = 10;
+    get total() {
+      return this.price;
+    }
+    set total(v: number) {
+      this.price = v;
+    }
+  },
+)
+  .field("price")
+  .getter("total")
+  .setter("total")
+  .build();
 
 attach(Product, "init price", (next, v) => next(v + 1));
 attach(Product, "get total", (next) => next() + 10);
@@ -1173,14 +1206,16 @@ You can create sub-hooks inside hooked methods using the `hook(name, fn)` syntax
 ```ts
 import { Hooks, attach, hook } from "@neuronet/hooks";
 
-let UserService = class UserService {
-  greet(name: string) {
-    const formatName = hook("formatName", (name: string) => name.toUpperCase());
-    return `Hello, ${formatName(name)}`;
-  }
-};
-
-UserService = Hooks(UserService).method("greet").build(); // without this line, the sub-hook will throw an error because of missing parent hook context
+const UserService = Hooks(
+  class {
+    greet(name: string) {
+      const formatName = hook("formatName", (name: string) => name.toUpperCase());
+      return `Hello, ${formatName(name)}`;
+    }
+  },
+)
+  .method("greet") // without wrapping greet, the sub-hook will throw an error because of missing parent hook context
+  .build();
 
 attach(UserService, "formatName", (next, name) => next(name + "!!!"));
 new UserService().greet("Ada"); // Hello, ADA!!!
@@ -1193,14 +1228,16 @@ import { Hooks, attach, hook } from "@neuronet/hooks";
 
 const subKey = Symbol("subKey");
 
-let UserService = class UserService {
-  greet(name: string) {
-    const formatName = hook(subKey, "formatName", (name: string) => name.toUpperCase());
-    return `Hello, ${formatName(name)}`;
-  }
-};
-
-UserService = Hooks(UserService).method("greet").build(); // this line is now optional just for greet method
+const UserService = Hooks(
+  class {
+    greet(name: string) {
+      const formatName = hook(subKey, "formatName", (name: string) => name.toUpperCase());
+      return `Hello, ${formatName(name)}`;
+    }
+  },
+)
+  .method("greet") // this line is now optional (because sub-hook is using a custom key)
+  .build();
 
 attach(subKey, "formatName", (next, name) => next(name + "!!!"));
 new UserService().greet("Ada"); // Hello, ADA!!!
@@ -1213,14 +1250,16 @@ import { Hooks, attach, hook } from "@neuronet/hooks";
 
 const subKey = Symbol("subKey");
 
-let UserService = class UserService {
-  greet(name: string) {
-    const formatName = hook(subKey, (name: string) => name.toUpperCase());
-    return `Hello, ${formatName(name)}`;
-  }
-};
-
-UserService = Hooks(UserService).method("greet").build(); // this line is now optional just for greet method
+const UserService = Hooks(
+  class {
+    greet(name: string) {
+      const formatName = hook(subKey, (name: string) => name.toUpperCase());
+      return `Hello, ${formatName(name)}`;
+    }
+  },
+)
+  .method("greet")
+  .build();
 
 attach(subKey, (next, name) => next(name + "!!!"));
 new UserService().greet("Ada"); // Hello, ADA!!!
@@ -1235,7 +1274,7 @@ You can use multiple utilities at once to wrap a class and create hooks for its 
 ```ts
 import { hookMethod, hookGetter, hookSetter, hookField, hookAccessor, attach } from "@neuronet/hooks";
 
-let Service = class Service {
+let Service = class {
   #value = 1;
 
   get value() {
@@ -1255,12 +1294,16 @@ let Service = class Service {
   acc = "accessor";
 };
 
-// create hooks for the class members
+// you should not use original Service class - only the wrapped class will work correctly with hooks
+
+// apply hooks
 Service = hookMethod(Service, "greet");
 Service = hookGetter(Service, "value");
 Service = hookSetter(Service, "value");
 Service = hookField(Service, "status");
 Service = hookAccessor(Service, "acc");
+
+// now you can use Service
 
 // attach middleware to the hooks
 attach(Service, "greet", (next, name) => next(name.toUpperCase()));
@@ -1279,7 +1322,7 @@ Wraps class method and creates a hook under the name `<property>`.
 ```ts
 import { hookMethod, attach } from "@neuronet/hooks";
 
-let Service = class Service {
+let Service = class {
   myMethod(x: string) {
     return x + " orig";
   }
@@ -1322,7 +1365,7 @@ Wraps a getter and creates a hook under the name `get <property>`.
 ```ts
 import { hookGetter, attach } from "@neuronet/hooks";
 
-let Counter = class Counter {
+let Counter = class {
   get value() {
     return 1;
   }
@@ -1338,7 +1381,7 @@ Static
 ```ts
 import { hookGetter, attach } from "@neuronet/hooks";
 
-let Counter = class Counter {
+let Counter = class {
   static get value() {
     return 1;
   }
@@ -1356,7 +1399,7 @@ Wraps a setter and creates a hook under the name `set <property>`.
 ```ts
 import { hookSetter, attach } from "@neuronet/hooks";
 
-let Counter = class Counter {
+let Counter = class {
   #value = 0;
 
   set value(next: number) {
@@ -1377,7 +1420,7 @@ Static
 ```ts
 import { hookSetter, attach } from "@neuronet/hooks";
 
-let Counter = class Counter {
+let Counter = class {
   static #value = 0;
 
   static set value(next: number) {
@@ -1403,7 +1446,7 @@ Wraps a public field initializer and creates a hook under the name `init <proper
 ```ts
 import { hookField, attach } from "@neuronet/hooks";
 
-let User = class User {
+let User = class {
   status = "new";
 };
 
@@ -1420,7 +1463,7 @@ Wraps an accessor and enables `init`, `get`, and `set` hooks for it.
 ```ts
 import { hookAccessor, attach } from "@neuronet/hooks";
 
-let Product = class Product {
+let Product = class {
   price: number = 0;
 };
 
@@ -1446,7 +1489,7 @@ import { hookAccessor, attach, hook } from "@neuronet/hooks";
 const initPrice = Symbol("initPrice");
 attach(initPrice, "init price", (next, value) => next(value + 1));
 
-let Product = class Product {
+let Product = class {
   static price: number = hook(initPrice, "init price", (v: number) => v)(0);
 };
 
