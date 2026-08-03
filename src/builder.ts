@@ -1,5 +1,5 @@
 import type { HookDecoratedClass, HookDecoratorArgument, HookKeyDynamic, HookPropertyName } from "./index.js";
-import { hookAccessor, hookField, hookGetter, hookMethod, hookSetter, hookClass } from "./index.js";
+import { hookClass } from "./index.js";
 
 /**
  * Fluent builder for decorating existing classes without decorator syntax.
@@ -8,6 +8,14 @@ import { hookAccessor, hookField, hookGetter, hookMethod, hookSetter, hookClass 
  * and finish with a single `build()` call.
  */
 export interface IHookDecoratorBuilder<TClass extends HookDecoratedClass = HookDecoratedClass> {
+  /**
+   * Instantly runs a function that will use the wrapped class.
+   * You can use it to attach middleware before decorating with field or accessors.
+   *
+   * @param fn { (Class: TClass) => void }
+   */
+  run(fn: (Class: TClass) => void): IHookDecoratorBuilder<TClass>;
+
   /**
    * Decorates an auto-accessor and enables `init`, `get`, and `set` hooks for it.
    *
@@ -202,7 +210,12 @@ export class HookDecoratorBuilder<
   private HookedClass: TClass;
 
   constructor(Class: TClass) {
-    this.HookedClass = hookClass(Class);
+    this.HookedClass = hookClass.class(Class);
+  }
+
+  run(fn: (Class: TClass) => void): IHookDecoratorBuilder<TClass> {
+    fn(this.HookedClass);
+    return this;
   }
 
   accessor<TName extends HookPropertyName<TClass>>(propertyKey: TName): HookDecoratorBuilder<TClass>;
@@ -233,7 +246,7 @@ export class HookDecoratorBuilder<
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
   ): this {
-    this.HookedClass = hookAccessor(this.HookedClass, propertyKey, arg1, arg2);
+    this.HookedClass = hookClass.accessor(this.HookedClass, propertyKey, arg1, arg2);
     return this;
   }
 
@@ -265,7 +278,7 @@ export class HookDecoratorBuilder<
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
   ): this {
-    this.HookedClass = hookField(this.HookedClass, propertyKey, arg1, arg2);
+    this.HookedClass = hookClass.field(this.HookedClass, propertyKey, arg1, arg2);
     return this;
   }
 
@@ -297,7 +310,7 @@ export class HookDecoratorBuilder<
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
   ): this {
-    this.HookedClass = hookGetter(this.HookedClass, propertyKey, arg1, arg2);
+    this.HookedClass = hookClass.getter(this.HookedClass, propertyKey, arg1, arg2);
     return this;
   }
 
@@ -329,7 +342,7 @@ export class HookDecoratorBuilder<
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
   ): this {
-    this.HookedClass = hookMethod(this.HookedClass, propertyKey, arg1, arg2);
+    this.HookedClass = hookClass.method(this.HookedClass, propertyKey, arg1, arg2);
     return this;
   }
 
@@ -361,7 +374,7 @@ export class HookDecoratorBuilder<
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
   ): this {
-    this.HookedClass = hookSetter(this.HookedClass, propertyKey, arg1, arg2);
+    this.HookedClass = hookClass.setter(this.HookedClass, propertyKey, arg1, arg2);
     return this;
   }
 
