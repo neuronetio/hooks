@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { HOOK, hook, attach, Hook, dynamicHookKey, getCurrentHookKeyContext, type IHookData } from "../src";
+import { HOOK_DATA, hook, attach, Hook, dynamicHookKey, getCurrentHookKeyContext, type IHookData } from "../src";
 
 describe("hooks: decorators", () => {
   it("should work with private methods", () => {
@@ -223,12 +223,12 @@ describe("hooks: decorators", () => {
     }
 
     const instance = new MethodsClass();
-    const classHookData = (MethodsClass.prototype.myMethod as any)[HOOK] as IHookData;
+    const classHookData = (MethodsClass.prototype.myMethod as any)[HOOK_DATA] as IHookData;
     expect(classHookData).toBeDefined();
     expect(classHookData.name).toBe("myMethod");
     expect(classHookData.keyOrKeys).toBe(MethodsClass);
 
-    const instanceHookData = (instance.myMethod as any)[HOOK];
+    const instanceHookData = (instance.myMethod as any)[HOOK_DATA];
     expect(instanceHookData).toBeDefined();
     expect(instanceHookData.name).toBe("myMethod");
     expect(instanceHookData.keyOrKeys).toEqual([instance, MethodsClass]);

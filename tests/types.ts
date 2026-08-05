@@ -223,23 +223,23 @@ let FnManualExample = class FnManualExample {
   }
 };
 
-FnManualExample = hookMethod(FnManualExample, "myMethod");
-FnManualExample = hookMethod(FnManualExample, "withThis");
-FnManualExample = hookGetter(FnManualExample, "value");
-FnManualExample = hookSetter(FnManualExample, "value");
-FnManualExample = hookField(FnManualExample, "initField");
-FnManualExample = hookMethod(FnManualExample, "staticMethod");
+FnManualExample = hook.method(FnManualExample, "myMethod");
+FnManualExample = hook.method(FnManualExample, "withThis");
+FnManualExample = hook.getter(FnManualExample, "value");
+FnManualExample = hook.setter(FnManualExample, "value");
+FnManualExample = hook.field(FnManualExample, "initField");
+FnManualExample = hook.method(FnManualExample, "staticMethod");
 
 // @ts-expect-error hookMethod should reject non existing method
-FnManualExample = hookMethod(FnManualExample, "nonExistingMethod");
+FnManualExample = hook.method(FnManualExample, "nonExistingMethod");
 // @ts-expect-error hookGetter should reject non existing getter
-FnManualExample = hookGetter(FnManualExample, "nonExistingGetter");
+FnManualExample = hook.getter(FnManualExample, "nonExistingGetter");
 // @ts-expect-error hookSetter should reject non existing setter
-FnManualExample = hookSetter(FnManualExample, "nonExistingSetter");
+FnManualExample = hook.setter(FnManualExample, "nonExistingSetter");
 // @ts-expect-error hookField should reject non existing field
-FnManualExample = hookField(FnManualExample, "nonExistingField");
+FnManualExample = hook.field(FnManualExample, "nonExistingField");
 // @ts-expect-error hookMethod should reject non existing accessor
-FnManualExample = hookMethod(FnManualExample, "nonExistingAccessor");
+FnManualExample = hook.method(FnManualExample, "nonExistingAccessor");
 
 attach(FnManualExample, "myMethod", (next, x) => {
   return next(x + 1);
@@ -342,3 +342,28 @@ attach(h1, (_next, _a, _b) => {
 attach(h1, (_next, _a, _b) => {
   return 4;
 });
+
+const BuilderClass = hook
+  .builder(
+    class BuilderClass {
+      myField = 10;
+      method(x: string): string {
+        return x + ":orig";
+      }
+    },
+  )
+  .run((Class) => {
+    Class.prototype.method = function (x: string) {
+      return x + ":hooked";
+    };
+    attach(Class, "init myField", (next, x) => next(x + 1));
+    // @ts-expect-error init myField should require a number argument
+    attach(Class, "init myField", (next, x) => next(x + "no_string"));
+  })
+  .field("myField")
+  .method("method")
+  .build();
+
+const b = new BuilderClass();
+b.method("test");
+const _x = b.myField;

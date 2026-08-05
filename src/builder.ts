@@ -1,5 +1,5 @@
 import type { HookDecoratedClass, HookDecoratorArgument, HookKeyDynamic, HookPropertyName } from "./index.js";
-import { hookClass } from "./index.js";
+import { hook } from "./index.js";
 
 /**
  * Fluent builder for decorating existing classes without decorator syntax.
@@ -210,7 +210,7 @@ export class HookDecoratorBuilder<
   private HookedClass: TClass;
 
   constructor(Class: TClass) {
-    this.HookedClass = hookClass.class(Class);
+    this.HookedClass = hook.class(Class);
   }
 
   run(fn: (Class: TClass) => void): IHookDecoratorBuilder<TClass> {
@@ -246,7 +246,7 @@ export class HookDecoratorBuilder<
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
   ): this {
-    this.HookedClass = hookClass.accessor(this.HookedClass, propertyKey, arg1, arg2);
+    this.HookedClass = hook.accessor(this.HookedClass, propertyKey, arg1, arg2);
     return this;
   }
 
@@ -278,7 +278,7 @@ export class HookDecoratorBuilder<
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
   ): this {
-    this.HookedClass = hookClass.field(this.HookedClass, propertyKey, arg1, arg2);
+    this.HookedClass = hook.field(this.HookedClass, propertyKey, arg1, arg2);
     return this;
   }
 
@@ -310,7 +310,7 @@ export class HookDecoratorBuilder<
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
   ): this {
-    this.HookedClass = hookClass.getter(this.HookedClass, propertyKey, arg1, arg2);
+    this.HookedClass = hook.getter(this.HookedClass, propertyKey, arg1, arg2);
     return this;
   }
 
@@ -342,7 +342,7 @@ export class HookDecoratorBuilder<
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
   ): this {
-    this.HookedClass = hookClass.method(this.HookedClass, propertyKey, arg1, arg2);
+    this.HookedClass = hook.method(this.HookedClass, propertyKey, arg1, arg2);
     return this;
   }
 
@@ -374,7 +374,7 @@ export class HookDecoratorBuilder<
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
   ): this {
-    this.HookedClass = hookClass.setter(this.HookedClass, propertyKey, arg1, arg2);
+    this.HookedClass = hook.setter(this.HookedClass, propertyKey, arg1, arg2);
     return this;
   }
 
@@ -410,3 +410,11 @@ export function Hooks<TClass extends HookDecoratedClass>(Class: TClass): HookDec
 export function Hooks<TClass extends HookDecoratedClass>(Class: TClass): IHookDecoratorBuilder<TClass> {
   return new HookDecoratorBuilder(Class);
 }
+
+declare module "./hook.js" {
+  interface HookApi {
+    builder: typeof Hooks;
+  }
+}
+
+hook.builder = Hooks;

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { attach, dhk, hook, args, getCurrentHookKeyContext } from "../src";
+import { attach, dhk, hook, inherit, args, getCurrentHookKeyContext } from "../src";
 
 describe("manual decorators", () => {
   it("instance initializer should work with private fields", () => {
     class Service {
       #prv = "prv";
 
-      val: string = hook([this, Service], "init val", args(this.#prv), (v: string) => {
+      val: string = hook(inherit(this), "init val", args(this.#prv), (v: string) => {
         return v + " " + this.#prv.toUpperCase();
       })();
 
@@ -48,7 +48,7 @@ describe("manual decorators", () => {
     class Service {
       #instPrv = "prv";
 
-      getVal = hook([this, Service], "getVal", (v: string) => {
+      getVal = hook(hook.inherit(this), "getVal", (v: string) => {
         // check nested context
         expect(getCurrentHookKeyContext()).toEqual([this, Service]);
         hook("getValSub", (v: string) => {
@@ -67,7 +67,7 @@ describe("manual decorators", () => {
 
       getValWrap(v: string) {
         // check nested context
-        return hook([this, Service], "getValWrap", (v: string) => {
+        return hook(inherit(this), "getValWrap", (v: string) => {
           hook("getValWrapSub", (v: string) => {
             sub.push(v);
             expect(getCurrentHookKeyContext()).toEqual([this, Service]);
@@ -122,15 +122,15 @@ describe("manual decorators", () => {
     class Service {
       static #prv = "prv";
 
-      static getVal = hook(this, "getVal", (v: string) => {
+      static getVal = hook(inherit(this), "getVal", (v: string) => {
         // check nested context
-        expect(getCurrentHookKeyContext()).toEqual(this);
+        expect(getCurrentHookKeyContext()).toEqual(inherit(this));
         hook("getValSub", (v: string) => {
           sub.push(v);
-          expect(getCurrentHookKeyContext()).toEqual(this);
+          expect(getCurrentHookKeyContext()).toEqual(inherit(this));
           expect(
             hook("getValSubSub", (v: string) => {
-              expect(getCurrentHookKeyContext()).toEqual(this);
+              expect(getCurrentHookKeyContext()).toEqual(inherit(this));
               return v + " subSub";
             })(v),
           ).toBe(v + " subSub");
@@ -140,13 +140,13 @@ describe("manual decorators", () => {
       });
 
       static getValWrap(v: string) {
-        return hook(this, "getValWrap", (v: string) => {
+        return hook(inherit(this), "getValWrap", (v: string) => {
           hook("getValWrapSub", (v: string) => {
             sub.push(v);
-            expect(getCurrentHookKeyContext()).toEqual(this);
+            expect(getCurrentHookKeyContext()).toEqual(inherit(this));
             expect(
               hook("getValWrapSubSub", (v: string) => {
-                expect(getCurrentHookKeyContext()).toEqual(this);
+                expect(getCurrentHookKeyContext()).toEqual(inherit(this));
                 return v + " subSub";
               })(v),
             ).toBe(v + " subSub");
@@ -178,15 +178,15 @@ describe("manual decorators", () => {
       #prv = "prv";
 
       get val() {
-        return hook([this, Service], "get val", () => {
+        return hook(inherit(this), "get val", () => {
           // check nested context
-          expect(getCurrentHookKeyContext()).toEqual([this, Service]);
+          expect(getCurrentHookKeyContext()).toEqual(inherit(this));
           hook("getValSub", (v: string) => {
             sub.push(v);
-            expect(getCurrentHookKeyContext()).toEqual([this, Service]);
+            expect(getCurrentHookKeyContext()).toEqual(inherit(this));
             expect(
               hook("getValSubSub", (v: string) => {
-                expect(getCurrentHookKeyContext()).toEqual([this, Service]);
+                expect(getCurrentHookKeyContext()).toEqual(inherit(this));
                 return v + " subSub";
               })(v),
             ).toBe(v + " subSub");
@@ -197,15 +197,15 @@ describe("manual decorators", () => {
       }
 
       set val(value: string) {
-        hook([this, Service], "set val", (v: string) => {
+        hook(inherit(this), "set val", (v: string) => {
           // check nested context
-          expect(getCurrentHookKeyContext()).toEqual([this, Service]);
+          expect(getCurrentHookKeyContext()).toEqual(inherit(this));
           hook("setValSub", (v: string) => {
             sub.push(v);
-            expect(getCurrentHookKeyContext()).toEqual([this, Service]);
+            expect(getCurrentHookKeyContext()).toEqual(inherit(this));
             expect(
               hook("setValSubSub", (v: string) => {
-                expect(getCurrentHookKeyContext()).toEqual([this, Service]);
+                expect(getCurrentHookKeyContext()).toEqual(inherit(this));
                 return v + " subSub";
               })(v),
             ).toBe(v + " subSub");
@@ -252,15 +252,15 @@ describe("manual decorators", () => {
       static #prv = "prv";
 
       static get val() {
-        return hook(this, "get val", () => {
+        return hook(inherit(this), "get val", () => {
           // check nested context
-          expect(getCurrentHookKeyContext()).toEqual(this);
+          expect(getCurrentHookKeyContext()).toEqual(inherit(this));
           hook("getValSub", (v: string) => {
             sub.push(v);
-            expect(getCurrentHookKeyContext()).toEqual(this);
+            expect(getCurrentHookKeyContext()).toEqual(inherit(this));
             expect(
               hook("getValSubSub", (v: string) => {
-                expect(getCurrentHookKeyContext()).toEqual(this);
+                expect(getCurrentHookKeyContext()).toEqual(inherit(this));
                 return v + " subSub";
               })(v),
             ).toBe(v + " subSub");
@@ -271,15 +271,15 @@ describe("manual decorators", () => {
       }
 
       static set val(value: string) {
-        hook(this, "set val", (v: string) => {
+        hook(inherit(this), "set val", (v: string) => {
           // check nested context
-          expect(getCurrentHookKeyContext()).toEqual(this);
+          expect(getCurrentHookKeyContext()).toEqual(inherit(this));
           hook("setValSub", (v: string) => {
             sub.push(v);
-            expect(getCurrentHookKeyContext()).toEqual(this);
+            expect(getCurrentHookKeyContext()).toEqual(inherit(this));
             expect(
               hook("setValSubSub", (v: string) => {
-                expect(getCurrentHookKeyContext()).toEqual(this);
+                expect(getCurrentHookKeyContext()).toEqual(inherit(this));
                 return v + " subSub";
               })(v),
             ).toBe(v + " subSub");
@@ -317,7 +317,7 @@ describe("manual decorators", () => {
 
   it("should extend class properly", () => {
     class Base {
-      test = hook([this, this.constructor], "test", (v: string) => v + " base");
+      test = hook(inherit(this), "test", (v: string) => v + " base");
     }
     class Derived extends Base {}
     const derived = new Derived();
@@ -327,13 +327,14 @@ describe("manual decorators", () => {
     expect(derived.test("hello")).toEqual("hello derived base");
 
     class A {
-      test = hook([this, A], "test", (v: string) => v + " A");
+      test = hook(inherit(this), "test", (v: string) => v + " A");
     }
     class B extends A {}
     const b = new B();
     expect(b.test("hello")).toEqual("hello A");
 
     attach(B, "test", (next, v) => next(v + " B"));
-    expect(b.test("hello")).toEqual("hello A");
+    expect(b.test("hello")).toEqual("hello B A");
+    // more class tests inside manual.test.ts / utility.test.ts / builder.test.ts
   });
 });

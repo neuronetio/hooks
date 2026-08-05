@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import type { HookKeyOrKeys } from "../src";
 import {
   DEFAULT_HOOK_NAME,
-  HOOK,
+  HOOK_DATA,
   hook,
   argsProvider,
   attach,
@@ -13,6 +13,7 @@ import {
   middlewares,
   getMiddleware,
   noop,
+  bypassMiddleware,
 } from "../src";
 
 describe("hooks", () => {
@@ -217,7 +218,7 @@ describe("hooks", () => {
       const instance = new MyClass();
       expect(instance.myMethod(5)).toBe(6);
 
-      expect((instance.myMethod as any)[HOOK]).toBeDefined();
+      expect((instance.myMethod as any)[HOOK_DATA]).toBeDefined();
 
       attach(instance.myMethod, (next, x) => next(x * 2));
       expect(instance.myMethod(5)).toBe(11); // (5 * 2) + 1
@@ -265,22 +266,22 @@ describe("hooks", () => {
     it("hook(fn)", () => {
       const wrapped = hook(originalFn);
       expect(wrapped(1, 2)).toBe(3);
-      expect(wrapped[HOOK].keyOrKeys).toBe(originalFn);
-      expect(wrapped[HOOK].name).toBe(DEFAULT_HOOK_NAME);
+      expect(wrapped[HOOK_DATA].keyOrKeys).toBe(originalFn);
+      expect(wrapped[HOOK_DATA].name).toBe(DEFAULT_HOOK_NAME);
     });
 
     it("hook(args, fn)", () => {
       const wrapped = hook(argsProvider(..._args), originalFn);
       expect(wrapped()).toBe(30);
-      expect(wrapped[HOOK].keyOrKeys).toBe(originalFn);
-      expect(wrapped[HOOK].argsProvider?.args()).toEqual(_args);
+      expect(wrapped[HOOK_DATA].keyOrKeys).toBe(originalFn);
+      expect(wrapped[HOOK_DATA].argsProvider?.args()).toEqual(_args);
     });
 
     it("hook(key, fn)", () => {
       const wrapped = hook(key, originalFn);
       expect(wrapped(1, 2)).toBe(3);
-      expect(wrapped[HOOK].keyOrKeys).toBe(key);
-      expect(wrapped[HOOK].name).toBe(DEFAULT_HOOK_NAME);
+      expect(wrapped[HOOK_DATA].keyOrKeys).toBe(key);
+      expect(wrapped[HOOK_DATA].name).toBe(DEFAULT_HOOK_NAME);
     });
 
     it("hook(key, args, fn)", () => {
@@ -290,15 +291,15 @@ describe("hooks", () => {
         originalFn,
       );
       expect(wrapped()).toBe(30);
-      expect(wrapped[HOOK].keyOrKeys).toBe(key);
-      expect(wrapped[HOOK].argsProvider?.args()).toEqual(_args);
+      expect(wrapped[HOOK_DATA].keyOrKeys).toBe(key);
+      expect(wrapped[HOOK_DATA].argsProvider?.args()).toEqual(_args);
     });
 
     it("hook(key, name, fn)", () => {
       const wrapped = hook(key, name, originalFn);
       expect(wrapped(1, 2)).toBe(3);
-      expect(wrapped[HOOK].keyOrKeys).toBe(key);
-      expect(wrapped[HOOK].name).toBe(name);
+      expect(wrapped[HOOK_DATA].keyOrKeys).toBe(key);
+      expect(wrapped[HOOK_DATA].name).toBe(name);
     });
 
     it("hook(key, name, args, fn)", () => {
@@ -309,9 +310,9 @@ describe("hooks", () => {
         originalFn,
       );
       expect(wrapped()).toBe(30);
-      expect(wrapped[HOOK].keyOrKeys).toBe(key);
-      expect(wrapped[HOOK].name).toBe(name);
-      expect(wrapped[HOOK].argsProvider?.args()).toEqual(_args);
+      expect(wrapped[HOOK_DATA].keyOrKeys).toBe(key);
+      expect(wrapped[HOOK_DATA].name).toBe(name);
+      expect(wrapped[HOOK_DATA].argsProvider?.args()).toEqual(_args);
     });
   });
 
@@ -404,7 +405,7 @@ describe("hooks", () => {
 
       const result = hook(key, "parent", () => {
         const wrapped = hook("child", (x: number) => x);
-        expect(wrapped[HOOK].keyOrKeys).toBe(key);
+        expect(wrapped[HOOK_DATA].keyOrKeys).toBe(key);
         return wrapped(10);
       })();
 
@@ -640,7 +641,7 @@ describe("hooks", () => {
     it("should fallback to noop in runMiddleware if next is null or falsy", () => {
       const key = Symbol("key");
       const h = hook(key, "method", () => {});
-      (h as any)[HOOK].origin = null;
+      (h as any)[HOOK_DATA].origin = null;
 
       let midCalled = 0;
       attach(key, "method", (next) => {
@@ -757,6 +758,27 @@ describe("hooks", () => {
     it("should handle attach with empty array of keys", () => {
       expect(attach([], (next, x) => next(x + 1))).toBe(noop);
       expect(attach([], "test", (next, x) => next(x + 1))).toBe(noop);
+    });
+
+    it("should not run middlewares with withoutMiddleware context", () => {
+      const fn = hook((x: number) => x + 1);
+      let middlewareCalled = false;
+      attach(fn, (next, x) => {
+        middlewareCalled = true;
+        return next(x + 10);
+      });
+
+      expect(fn(5)).toBe(16);
+      expect(middlewareCalled).toBe(true);
+      middlewareCalled = false;
+
+      let withoutCalled = false;
+      bypassMiddleware(() => {
+        withoutCalled = true;
+        expect(fn(5)).toBe(6);
+        expect(middlewareCalled).toBe(false);
+      });
+      expect(withoutCalled).toBe(true);
     });
   });
 });
