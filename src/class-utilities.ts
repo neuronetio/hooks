@@ -26,7 +26,7 @@ interface IHookClassUtilitiesState<TClass extends HookDecoratedClass = HookDecor
  * @param Class The class being prepared for utilities decoration.
  * @returns The shared runtime state for that class.
  */
-function classUtilitiesHookState<TClass extends HookDecoratedClass>(Class: TClass): IHookClassUtilitiesState<TClass> {
+function classUtilitiesState<TClass extends HookDecoratedClass>(Class: TClass): IHookClassUtilitiesState<TClass> {
   if (Object.hasOwn(Class, HOOK_CLASS_UTILITIES_STATE)) {
     return (Class as any)[HOOK_CLASS_UTILITIES_STATE] as IHookClassUtilitiesState<TClass>;
   }
@@ -118,7 +118,7 @@ declare module "./hook.js" {
  * @returns The wrapped class constructor that should replace the original binding.
  */
 export function hookClass<TClass extends HookDecoratedClass>(Class: TClass): TClass {
-  return classUtilitiesHookState(Class).ClassProxy;
+  return classUtilitiesState(Class).ClassProxy;
 }
 hook.class = hookClass;
 
@@ -188,7 +188,7 @@ export function hookMethod<TClass extends HookDecoratedClass, TName extends Hook
   arg1?: HookDecoratorArgument,
   arg2?: HookDecoratorArgument,
 ): TClass {
-  const state = classUtilitiesHookState(Class);
+  const state = classUtilitiesState(Class);
   const { descriptor, isStatic } = resolveMemberDescriptor(
     state.ClassProxy,
     propertyKey,
@@ -291,7 +291,7 @@ export function hookGetter<TClass extends HookDecoratedClass, TName extends Hook
   arg1?: HookDecoratorArgument,
   arg2?: HookDecoratorArgument,
 ): TClass {
-  const state = classUtilitiesHookState(Class);
+  const state = classUtilitiesState(Class);
   const { descriptor, target, isStatic } = resolveMemberDescriptor(
     state.ClassProxy,
     propertyKey,
@@ -382,7 +382,7 @@ export function hookSetter<TClass extends HookDecoratedClass, TName extends Hook
   arg1?: HookDecoratorArgument,
   arg2?: HookDecoratorArgument,
 ): TClass {
-  const state = classUtilitiesHookState(Class);
+  const state = classUtilitiesState(Class);
   const { descriptor, target, isStatic } = resolveMemberDescriptor(
     state.ClassProxy,
     propertyKey,
@@ -515,7 +515,7 @@ export function hookField<TClass extends HookDecoratedClass, TName extends HookP
   arg1?: HookDecoratorArgument,
   arg2?: HookDecoratorArgument,
 ): TClass {
-  const state = classUtilitiesHookState(Class);
+  const state = classUtilitiesState(Class);
   const isStatic = isStaticField(state.originalClass, propertyKey);
   const { dynamicKey, alternativeName } = _resolveHookDecoratorOptions(arg1, arg2);
   const hookName = (alternativeName ?? propertyKey) as HookName;
@@ -608,7 +608,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
   arg1?: HookDecoratorArgument,
   arg2?: HookDecoratorArgument,
 ): TClass {
-  const state = classUtilitiesHookState(Class);
+  const state = classUtilitiesState(Class);
   const { dynamicKey, alternativeName } = _resolveHookDecoratorOptions(arg1, arg2);
   const hookName = (alternativeName ?? propertyKey) as HookName;
   const staticDescriptor = Object.getOwnPropertyDescriptor(state.originalClass, propertyKey);
