@@ -6,14 +6,14 @@ import {
   hook,
   inherit,
   _identity,
-  HOOK_CLASS_UTILITIES_STATE,
+  HOOK_CLASS_STATE,
+  PREFIX,
+  MADE_WITH_PROXY,
+  dhk,
 } from "./hook.js";
-import { MADE_WITH_PROXY } from "./index.js";
 
-const PREFIX = `[@neuronet/hooks][class-utilities]`;
-
-interface IHookClassUtilitiesState<TClass extends HookDecoratedClass = HookDecoratedClass> {
-  ClassProxy: TClass;
+export interface IHookClassUtilitiesState<TClass extends HookDecoratedClass = HookDecoratedClass> {
+  proxyClass: TClass;
   originalClass: HookDecoratedClass;
   instanceInitializers: Array<(instance: any) => void>;
 }
@@ -28,16 +28,26 @@ interface IHookClassUtilitiesState<TClass extends HookDecoratedClass = HookDecor
  * @returns The shared runtime state for that class.
  */
 function classUtilitiesState<TClass extends HookDecoratedClass>(Class: TClass): IHookClassUtilitiesState<TClass> {
-  if (Object.hasOwn(Class, HOOK_CLASS_UTILITIES_STATE)) {
-    return (Class as any)[HOOK_CLASS_UTILITIES_STATE] as IHookClassUtilitiesState<TClass>;
+  if (Object.hasOwn(Class, HOOK_CLASS_STATE)) {
+    return (Class as any)[HOOK_CLASS_STATE] as IHookClassUtilitiesState<TClass>;
   }
 
   const instanceInitializers: IHookClassUtilitiesState<TClass>["instanceInitializers"] = [];
   const ClassProxy = new Proxy(Class as HookDecoratedClass, {
     construct(target, args, newTarget) {
       return hook(inherit(target), "constructor", (..._args: any[]) => {
+        // because `inherit` will not include the proxy in the chain when called from inside the constructor,
+        // we need to temporarily set MADE_WITH_PROXY on the class itself which means we are inside the constructor
+        // and we want to include the proxy in the chain
+        // see inherit comments for more details
+        (Class as any)[MADE_WITH_PROXY] = ClassProxy;
+
         const instance = Reflect.construct(target, args, newTarget);
+        // add permanent MADE_WITH_PROXY to the instance so `inherit` will include the proxy in the chain
         (instance as any)[MADE_WITH_PROXY] = ClassProxy;
+
+        delete (Class as any)[MADE_WITH_PROXY];
+
         for (const initializer of instanceInitializers) {
           initializer(instance);
         }
@@ -47,13 +57,13 @@ function classUtilitiesState<TClass extends HookDecoratedClass>(Class: TClass): 
   }) as TClass;
 
   const state: IHookClassUtilitiesState<TClass> = {
-    ClassProxy: ClassProxy,
+    proxyClass: ClassProxy,
     originalClass: Class as HookDecoratedClass,
     instanceInitializers,
   };
 
-  (ClassProxy as any)[HOOK_CLASS_UTILITIES_STATE] = state;
-  (Class as any)[HOOK_CLASS_UTILITIES_STATE] = state;
+  (ClassProxy as any)[HOOK_CLASS_STATE] = state;
+  (Class as any)[HOOK_CLASS_STATE] = state;
 
   return state;
 }
@@ -76,7 +86,7 @@ function resolveMemberDescriptor(
   validate: (descriptor: PropertyDescriptor | undefined) => boolean,
   apiName: string,
 ) {
-  const origin = ((Class as any)[HOOK_CLASS_UTILITIES_STATE] as IHookClassUtilitiesState).originalClass;
+  const origin = ((Class as any)[HOOK_CLASS_STATE] as IHookClassUtilitiesState).originalClass;
   const staticDescriptor = Object.getOwnPropertyDescriptor(origin, propertyKey);
   if (validate(staticDescriptor)) {
     return {
@@ -120,7 +130,7 @@ declare module "./hook.js" {
  * @returns The wrapped class constructor that should replace the original binding.
  */
 export function hookClass<TClass extends HookDecoratedClass>(Class: TClass): TClass {
-  return classUtilitiesState(Class).ClassProxy;
+  return classUtilitiesState(Class).proxyClass;
 }
 hook.class = hookClass;
 
@@ -192,7 +202,7 @@ export function hookMethod<TClass extends HookDecoratedClass, TName extends Hook
 ): TClass {
   const state = classUtilitiesState(Class);
   const { descriptor, isStatic } = resolveMemberDescriptor(
-    state.ClassProxy,
+    state.proxyClass,
     propertyKey,
     (candidate) => typeof candidate?.value === "function",
     "method",
@@ -201,29 +211,38 @@ export function hookMethod<TClass extends HookDecoratedClass, TName extends Hook
   const hookName = (alternativeName ?? propertyKey) as HookName;
 
   if (isStatic) {
-    Object.defineProperty(state.originalClass, propertyKey, {
-      ...descriptor,
-      value: hook(dynamicKey ?? inherit(state.originalClass), hookName, descriptor.value.bind(state.originalClass)),
-    });
-
-    return state.ClassProxy;
+    // Object.defineProperty(state.originalClass, propertyKey, {
+    //   ...descriptor,
+    //   value: hook(dynamicKey ?? inherit(state.proxyClass), hookName, descriptor.value.bind(state.originalClass)),
+    // });
+    (state.originalClass as any)[propertyKey] = hook(
+      dynamicKey ?? inherit(state.proxyClass),
+      hookName,
+      descriptor.value.bind(state.originalClass),
+    );
+    return state.proxyClass;
   }
+
+  function defaultKey(this: any) {
+    return inherit(this);
+  }
+  state.originalClass.prototype[propertyKey] = hook(dynamicKey ?? dhk(defaultKey), hookName, descriptor.value);
 
   // because the user may use attach(Class.prototype.method, ...)
   // - in that case they don't need to provide keys or a name, as it is extracted from the hook (hook_data)
   // so we need to register such an empty hook to store the relevant data
-  Object.defineProperty(state.originalClass.prototype, propertyKey, {
-    ...descriptor,
-    value: hook(dynamicKey ?? inherit(state.originalClass), hookName, descriptor.value),
-  });
+  // Object.defineProperty(state.originalClass.prototype, propertyKey, {
+  //   ...descriptor,
+  //   value: hook(dynamicKey ?? inherit(state.proxyClass), hookName, descriptor.value),
+  // });
 
-  state.instanceInitializers.push((instance) => {
-    // because prototype doesn't have access to instance, we need to bind it to instance again
-    // to apply correct instance middlewares
-    instance[propertyKey] = hook(dynamicKey ?? inherit(instance), hookName, descriptor.value.bind(instance));
-  });
+  // state.instanceInitializers.push((instance) => {
+  //   // because prototype doesn't have access to instance, we need to bind it to instance again
+  //   // to apply correct instance middlewares
+  //   instance[propertyKey] = hook(dynamicKey ?? inherit(instance), hookName, descriptor.value.bind(instance));
+  // });
 
-  return state.ClassProxy;
+  return state.proxyClass;
 }
 hook.method = hookMethod;
 
@@ -295,7 +314,7 @@ export function hookGetter<TClass extends HookDecoratedClass, TName extends Hook
 ): TClass {
   const state = classUtilitiesState(Class);
   const { descriptor, target, isStatic } = resolveMemberDescriptor(
-    state.ClassProxy,
+    state.originalClass,
     propertyKey,
     (candidate) => typeof candidate?.get === "function",
     "getter",
@@ -314,7 +333,7 @@ export function hookGetter<TClass extends HookDecoratedClass, TName extends Hook
     ),
   });
 
-  return state.ClassProxy;
+  return state.proxyClass;
 }
 hook.getter = hookGetter;
 
@@ -386,7 +405,7 @@ export function hookSetter<TClass extends HookDecoratedClass, TName extends Hook
 ): TClass {
   const state = classUtilitiesState(Class);
   const { descriptor, target, isStatic } = resolveMemberDescriptor(
-    state.ClassProxy,
+    state.proxyClass,
     propertyKey,
     (candidate) => typeof candidate?.set === "function",
     "setter",
@@ -405,7 +424,7 @@ export function hookSetter<TClass extends HookDecoratedClass, TName extends Hook
     ),
   });
 
-  return state.ClassProxy;
+  return state.proxyClass;
 }
 hook.setter = hookSetter;
 
@@ -421,7 +440,7 @@ hook.setter = hookSetter;
  * @throws Error When the named member exists but is not a field.
  */
 function isStaticField(Class: HookDecoratedClass, propertyKey: PropertyKey) {
-  const origin = ((Class as any)[HOOK_CLASS_UTILITIES_STATE] as IHookClassUtilitiesState).originalClass;
+  const origin = ((Class as any)[HOOK_CLASS_STATE] as IHookClassUtilitiesState).originalClass;
   const staticDescriptor = Object.getOwnPropertyDescriptor(origin, propertyKey);
   if (staticDescriptor) {
     if (typeof staticDescriptor.get === "function" || typeof staticDescriptor.set === "function") {
@@ -530,14 +549,16 @@ export function hookField<TClass extends HookDecoratedClass, TName extends HookP
 
   if (isStatic) {
     const originalClass: any = state.originalClass;
-    originalClass[propertyKey] = runInitializer.call(originalClass, originalClass[propertyKey]);
-    return state.ClassProxy;
+    // `this` must point to the `Class` passed in argument because it may be a proxy and inherit with original class will omit the proxy
+    originalClass[propertyKey] = runInitializer.call(Class, originalClass[propertyKey]);
+
+    return state.proxyClass;
   }
   state.instanceInitializers.push((instance) => {
     instance[propertyKey] = runInitializer.call(instance, instance[propertyKey]);
   });
 
-  return state.ClassProxy;
+  return state.proxyClass;
 }
 hook.field = hookField;
 
@@ -642,17 +663,17 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
     Object.defineProperty(state.originalClass, propertyKey, {
       ...staticDescriptor,
       get: function getHookedAccessor(this: any, ...args: any[]) {
-        ensureInitialized.call(this);
+        ensureInitialized.call(Class); // Class because `this` is always original class not the proxy
         return decoratedAccessor.get.apply(this, args);
       },
       set: function setHookedAccessor(this: any, ...args: any[]) {
-        ensureInitialized.call(this);
+        ensureInitialized.call(Class);
         return decoratedAccessor.set.apply(this, args);
       },
     });
 
-    ensureInitialized.call(state.ClassProxy);
-    return state.ClassProxy;
+    ensureInitialized.call(Class);
+    return state.proxyClass;
   }
 
   if (typeof instanceDescriptor?.get === "function" && typeof instanceDescriptor?.set === "function") {
@@ -674,7 +695,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
     Object.defineProperty(state.originalClass.prototype, propertyKey, {
       ...instanceDescriptor,
       get: function getHookedAccessor(this: any, ...args: any[]) {
-        ensureInitialized.call(this);
+        ensureInitialized.call(this); // inherit on instance will figure things out
         return decoratedAccessor.get.apply(this, args);
       },
       set: function setHookedAccessor(this: any, ...args: any[]) {
@@ -687,7 +708,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
       ensureInitialized.call(instance);
     });
 
-    return state.ClassProxy;
+    return state.proxyClass;
   }
 
   if (
@@ -725,9 +746,9 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
   });
 
   if (isStatic) {
-    const nextValue = decoratedAccessor.init.call(state.originalClass, staticDescriptor!.value);
+    const nextValue = decoratedAccessor.init.call(Class, staticDescriptor!.value);
     originalSet.call(state.originalClass, nextValue);
-    return state.ClassProxy;
+    return state.proxyClass;
   }
 
   state.instanceInitializers.push((instance) => {
@@ -737,6 +758,6 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
     originalSet.call(instance, nextValue);
   });
 
-  return state.ClassProxy;
+  return state.proxyClass;
 }
 hook.accessor = hookAccessor;

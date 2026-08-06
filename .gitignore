@@ -1,5 +1,6 @@
 node_modules/
 playground/
+NOTES.md
 
 # Test coverage artifacts
 coverage/*

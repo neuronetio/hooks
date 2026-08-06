@@ -1,15 +1,17 @@
-const PREFIX = `[@neuronet/hooks]`;
+import type { IHookClassUtilitiesState } from "./class-utilities";
 
-export const DEFAULT_HOOK_NAME = Symbol("DEFAULT_HOOK_NAME");
+export const PREFIX = `[@neuronet/hooks]`;
+
+export const DEFAULT_HOOK_NAME = Symbol("[default_hook_name]");
 
 /**
  * Hook property key used to store hook metadata on functions and classes.
  */
-export const HOOK_DATA = Symbol(`${PREFIX}[HOOK_DATA]`);
+export const HOOK_DATA = Symbol(`${PREFIX}[hook_data]`);
 
-export const HOOK_CLASS_UTILITIES_STATE = Symbol(`${PREFIX}[state]`);
+export const HOOK_CLASS_STATE = Symbol(`${PREFIX}[class_state]`);
 
-export const MADE_WITH_PROXY = Symbol(`${PREFIX}[MADE_WITH_PROXY]`);
+export const MADE_WITH_PROXY = Symbol(`${PREFIX}[made_with_proxy]`);
 
 export const noop = (..._args: any[]): any => {};
 
@@ -494,24 +496,32 @@ export function inherit(classOrInstance: object): object[] {
 
   let first = true;
   let Class = (classOrInstance as any).prototype?.constructor ?? Object.getPrototypeOf(classOrInstance)?.constructor;
+  const madeWithProxy = (classOrInstance as any)[MADE_WITH_PROXY] ?? Class[MADE_WITH_PROXY];
+
   while (Class && Class.prototype !== undefined) {
     if (typeof Class === "function") {
       // class proxy is transparent so we need to find it manually
-      if (Object.hasOwn(Class, HOOK_CLASS_UTILITIES_STATE)) {
-        const state = (Class as any)[HOOK_CLASS_UTILITIES_STATE];
+      if (Object.hasOwn(Class, HOOK_CLASS_STATE)) {
+        const state = (Class as any)[HOOK_CLASS_STATE] as IHookClassUtilitiesState;
+
         // Class is always the original (because proxy is transparent) one so we need to check argument
         if (
           // if argument is an original class (not the proxy)
           classOrInstance === state.originalClass ||
           // or if argument is an instance and was not created with a current class proxy (there may be other proxies in the chain)
-          (first && !isClass && (classOrInstance as any)[MADE_WITH_PROXY] !== state.ClassProxy)
+          (first && !isClass && madeWithProxy !== state.proxyClass)
         ) {
           // we don't want to add proxy
           // because proxy may be created later (at the level above the current) for other purposes, we just want to start with the exact original class
           // we need to do this check because the state with proxy is added to the original class
+
+          // but because MADE_WITH_PROXY is set after instance is created it will not work inside constructors
+          // inherit in constructors will not add the proxy but they should (if running inside proxy) so we need to temporarily set MADE_WITH_PROXY on the class itself
+          // to know that we are called from inside the constructor and we want to include the proxy in the chain
+
           constructors.push(state.originalClass);
         } else {
-          constructors.push(state.ClassProxy);
+          constructors.push(state.proxyClass);
           constructors.push(state.originalClass);
         }
       } else {
@@ -609,7 +619,11 @@ export function _resolveHookDecoratorOptions(
  * @param hookName The public hook name used by `attach()`.
  * @param value The original member implementation.
  * @param dynamicKey Optional runtime key resolver.
- * @param owner Optional owner to bind the original member to, instead of the receiver.
+ * @param bindTo Optional value to bind the original member to instead of `this`.
+ *               Because for class proxy, static methods `this` are pointing to the proxy (not the class).
+ *               And if we are trying to access #private property from within a proxy context there will be an error.
+ *               And of course we want the proxy to behave like a real transparent thing.
+ * @param inheritFrom Optional value to inherit from instead of `this`.
  * @returns A function that lazily creates and reuses the wrapped hook for one receiver.
  *
  * @internal
@@ -619,13 +633,13 @@ export function _createHookInvoker(
   hookName: HookName,
   value: (...args: any[]) => any,
   dynamicKey?: HookKeyDynamic,
-  owner?: any,
+  bindTo?: any,
+  inheritFrom?: any,
 ) {
-  const hookKey = Symbol(`[hook][${String(propertyKey)}]`);
+  const hookKey = Symbol(`${PREFIX}[hook][${String(propertyKey)}]`);
   return function runHook(this: any, ...args: any[]) {
     if (!this[hookKey]) {
-      const receiver = owner ?? this;
-      this[hookKey] = hook(dynamicKey ?? inherit(receiver), hookName, value.bind(receiver));
+      this[hookKey] = hook(dynamicKey ?? inherit(inheritFrom ?? this), hookName, value.bind(bindTo ?? this));
     }
     return this[hookKey](...args);
   };
@@ -864,7 +878,7 @@ export interface IMiddlewareMethods {
   [key: string | symbol]: MiddlewareMethod[];
 }
 
-export const middlewares: WeakMap<HookKeyOrKeys, IMiddlewareMethods> = new WeakMap();
+export const middleware: WeakMap<HookKeyOrKeys, IMiddlewareMethods> = new WeakMap();
 
 export interface HookApi {
   /**
@@ -1066,6 +1080,10 @@ export function attach<A extends any[] = any[], R = any>(
     );
   }
 
+  if (key === null) {
+    return noop;
+  }
+
   if (Array.isArray(key)) {
     // by default use first key to attach middleware as if it was normal middleware with no levels
     // because first key is the instance key that might be overridden
@@ -1075,7 +1093,8 @@ export function attach<A extends any[] = any[], R = any>(
     }
     key = key[0]!;
   }
-  const methods = middlewares.getOrInsert(key, Object.create(null)); // from null because of "constructor" method name
+
+  const methods = middleware.getOrInsert(key, Object.create(null)); // from null because of "constructor" method name
   let method = methods[name] as MiddlewareMethod[] | undefined;
 
   if (!method) {
@@ -1108,7 +1127,7 @@ export function inspectHook(hookFn: IHookFn<any, any>): IHookInspection {
     throw new Error(`${PREFIX}[inspectHook] Hook function metadata not found.`);
   }
 
-  const methods = middlewares.get(maybeHook.keyOrKeys);
+  const methods = middleware.get(maybeHook.keyOrKeys);
   const middlewareNames = Object.keys(methods || {}) as HookName[];
   const middlewareCount = middlewareNames.reduce((count, methodName) => {
     return count + (methods?.[methodName]?.length || 0);
@@ -1123,7 +1142,7 @@ export function inspectHook(hookFn: IHookFn<any, any>): IHookInspection {
 }
 
 export function getMiddleware(key: HookKeyOrKeys, name: HookName): MiddlewareMethod[] {
-  const methods = middlewares.get(key);
+  const methods = middleware.get(key);
   if (!methods) {
     return [];
   }
@@ -1144,7 +1163,7 @@ export function getMiddleware(key: HookKeyOrKeys, name: HookName): MiddlewareMet
  * @param fn The middleware function to remove.
  */
 export function detach(key: HookKeyOrKeys, name: HookName, fn: MiddlewareMethod): void {
-  const methods = middlewares.get(key);
+  const methods = middleware.get(key);
   if (!methods) {
     return;
   }
@@ -1160,7 +1179,7 @@ export function detach(key: HookKeyOrKeys, name: HookName, fn: MiddlewareMethod)
     if (method.length === 0) {
       delete methods[name];
       if (Object.keys(methods).length === 0) {
-        middlewares.delete(key);
+        middleware.delete(key);
       }
     }
   }
@@ -1205,20 +1224,19 @@ function runMiddleware<A extends any[] = any[], R = any>(
   thisArg: any,
   ...args: A
 ): R {
-  if (!middlewareEnabled) {
+  if (!middlewareEnabled || key === null) {
     return next?.apply(thisArg, args as any) as R;
   }
   const actualNext = next || noop;
   const oldHookKey = currentHookKey;
-  const methods = middlewares.get(key);
+
+  const methods = middleware.get(key);
   if (!methods) {
-    currentHookKey = oldHookKey;
     return actualNext.apply(thisArg, args as any);
   }
 
   const method = methods[name];
   if (!method) {
-    currentHookKey = oldHookKey;
     return actualNext.apply(thisArg, args as any);
   }
   // we need to switch to key from current middleware, because middlewares may call hooks too (or even save them somewhere)

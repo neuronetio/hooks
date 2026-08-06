@@ -10,7 +10,7 @@ import {
   detach,
   inspectHook,
   getCurrentHookKeyContext,
-  middlewares,
+  middleware,
   getMiddleware,
   noop,
   bypassMiddleware,
@@ -68,7 +68,7 @@ describe("hooks", () => {
       const key = { emptyMiddleware: true };
       const wrapped = hook(key, "debugName", (x: number) => x + 1);
 
-      middlewares.set(key as any, { debugName: [] as any } as any);
+      middleware.set(key as any, { debugName: [] as any } as any);
 
       const info = inspectHook(wrapped);
       expect(info.middlewareCount).toBe(0);
@@ -79,7 +79,7 @@ describe("hooks", () => {
       const key = { middleware: true };
       const wrapped = hook(key, "debugName", (x: number) => x + 1);
 
-      middlewares.set(key as any, { debugName: [() => undefined] as any } as any);
+      middleware.set(key as any, { debugName: [() => undefined] as any } as any);
 
       const info = inspectHook(wrapped);
       expect(info.middlewareCount).toBe(1);
@@ -664,11 +664,11 @@ describe("hooks", () => {
       detach(key, "method1", fn1);
 
       // Verify that middlewares still has key and method2 is still there
-      expect(middlewares.has(key)).toBe(true);
+      expect(middleware.has(key)).toBe(true);
 
       // Clean up method2
       detach(key, "method2", fn2);
-      expect(middlewares.has(key)).toBe(false);
+      expect(middleware.has(key)).toBe(false);
     });
 
     it("should handle detach when multiple middlewares are registered for the same name", () => {
@@ -683,14 +683,14 @@ describe("hooks", () => {
       detach2();
 
       // Since fn1 is still registered, the method array is not empty
-      const methods = middlewares.get(key);
+      const methods = middleware.get(key);
       expect(methods).toBeDefined();
       expect(methods!["method"]).toBeDefined();
       expect(methods!["method"]!.length).toBe(1);
 
       // Clean up
       detach(key, "method", fn1);
-      expect(middlewares.has(key)).toBe(false);
+      expect(middleware.has(key)).toBe(false);
     });
 
     it("should cover false branch of initHookKey check in accessor decorator", () => {
