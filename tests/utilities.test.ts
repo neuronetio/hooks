@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import type { IHookData } from "../src";
-import { HOOK_DATA, attach, dynamicHookKey, getCurrentHookKeyContext, hook, HOOK_CLASS_UTILITIES_STATE } from "../src";
+import {
+  HOOK_DATA,
+  attach,
+  dynamicHookKey,
+  getCurrentHookKeyContext,
+  hook,
+  HOOK_CLASS_UTILITIES_STATE,
+  MADE_WITH_PROXY,
+} from "../src";
 
 describe("hooks: class utilities", () => {
   describe("class", () => {
@@ -39,6 +47,31 @@ describe("hooks: class utilities", () => {
       expect(MyClass.staticValue).toBe(original.staticValue);
     });
 
+    it("MADE_WITH_PROXY should point to the right proxy class", () => {
+      class A {}
+      const B = hook.class(A);
+      const instance = new B();
+      expect((instance as any)[MADE_WITH_PROXY]).toBe(B);
+
+      class C extends B {}
+      expect((new C() as any)[MADE_WITH_PROXY]).toBe(B);
+
+      class D extends C {}
+      expect((new D() as any)[MADE_WITH_PROXY]).toBe(B);
+
+      const E = hook.class(D);
+      expect((new E() as any)[MADE_WITH_PROXY]).toBe(E);
+
+      class F extends E {}
+      expect((new F() as any)[MADE_WITH_PROXY]).toBe(E);
+
+      expect((instance as any)[MADE_WITH_PROXY]).toBe(B);
+      expect((new C() as any)[MADE_WITH_PROXY]).toBe(B);
+      expect((new D() as any)[MADE_WITH_PROXY]).toBe(B);
+      expect((new E() as any)[MADE_WITH_PROXY]).toBe(E);
+      expect((new F() as any)[MADE_WITH_PROXY]).toBe(E);
+    });
+
     it("inherit function should return proper class hierarchy", () => {
       class O1 {}
       const A = hook.class(O1);
@@ -47,6 +80,9 @@ describe("hooks: class utilities", () => {
       class D extends C {}
       const d = new D();
       expect(hook.inherit(d)).toEqual([d, D, C, B, A, O1]);
+      expect(hook.inherit(A)).toEqual([A, O1]);
+      const a = new A();
+      expect(hook.inherit(a)).toEqual([a, A, O1]);
 
       class O2 {}
       class A2O extends O2 {}
@@ -57,6 +93,10 @@ describe("hooks: class utilities", () => {
       const C2 = hook.class(C2O);
       const c2 = new C2();
       expect(hook.inherit(c2)).toEqual([c2, C2, C2O, B2, B2O, A2, A2O, O2]);
+      expect(hook.inherit(B2)).toEqual([B2, B2O, A2, A2O, O2]);
+      expect(hook.inherit(B2O)).toEqual([B2O, A2, A2O, O2]);
+      const b20 = new B2O();
+      expect(hook.inherit(b20)).toEqual([b20, B2O, A2, A2O, O2]);
 
       class O3 {}
       class A3 extends O3 {}
@@ -723,6 +763,8 @@ describe("hooks: class utilities", () => {
       const instance = new MyClass();
       expect(instance instanceof MyClass).toBe(true);
       expect(instance instanceof Origin).toBe(true);
+      expect(instance.constructor).toBe(Origin);
+      expect(Origin.prototype).toBe(MyClass.prototype);
       expect(instance.myMethod("input")).toBe("input:mid1:original");
     });
 

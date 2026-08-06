@@ -8,6 +8,7 @@ import {
   _identity,
   HOOK_CLASS_UTILITIES_STATE,
 } from "./hook.js";
+import { MADE_WITH_PROXY } from "./index.js";
 
 const PREFIX = `[@neuronet/hooks][class-utilities]`;
 
@@ -36,6 +37,7 @@ function classUtilitiesState<TClass extends HookDecoratedClass>(Class: TClass): 
     construct(target, args, newTarget) {
       return hook(inherit(target), "constructor", (..._args: any[]) => {
         const instance = Reflect.construct(target, args, newTarget);
+        (instance as any)[MADE_WITH_PROXY] = ClassProxy;
         for (const initializer of instanceInitializers) {
           initializer(instance);
         }

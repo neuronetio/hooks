@@ -9,6 +9,8 @@ export const HOOK_DATA = Symbol(`${PREFIX}[HOOK_DATA]`);
 
 export const HOOK_CLASS_UTILITIES_STATE = Symbol(`${PREFIX}[state]`);
 
+export const MADE_WITH_PROXY = Symbol(`${PREFIX}[MADE_WITH_PROXY]`);
+
 export const noop = (..._args: any[]): any => {};
 
 /**
@@ -490,30 +492,35 @@ export function inherit(classOrInstance: object): object[] {
     constructors.push(classOrInstance);
   }
 
-  // if we have a proxy, or we are the proxy
-  if (isClass && Object.hasOwn(classOrInstance, HOOK_CLASS_UTILITIES_STATE)) {
-    const state = (classOrInstance as any)[HOOK_CLASS_UTILITIES_STATE];
-    const proxy = state.ClassProxy;
-    constructors.push(proxy);
-    constructors.push(state.originalClass);
-  } else if (isClass) {
-    // if it's a class, we want to include it after a proxy
-    constructors.push(classOrInstance);
-  }
-
-  let proto = Object.getPrototypeOf(classOrInstance);
-  while (proto && proto !== Object.prototype) {
-    const constructor = proto.constructor;
-    if (typeof constructor === "function" && constructor !== Function) {
+  let first = true;
+  let Class = (classOrInstance as any).prototype?.constructor ?? Object.getPrototypeOf(classOrInstance)?.constructor;
+  while (Class && Class.prototype !== undefined) {
+    if (typeof Class === "function") {
       // class proxy is transparent so we need to find it manually
-      if (Object.hasOwn(constructor, HOOK_CLASS_UTILITIES_STATE)) {
-        const state = (constructor as any)[HOOK_CLASS_UTILITIES_STATE];
-        constructors.push(state.ClassProxy);
+      if (Object.hasOwn(Class, HOOK_CLASS_UTILITIES_STATE)) {
+        const state = (Class as any)[HOOK_CLASS_UTILITIES_STATE];
+        // Class is always the original (because proxy is transparent) one so we need to check argument
+        if (
+          // if argument is an original class (not the proxy)
+          classOrInstance === state.originalClass ||
+          // or if argument is an instance and was not created with a current class proxy (there may be other proxies in the chain)
+          (first && !isClass && (classOrInstance as any)[MADE_WITH_PROXY] !== state.ClassProxy)
+        ) {
+          // we don't want to add proxy
+          // because proxy may be created later (at the level above the current) for other purposes, we just want to start with the exact original class
+          // we need to do this check because the state with proxy is added to the original class
+          constructors.push(state.originalClass);
+        } else {
+          constructors.push(state.ClassProxy);
+          constructors.push(state.originalClass);
+        }
+      } else {
+        // we can use `inherit` inside manual hooks (without a state) so we need to push the original constructor for this use case
+        constructors.push(Class);
       }
-      // we can use `inherit` inside manual hooks (without a state) so we need to push the original constructor too
-      constructors.push(constructor);
     }
-    proto = Object.getPrototypeOf(proto);
+    Class = Object.getPrototypeOf(Class);
+    first = false;
   }
 
   return constructors;
