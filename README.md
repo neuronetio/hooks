@@ -1,5 +1,7 @@
 # @neuronet/hooks
 
+WORK IN PROGRESS — NOT YET STABLE, EVERYTHING IS SUBJECT TO CHANGE
+
 `@neuronet/hooks` is a simple, unified and flexible library for adding hooks, middleware or events to JavaScript and TypeScript code.
 
 It helps you extend behavior without changing the original codebase. In practice, that means you can add dependency injection, logging, validation, retries, caching, instrumentation, or custom logic in a clean, flexible and reusable way.
