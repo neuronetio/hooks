@@ -156,7 +156,7 @@ ManualExample = Hooks(ManualExample)
   .setter("value")
   .field("initField")
   .accessor("initField")
-  .build();
+  .get();
 
 ManualExample = Hooks(ManualExample)
   // @ts-expect-error method does not exist
@@ -169,7 +169,7 @@ ManualExample = Hooks(ManualExample)
   .accessor("nonExistingAccessor")
   // @ts-expect-error field does not exist
   .field("nonExistingField")
-  .build();
+  .get();
 
 attach(ManualExample, "myMethod", (next, x) => {
   return next(x + 1);
@@ -362,7 +362,7 @@ const BuilderClass = hook
   })
   .field("myField")
   .method("method")
-  .build();
+  .get();
 
 const b = new BuilderClass();
 b.method("test");

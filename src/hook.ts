@@ -1,5 +1,3 @@
-import type { IHookClassUtilitiesState } from "./class-utilities";
-
 export const PREFIX = `[@neuronet/hooks]`;
 
 export const DEFAULT_HOOK_NAME = Symbol("[default_hook_name]");
@@ -10,8 +8,6 @@ export const DEFAULT_HOOK_NAME = Symbol("[default_hook_name]");
 export const HOOK_DATA = Symbol(`${PREFIX}[hook_data]`);
 
 export const HOOK_CLASS_STATE = Symbol(`${PREFIX}[class_state]`);
-
-export const MADE_WITH_PROXY = Symbol(`${PREFIX}[made_with_proxy]`);
 
 export const noop = (..._args: any[]): any => {};
 
@@ -494,43 +490,12 @@ export function inherit(classOrInstance: object): object[] {
     constructors.push(classOrInstance);
   }
 
-  let first = true;
   let Class = (classOrInstance as any).prototype?.constructor ?? Object.getPrototypeOf(classOrInstance)?.constructor;
-  const madeWithProxy = (classOrInstance as any)[MADE_WITH_PROXY] ?? Class[MADE_WITH_PROXY];
-
   while (Class && Class.prototype !== undefined) {
     if (typeof Class === "function") {
-      // class proxy is transparent so we need to find it manually
-      if (Object.hasOwn(Class, HOOK_CLASS_STATE)) {
-        const state = (Class as any)[HOOK_CLASS_STATE] as IHookClassUtilitiesState;
-
-        // Class is always the original (because proxy is transparent) one so we need to check argument
-        if (
-          // if argument is an original class (not the proxy)
-          classOrInstance === state.originalClass ||
-          // or if argument is an instance and was not created with a current class proxy (there may be other proxies in the chain)
-          (first && !isClass && madeWithProxy !== state.proxyClass)
-        ) {
-          // we don't want to add proxy
-          // because proxy may be created later (at the level above the current) for other purposes, we just want to start with the exact original class
-          // we need to do this check because the state with proxy is added to the original class
-
-          // but because MADE_WITH_PROXY is set after instance is created it will not work inside constructors
-          // inherit in constructors will not add the proxy but they should (if running inside proxy) so we need to temporarily set MADE_WITH_PROXY on the class itself
-          // to know that we are called from inside the constructor and we want to include the proxy in the chain
-
-          constructors.push(state.originalClass);
-        } else {
-          constructors.push(state.proxyClass);
-          constructors.push(state.originalClass);
-        }
-      } else {
-        // we can use `inherit` inside manual hooks (without a state) so we need to push the original constructor for this use case
-        constructors.push(Class);
-      }
+      constructors.push(Class);
     }
     Class = Object.getPrototypeOf(Class);
-    first = false;
   }
 
   return constructors;

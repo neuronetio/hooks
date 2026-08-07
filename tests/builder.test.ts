@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { attach, Hooks, HookDecoratorBuilder } from "../src";
+import { attach, hook, Hooks, HookDecoratorBuilder } from "../src";
 
 describe("builder", () => {
   it("should expose a builder class and support overloads for fluent decoration", () => {
@@ -30,20 +30,24 @@ describe("builder", () => {
       .accessor("acc", "accAlt")
       .getter("value", "valueAlt")
       .setter("value", "valueAlt")
-      .build();
+      .get();
 
-    expect(decorated).not.toBe(BuilderClass);
+    expect(decorated).toBe(BuilderClass);
     const instance = new decorated();
     expect(instance).toBeInstanceOf(BuilderClass);
   });
 
   it("should work with alternative names and builder DX", () => {
-    let MixedClass = class MixedClass {
+    class MixedClass {
       static staticValueStore = "staticInitial";
       #value = "initial";
 
       field = "field";
       acc: string = "initialAcc";
+
+      constructor() {
+        hook.init(this);
+      }
 
       method(x: string) {
         return x + ":orig";
@@ -68,9 +72,9 @@ describe("builder", () => {
       static set staticVal(v: string) {
         this.staticValueStore = v;
       }
-    };
+    }
 
-    MixedClass = Hooks(MixedClass)
+    Hooks(MixedClass)
       .method("method", "methodAlt")
       .method("staticMethod", "staticMethodAlt")
       .field("field", "fieldAlt")
@@ -78,8 +82,7 @@ describe("builder", () => {
       .getter("value", "valueAlt")
       .setter("value", "valueAlt")
       .getter("staticVal", "staticGetAlt")
-      .setter("staticVal", "staticSetAlt")
-      .build();
+      .setter("staticVal", "staticSetAlt");
 
     const instance = new MixedClass();
 
@@ -126,7 +129,7 @@ describe("builder", () => {
       },
     )
       .method("method")
-      .build();
+      .get();
 
     attach(API, "method", (next, x) => next(x + " mid"));
     expect(new API().method("input")).toBe("input mid orig");

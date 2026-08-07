@@ -201,7 +201,7 @@ export interface IHookDecoratorBuilder<TClass extends HookDecoratedClass = HookD
    *
    * @returns The final decorated class.
    */
-  build(): TClass;
+  get(): TClass;
 }
 
 export class HookDecoratorBuilder<
@@ -378,7 +378,7 @@ export class HookDecoratorBuilder<
     return this;
   }
 
-  build(): TClass {
+  get(): TClass {
     return this.HookedClass;
   }
 }

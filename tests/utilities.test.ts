@@ -8,7 +8,6 @@ import {
   getCurrentHookKeyContext,
   hook,
   HOOK_CLASS_STATE,
-  MADE_WITH_PROXY,
   HookKeyDynamic,
   dhk,
 } from "../src";
@@ -49,46 +48,21 @@ describe("hooks: class utilities", () => {
       expect(MyClass.staticValue).toBe(original.staticValue);
     });
 
-    it("MADE_WITH_PROXY should point to the right proxy class", () => {
-      class A {}
-      const B = hook.class(A);
-      const instance = new B();
-      expect((instance as any)[MADE_WITH_PROXY]).toBe(B);
-
-      class C extends B {}
-      expect((new C() as any)[MADE_WITH_PROXY]).toBe(B);
-
-      class D extends C {}
-      expect((new D() as any)[MADE_WITH_PROXY]).toBe(B);
-
-      const E = hook.class(D);
-      expect((new E() as any)[MADE_WITH_PROXY]).toBe(E);
-
-      class F extends E {}
-      expect((new F() as any)[MADE_WITH_PROXY]).toBe(E);
-
-      expect((instance as any)[MADE_WITH_PROXY]).toBe(B);
-      expect((new C() as any)[MADE_WITH_PROXY]).toBe(B);
-      expect((new D() as any)[MADE_WITH_PROXY]).toBe(B);
-      expect((new E() as any)[MADE_WITH_PROXY]).toBe(E);
-      expect((new F() as any)[MADE_WITH_PROXY]).toBe(E);
-    });
-
     it("inherit function should return proper class hierarchy", () => {
       class O1 {}
       const A = hook.class(O1);
 
       const aa = new A();
-      expect(hook.inherit(aa)).toEqual([aa, A, O1]);
+      expect(hook.inherit(aa)).toEqual([aa, O1]);
 
       class B extends A {}
       class C extends B {}
       class D extends C {}
       const d = new D();
-      expect(hook.inherit(d)).toEqual([d, D, C, B, A, O1]);
-      expect(hook.inherit(A)).toEqual([A, O1]);
+      expect(hook.inherit(d)).toEqual([d, D, C, B, O1]); // only instance & hooked classes are returned
+      expect(hook.inherit(A)).toEqual([O1]);
       const a = new A();
-      expect(hook.inherit(a)).toEqual([a, A, O1]);
+      expect(hook.inherit(a)).toEqual([a, O1]);
 
       class O2 {}
       class A2O extends O2 {}
@@ -98,11 +72,11 @@ describe("hooks: class utilities", () => {
       class C2O extends B2 {}
       const C2 = hook.class(C2O);
       const c2 = new C2();
-      expect(hook.inherit(c2)).toEqual([c2, C2, C2O, B2, B2O, A2, A2O, O2]);
-      expect(hook.inherit(B2)).toEqual([B2, B2O, A2, A2O, O2]);
-      expect(hook.inherit(B2O)).toEqual([B2O, A2, A2O, O2]);
+      expect(hook.inherit(c2)).toEqual([c2, C2O, B2O, A2O, O2]);
+      expect(hook.inherit(B2)).toEqual([B2O, A2O, O2]);
+      expect(hook.inherit(B2O)).toEqual([B2O, A2O, O2]);
       const b20 = new B2O();
-      expect(hook.inherit(b20)).toEqual([b20, B2O, A2, A2O, O2]);
+      expect(hook.inherit(b20)).toEqual([b20, B2O, A2O, O2]);
 
       class O3 {}
       class A3 extends O3 {}
@@ -111,7 +85,7 @@ describe("hooks: class utilities", () => {
       class D3 extends C3 {}
       const D3Hooked = hook.class(D3);
       const d3Hooked = new D3Hooked();
-      expect(hook.inherit(d3Hooked)).toEqual([d3Hooked, D3Hooked, D3, C3, B3, A3, O3]);
+      expect(hook.inherit(d3Hooked)).toEqual([d3Hooked, D3, C3, B3, A3, O3]);
 
       let inherited: any[] = [];
       let constructorInherited: any[] = [];
@@ -140,12 +114,12 @@ describe("hooks: class utilities", () => {
       const DynHooked = hook.class(Dyn);
       const dynHooked = new DynHooked();
       dynHooked.myMethod();
-      expect(inherited).toEqual([dynHooked, DynHooked, Dyn]);
-      expect(constructorInherited).toEqual([dynHooked, DynHooked, Dyn]);
+      expect(inherited).toEqual([dynHooked, Dyn]);
+      expect(constructorInherited).toEqual([dynHooked, Dyn]);
     });
 
     it("should work with sub-classing", () => {
-      class Original {
+      class MyClass {
         method() {
           return "ok";
         }
@@ -155,66 +129,63 @@ describe("hooks: class utilities", () => {
         }
       }
 
-      const original = new Original();
+      const original = new MyClass();
       expect(original.method()).toBe("ok");
-      expect(Original.staticMethod()).toBe("ok");
+      expect(MyClass.staticMethod()).toBe("ok");
 
-      const MyClass = hook.class(Original);
       hook.method(MyClass, "method");
 
       attach(MyClass, "method", (next) => next() + " MyClass_mid");
-      attach(Original, "method", (next) => next() + " Original_mid");
 
-      expect(original.method()).toBe("ok");
+      expect(original.method()).toBe("ok MyClass_mid");
 
       const myClassInstance = new MyClass();
-      expect(myClassInstance.method()).toBe("ok MyClass_mid Original_mid");
+      expect(myClassInstance.method()).toBe("ok MyClass_mid");
 
       class SubClass extends MyClass {}
-
-      // state is static
-      expect((SubClass as any)[HOOK_CLASS_STATE]).toBe((MyClass as any)[HOOK_CLASS_STATE]);
-
       const subClassInstance = new SubClass();
 
       expect(subClassInstance instanceof SubClass).toBe(true);
       expect(subClassInstance instanceof MyClass).toBe(true);
-      expect(subClassInstance instanceof Original).toBe(true);
 
       attach(MyClass, "method", (next) => next() + " MyClass_mid2");
 
-      expect(subClassInstance.method()).toBe("ok MyClass_mid2 MyClass_mid Original_mid");
+      expect(subClassInstance.method()).toBe("ok MyClass_mid2 MyClass_mid");
 
-      attach(SubClass, "method", (next) => next() + ":subMid");
+      attach(SubClass, "method", (next) => next() + " subMid");
 
-      expect(subClassInstance.method()).toBe("ok MyClass_mid2 MyClass_mid Original_mid SubClass_subMid");
+      expect(subClassInstance.method()).toBe("ok MyClass_mid2 MyClass_mid subMid");
 
       attach(SubClass, "method", (_next) => "short-circuit");
 
-      expect(subClassInstance.method()).toBe("short-circuit SubClass_subMid");
+      expect(subClassInstance.method()).toBe("short-circuit subMid");
     });
   });
 
   describe("fields", () => {
     it("should work with instance fields", () => {
-      let FieldsClass = class FieldsClass {
+      class FieldsClass {
         myField = "myFieldValue";
-      };
 
-      FieldsClass = hook.field(FieldsClass, "myField");
+        constructor() {
+          hook.init(this);
+        }
+      }
+
+      hook.field(FieldsClass, "myField");
 
       const instance = new FieldsClass();
       expect(instance.myField).toBe("myFieldValue");
 
       const detach1 = attach(FieldsClass, "init myField", (next, value) => {
-        return next(value + ":initMid1");
+        return next(value + " initMid1");
       });
       const detach2 = hook.attach(instance, "init myField", (next, value) => {
-        return next(value + ":initMid2");
+        return next(value + " initMid2");
       });
       expect(instance.myField).toBe("myFieldValue");
 
-      expect(new FieldsClass().myField).toBe("myFieldValue:initMid1");
+      expect(new FieldsClass().myField).toBe("myFieldValue initMid1");
 
       detach1();
       detach2();
@@ -243,6 +214,9 @@ describe("hooks: class utilities", () => {
       const DynamicHookClass = hook.class(
         class {
           myValue: string = "initial";
+          constructor() {
+            hook.init(this);
+          }
         },
       );
 
@@ -329,6 +303,9 @@ describe("hooks: class utilities", () => {
     it("should work with instance accessor decorators", () => {
       class Origin {
         myValue: string = "initial";
+        constructor() {
+          hook.init(this);
+        }
       }
       const AccessorClass = hook.class(Origin);
 
@@ -369,11 +346,9 @@ describe("hooks: class utilities", () => {
     });
 
     it("should work with static accessors decorators", () => {
-      const StaticAccessorClass = hook.class(
-        class Origin {
-          static field = 10;
-        },
-      );
+      class StaticAccessorClass {
+        static field = 10;
+      }
 
       attach(StaticAccessorClass, "init fieldAlt", (next, value) => next(value + 1));
       attach(StaticAccessorClass, "get fieldAlt", (next) => next() * 2);
@@ -388,10 +363,13 @@ describe("hooks: class utilities", () => {
 
     it("should work with dynamic hook keys for accessors", () => {
       const dynamicThis: any[] = [];
-      class Origin {
+
+      class DynamicHookClass {
         myValue: string = "initial";
+        constructor() {
+          hook.init(this);
+        }
       }
-      const DynamicHookClass = hook.class(Origin);
 
       hook.accessor(
         DynamicHookClass,
@@ -775,7 +753,6 @@ describe("hooks: class utilities", () => {
       });
 
       const instance = new ConstructorCallClass();
-      expect((instance as any)[MADE_WITH_PROXY]).toBe(ConstructorCallClass);
 
       expect(calls).toEqual(["x:class:original"]);
       expect(Object.hasOwn(instance, "myMethod")).toBe(false);
@@ -791,19 +768,17 @@ describe("hooks: class utilities", () => {
       const instance = new Origin();
       expect(instance.myMethod("test")).toBe("test private");
 
-      const Counter = hook.class(Origin);
-      hook.method(Counter, "myMethod");
-      attach(Counter, "myMethod", (next, x) => next(x + " attached"));
+      hook.method(Origin, "myMethod");
 
-      // because instance was created before applying class hook it should not be affected by the proxy middleware
-      // inherit has the information whether the instance was created with proxy or not
-      expect(instance.myMethod("test")).toBe("test private");
+      attach(Origin, "myMethod", (next, x) => next(x + " attached"));
 
-      // because hook.class modifies the original class, the original instance is affected by the attach middleware
+      // attached because the prototype was changed
+      expect(instance.myMethod("test")).toBe("test attached private");
+
       attach(Origin, "myMethod", (next, x) => next(x + " origin_affected"));
-      expect(instance.myMethod("test")).toBe("test private");
+      expect(instance.myMethod("test")).toBe("test attached origin_affected private");
 
-      const afterInstance = new Counter();
+      const afterInstance = new Origin();
       expect(afterInstance.myMethod("test")).toBe("test attached origin_affected private");
     });
 
@@ -1004,15 +979,18 @@ describe("hooks: class utilities", () => {
     });
 
     it("should work without reassigning the class", () => {
-      const MyClass = hook.class(
-        class {
-          field = "field";
-          static staticField = "staticField";
-          myMethod(x: string) {
-            return x + ":original";
-          }
-        },
-      );
+      class MyClass {
+        field = "field";
+        static staticField = "staticField";
+
+        constructor() {
+          hook.init(this);
+        }
+
+        myMethod(x: string) {
+          return x + ":original";
+        }
+      }
 
       attach(MyClass, "init staticField", (next, value) => next(value + ":init"));
 
@@ -1033,17 +1011,17 @@ describe("hooks: class utilities", () => {
 
       class Origin {
         constructor(x: string) {
+          hook.init(this, x);
           constructorCalled.push(x);
         }
       }
-      const MyClass = hook.class(Origin);
 
-      attach(MyClass, "constructor", (next, x) => {
+      attach(Origin, "constructor", (next, x) => {
         constructorCalled.push(x + " mid");
         return next(x);
       });
 
-      const _instance = new MyClass("original");
+      const _instance = new Origin("original");
       expect(constructorCalled).toEqual(["original mid", "original"]);
     });
   });
