@@ -1,6 +1,7 @@
 node_modules/
 playground/
 NOTES.md
+.zed
 
 # Test coverage artifacts
 coverage/*
