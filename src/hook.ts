@@ -1059,12 +1059,18 @@ export function attach<A extends any[] = any[], R = any>(
     key = key[0]!;
   }
 
-  const methods = middleware.getOrInsert(key, Object.create(null)); // from null because of "constructor" method name
-  let method = methods[name] as MiddlewareMethod[] | undefined;
+  let methods = middleware.get(key);
+  if (!methods) {
+    methods = Object.create(null); // from null because of "constructor" method name which can be also hooked
+    middleware.set(key, methods!);
+  }
+
+  //  const methods = middleware.getOrInsert(key, Object.create(null));
+  let method = methods![name] as MiddlewareMethod[] | undefined;
 
   if (!method) {
     method = [];
-    methods[name] = method;
+    methods![name] = method;
   }
 
   method.push(fn);

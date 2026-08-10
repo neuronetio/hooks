@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1786123587230" clover="3.2.0">
-  <project timestamp="1786123587230" name="All files">
+<coverage generated="1786355328832" clover="3.2.0">
+  <project timestamp="1786355328832" name="All files">
     <metrics statements="395" coveredstatements="356" conditionals="266" coveredconditionals="254" methods="70" coveredmethods="62" elements="731" coveredelements="672" complexity="0" loc="395" ncloc="395" packages="1" files="4" classes="4"/>
     <file name="builder.ts" path="/media/neuronet/projekty/hooks/src/builder.ts">
       <metrics statements="16" coveredstatements="14" conditionals="0" coveredconditionals="0" methods="9" coveredmethods="8"/>
