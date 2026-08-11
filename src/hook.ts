@@ -506,29 +506,27 @@ hook.inherit = inherit;
  * A class decorator that enables hook support for the class.
  * It initializes metadata required for `@hook()` decorated members to work correctly,
  * ensuring that middleware can be attached to both the class and its instances.
- *
- * @param _Class The class constructor.
- * @param context The class decorator context.
  */
-export function Hook(_Class: any, context: ClassDecoratorContext) {
-  context.addInitializer(function (this: any) {
-    const hooks: MetadataHooks = (context.metadata.hooks as MetadataHooks) || [];
-    for (const propertyKey of hooks) {
-      const hooked = this.prototype[propertyKey];
-      if (hooked && (hooked as any)[HOOK_DATA] === undefined) {
-        (hooked as any)[HOOK_DATA] = {
-          origin: hooked,
-          keyOrKeys: this,
-          name: propertyKey,
-        } satisfies IHookData;
+export function Hook() {
+  return function HookClass(_Class: any, context: ClassDecoratorContext) {
+    context.addInitializer(function (this: any) {
+      const hooks: MetadataHooks = (context.metadata.hooks as MetadataHooks) || [];
+      for (const propertyKey of hooks) {
+        const hooked = this.prototype[propertyKey];
+        if (hooked && (hooked as any)[HOOK_DATA] === undefined) {
+          (hooked as any)[HOOK_DATA] = {
+            origin: hooked,
+            keyOrKeys: this,
+            name: propertyKey,
+          } satisfies IHookData;
+        }
       }
-    }
-  });
+    });
+  };
 }
 
 export type HookDecoratorArgument = HookKeyDynamic | string;
 export type HookDecoratedClass = new (...args: any[]) => any;
-
 export type HookPropertyName<TClass extends HookDecoratedClass> = Exclude<
   Extract<keyof InstanceType<TClass> | keyof TClass | "constructor", PropertyKey>,
   "prototype"
@@ -627,6 +625,7 @@ export function _createHookInvoker(
  * @internal
  */
 export function _createAccessorDecorator(
+  isStatic: boolean,
   propertyKey: PropertyKey,
   hookName: HookName,
   get: (...args: any[]) => any,
@@ -637,26 +636,35 @@ export function _createAccessorDecorator(
   const getHookKey = Symbol(`${PREFIX}[get ${String(propertyKey)}]`);
   const setHookKey = Symbol(`${PREFIX}[set ${String(propertyKey)}]`);
   const initHookKey = Symbol(`${PREFIX}[init ${String(propertyKey)}]`);
+  const prefix = isStatic ? "static " : "";
 
   return {
     get: function runHook(this: any, ...args: any[]) {
       if (!this[getHookKey]) {
         const receiver = owner ?? this;
-        this[getHookKey] = hook(dynamicKey ?? inherit(receiver), "get " + String(hookName), get.bind(receiver));
+        this[getHookKey] = hook(
+          dynamicKey ?? inherit(receiver),
+          prefix + "get " + String(hookName),
+          get.bind(receiver),
+        );
       }
       return this[getHookKey](...args);
     },
     set: function runHook(this: any, ...args: any[]) {
       if (!this[setHookKey]) {
         const receiver = owner ?? this;
-        this[setHookKey] = hook(dynamicKey ?? inherit(receiver), "set " + String(hookName), set.bind(receiver));
+        this[setHookKey] = hook(
+          dynamicKey ?? inherit(receiver),
+          prefix + "set " + String(hookName),
+          set.bind(receiver),
+        );
       }
       return this[setHookKey](...args);
     },
     init: function runHook(this: any, initialValue: any) {
       if (!this[initHookKey]) {
         const receiver = owner ?? this;
-        this[initHookKey] = hook(dynamicKey ?? inherit(receiver), "init " + String(hookName), _identity);
+        this[initHookKey] = hook(dynamicKey ?? inherit(receiver), prefix + "init " + String(hookName), _identity);
       }
       return this[initHookKey](initialValue);
     },
@@ -716,7 +724,7 @@ export function hookDecorator(
         // we shouldn't change original class keys, we may change only our current instance keys
         // also when we are working with static methods, we should use class constructor which isn't available earlier
         if (context.static) {
-          this[propertyKey] = hook(dynamicKey ?? inherit(this), hookName, value.bind(this));
+          this[propertyKey] = hook(dynamicKey ?? inherit(this), "static " + String(hookName), value.bind(this));
         } else {
           // instance has higher priority than class, so we can override middleware for specific instance and it can suppress calling class middlewares
           this[propertyKey] = hook(dynamicKey ?? inherit(this), hookName, value.bind(this));
@@ -728,7 +736,7 @@ export function hookDecorator(
 
     if (context.kind === "accessor") {
       const { get, set } = value;
-      return _createAccessorDecorator(propertyKey, hookName, get, set, dynamicKey);
+      return _createAccessorDecorator(context.static, propertyKey, hookName, get, set, dynamicKey);
     }
 
     if (context.kind === "field") {
@@ -741,6 +749,11 @@ export function hookDecorator(
     } else if (context.kind === "setter") {
       propertyKey = "set " + String(propertyKey);
       hookName = "set " + String(hookName);
+    }
+
+    if (context.static) {
+      propertyKey = "static " + String(propertyKey);
+      hookName = "static " + String(hookName);
     }
 
     return _createHookInvoker(propertyKey, hookName, value, dynamicKey);

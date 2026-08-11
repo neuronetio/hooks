@@ -3,7 +3,7 @@ import { argsProvider, attach, Hook, hook, hookField, hookGetter, hookMethod, Ho
 
 // NOTICE: tests contains a lot of types that are also checked within "test" script
 
-@Hook
+@Hook()
 class Example {
   @hook()
   myMethod(x: number): string {

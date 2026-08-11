@@ -15,7 +15,8 @@ import {
 describe("hooks: class utilities", () => {
   describe("class", () => {
     it("should create hook class state", () => {
-      const MyClass = hook.class(class MyClass {});
+      class MyClass {}
+      hook.class(MyClass);
       const state = (MyClass as any)[HOOK_CLASS_STATE];
       expect(state).toBeDefined();
     });
@@ -201,7 +202,7 @@ describe("hooks: class utilities", () => {
       );
 
       // need to be declared before hookUtils.field is called, otherwise the init hook will not be called
-      attach(StaticMembersClass, "init staticFieldAlt", (next, value) => next(value + ":fieldInit"));
+      attach(StaticMembersClass, "static init staticFieldAlt", (next, value) => next(value + ":fieldInit"));
 
       hook.field(StaticMembersClass, "staticField", "staticFieldAlt");
 
@@ -255,17 +256,19 @@ describe("hooks: class utilities", () => {
       }
       const DynamicHookClass = hook.class(Origin);
 
-      attach(DynamicHookClass, "init myValue", (next, value) => {
+      attach(DynamicHookClass, "static init myValue", (next, value) => {
         return next(value + ":ERROR");
       });
 
-      attach(DynamicHookClass, "init myValueAlt", (next, value) => {
+      attach(DynamicHookClass, "static init myValueAlt", (next, value) => {
         return next(value + ":initAcc");
       });
 
+      expect(Origin.myValue).toBe("initial");
+
       hook.field(
         DynamicHookClass,
-        "myValue",
+        "static myValue",
         "myValueAlt",
         dynamicHookKey(function (this: typeof DynamicHookClass) {
           dynamicThis.push(this);
@@ -350,11 +353,11 @@ describe("hooks: class utilities", () => {
         static field = 10;
       }
 
-      attach(StaticAccessorClass, "init fieldAlt", (next, value) => next(value + 1));
-      attach(StaticAccessorClass, "get fieldAlt", (next) => next() * 2);
-      attach(StaticAccessorClass, "set fieldAlt", (next, value) => next(value + 3));
+      attach(StaticAccessorClass, "static init fieldAlt", (next, value) => next(value + 1));
+      attach(StaticAccessorClass, "static get fieldAlt", (next) => next() * 2);
+      attach(StaticAccessorClass, "static set fieldAlt", (next, value) => next(value + 3));
 
-      hook.accessor(StaticAccessorClass, "field", "fieldAlt");
+      hook.accessor(StaticAccessorClass, "static field", "fieldAlt");
 
       expect(StaticAccessorClass.field).toBe(22);
       StaticAccessorClass.field = 7;
@@ -412,21 +415,21 @@ describe("hooks: class utilities", () => {
 
     it("accessor should work with static accessors and should read private values", () => {
       const initVal = Symbol("initVal");
-      attach(initVal, "init val", (next, value) => next(value + " init"));
+      attach(initVal, "static init val", (next, value) => next(value + " init"));
 
       let Product = class Product {
         static #prv = " prv";
 
-        static val: string = hook(initVal, "init val", (v: string) => {
+        static val: string = hook(initVal, "static init val", (v: string) => {
           return v + this.#prv;
         })("test");
       };
 
       expect(Product.val).toBe("test init prv");
 
-      Product = hook.accessor(Product, "val");
-      attach(Product, "get val", (next) => next() + " getter");
-      attach(Product, "set val", (next, value) => next(value + " setter"));
+      Product = hook.accessor(Product, "static val");
+      attach(Product, "static get val", (next) => next() + " getter");
+      attach(Product, "static set val", (next, value) => next(value + " setter"));
 
       expect(Product.val).toBe("test init prv getter");
       Product.val = "mod";
@@ -438,13 +441,13 @@ describe("hooks: class utilities", () => {
         static price: number = 0;
       }
 
-      attach(_Product_, "init price", (next, value) => next(value + 1));
+      attach(_Product_, "static init price", (next, value) => next(value + 1));
 
       const Product = hook.class(_Product_);
-      hook.accessor(Product, "price");
+      hook.accessor(Product, "static price");
 
-      attach(Product, "get price", (next) => next() + 10);
-      attach(Product, "set price", (next, value) => next(value + 20));
+      attach(Product, "static get price", (next) => next() + 10);
+      attach(Product, "static set price", (next, value) => next(value + 20));
 
       expect(Product.price).toBe(11); // 0 + 1 + 10 = 11
       Product.price = 2;
@@ -456,7 +459,7 @@ describe("hooks: class utilities", () => {
 
   describe("getters and setters", () => {
     it("hookGetter & hookSetter should work with static setters and getters", () => {
-      class CounterBase {
+      class Counter {
         static #value = 0;
 
         static set value(next: number) {
@@ -468,13 +471,12 @@ describe("hooks: class utilities", () => {
         }
       }
 
-      expect(CounterBase.value).toBe(0);
+      expect(Counter.value).toBe(0);
 
-      const Counter = hook.class(CounterBase);
+      hook.class(Counter, "static get value");
 
-      hook.getter(Counter, "value");
       //hook.setter(Counter, "value");
-      attach(Counter, "get value", (next) => next() + 1);
+      attach(Counter, "static get value", (next) => next() + 1);
       //attach(Counter, "set value", (next, value) => next(value + 1));
       expect(Counter.value).toBe(1);
       // Counter.value = 2;
@@ -623,7 +625,7 @@ describe("hooks: class utilities", () => {
         }
       }
 
-      const StaticMethodsClass = hook.method(Origin, "testStatic");
+      const StaticMethodsClass = hook.method(Origin, "static testStatic");
 
       expect(StaticMethodsClass.testStatic("x")).toBe("x:testStatic");
 
@@ -633,7 +635,7 @@ describe("hooks: class utilities", () => {
         return next(x + ":sub");
       });
 
-      const detach1 = attach(StaticMethodsClass, "testStatic", (next, x) => {
+      const detach1 = attach(StaticMethodsClass, "static testStatic", (next, x) => {
         return next(x + ":mid1");
       });
 
@@ -790,8 +792,8 @@ describe("hooks: class utilities", () => {
         }
       };
       expect(Counter.myMethod("test")).toBe("test private");
-      Counter = hook.method(Counter, "myMethod");
-      attach(Counter, "myMethod", (next, x) => next(x + " attached"));
+      Counter = hook.method(Counter, "static myMethod");
+      attach(Counter, "static myMethod", (next, x) => next(x + " attached"));
       expect(Counter.myMethod("test")).toBe("test attached private");
     });
 
@@ -1023,6 +1025,78 @@ describe("hooks: class utilities", () => {
 
       const _instance = new Origin("original");
       expect(constructorCalled).toEqual(["original mid", "original"]);
+    });
+  });
+
+  describe("static prefix", () => {
+    it("should work with `static ` prefix for methods", () => {
+      class Origin {
+        static testStatic(x: string) {
+          return x + ":testStatic";
+        }
+      }
+
+      const StaticMethodsClass = hook.method(Origin, "static testStatic");
+
+      attach(StaticMethodsClass, "static testStatic", (next, x) => {
+        return next(x + ":mid1");
+      });
+
+      expect(StaticMethodsClass.testStatic("x")).toBe("x:mid1:testStatic");
+    });
+
+    it("should work with `static ` prefix for fields", () => {
+      class Origin {
+        static staticField = "staticField";
+      }
+
+      attach(Origin, "static init staticField", (next, value) => next(value + ":init"));
+
+      hook.field(Origin, "static staticField");
+
+      expect(Origin.staticField).toBe("staticField:init");
+    });
+
+    it("should work with `static ` prefix for getters and setters", () => {
+      class CounterBase {
+        static #value = 0;
+
+        static set value(next: number) {
+          this.#value = next;
+        }
+
+        static get value() {
+          return this.#value;
+        }
+      }
+
+      const Counter = hook.class(CounterBase);
+
+      hook.getter(Counter, "static value");
+      hook.setter(Counter, "static value");
+
+      attach(Counter, "static get value", (next) => next() + 1);
+      attach(Counter, "static set value", (next, value) => next(value + 1));
+
+      expect(Counter.value).toBe(1);
+      Counter.value = 2;
+      expect(Counter.value).toBe(4); // 2 + 1 + 1 = 4
+    });
+
+    it("should work with `static ` prefix for accessors", () => {
+      class Origin {
+        static field = 10;
+      }
+
+      attach(Origin, "static init field", (next, value) => next(value + 1));
+      attach(Origin, "static get field", (next) => next() * 2);
+      attach(Origin, "static set field", (next, value) => next(value + 3));
+
+      hook.accessor(Origin, "static field");
+
+      expect(Origin.field).toBe(22); // (10 + 1) * 2 = 22
+      Origin.field = 7;
+      expect(Origin.field).toBe(20); // (7 + 3) * 2 = 20
     });
   });
 });

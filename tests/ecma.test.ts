@@ -4,7 +4,7 @@ import { HOOK_DATA, hook, attach, Hook, dynamicHookKey, getCurrentHookKeyContext
 
 describe("hooks: decorators", () => {
   it("should work with private methods", () => {
-    @Hook
+    @Hook()
     class PrivateMethodsClass {
       constructor() {
         this.#init("x");
@@ -44,7 +44,7 @@ describe("hooks: decorators", () => {
     });
 
     const initStatic: string[] = [];
-    const detach2 = attach(PrivateMethodsClass, "#initStatic", (next, x) => {
+    const detach2 = attach(PrivateMethodsClass, "static #initStatic", (next, x) => {
       initStatic.push(x);
       return next(x + ":mid1");
     });
@@ -82,7 +82,7 @@ describe("hooks: decorators", () => {
   });
 
   it("should work with static methods", () => {
-    @Hook
+    @Hook()
     class StaticMethodsClass {
       @hook()
       static testStatic(x: string) {
@@ -99,7 +99,7 @@ describe("hooks: decorators", () => {
       return next(x + ":sub");
     });
 
-    const detach1 = attach(StaticMethodsClass, "testStatic", (next, x) => {
+    const detach1 = attach(StaticMethodsClass, "static testStatic", (next, x) => {
       return next(x + ":mid1");
     });
     const detach2 = attach(StaticMethodsClass.testStatic, (next, x) => {
@@ -120,7 +120,7 @@ describe("hooks: decorators", () => {
   });
 
   it("should work with accessors", () => {
-    @Hook
+    @Hook()
     class AccessorsClass {
       #getterSetterValue: string = "myGetterSetterValue";
 
@@ -187,7 +187,7 @@ describe("hooks: decorators", () => {
   });
 
   it("should work with fields", () => {
-    @Hook
+    @Hook()
     class FieldsClass {
       @hook()
       myField = "myFieldValue";
@@ -213,7 +213,7 @@ describe("hooks: decorators", () => {
   });
 
   it("should work with methods and sub-hooks", () => {
-    @Hook
+    @Hook()
     class MethodsClass {
       @hook()
       myMethod(x: string) {
@@ -326,7 +326,7 @@ describe("hooks: decorators", () => {
 
   it("should work with dynamic hook keys from @hook decorator (method)", () => {
     const dynamicThis: any[] = [];
-    @Hook
+    @Hook()
     class DynamicHookClass {
       @hook(
         dynamicHookKey(function (this: DynamicHookClass) {
@@ -408,7 +408,7 @@ describe("hooks: decorators", () => {
 
   it("should work with dynamic hook keys from @hook decorator (accessor)", () => {
     const dynamicThis: any[] = [];
-    @Hook
+    @Hook()
     class DynamicHookClass {
       @hook(
         dynamicHookKey(function (this: DynamicHookClass) {
@@ -480,7 +480,7 @@ describe("hooks: decorators", () => {
 
   it("should work with dynamic hook keys from @hook decorator (separate getter and setter)", () => {
     const dynamicThis: any[] = [];
-    @Hook
+    @Hook()
     class DynamicHookClass {
       #value: string = "initial";
 
@@ -573,7 +573,7 @@ describe("hooks: decorators", () => {
 
   it("should work with dynamic hook keys from @hook decorator (init)", () => {
     const dynamicThis: any[] = [];
-    @Hook
+    @Hook()
     class DynamicHookClass {
       @hook(
         dynamicHookKey(function (this: DynamicHookClass) {
@@ -636,7 +636,7 @@ describe("hooks: decorators", () => {
   });
 
   it("should get the correct hook key from instance inside dynamicHookKey", () => {
-    @Hook
+    @Hook()
     class MyClass {
       myKey = Symbol("myKey");
 
@@ -659,7 +659,7 @@ describe("hooks: decorators", () => {
   });
 
   it("should work with hooks inside middlewares", () => {
-    @Hook
+    @Hook()
     class InnerHooksClass {
       @hook()
       myMethod(x: string) {
@@ -714,7 +714,7 @@ describe("hooks: decorators", () => {
   });
 
   it("should work with hooks inside middlewares (alternative name)", () => {
-    @Hook
+    @Hook()
     class InnerHooksClass {
       @hook("myMethodAlt")
       myMethod(x: string) {
@@ -769,7 +769,7 @@ describe("hooks: decorators", () => {
   });
 
   it("should work with hooks inside middlewares and composite keys", () => {
-    @Hook
+    @Hook()
     class InnerHooksClass {
       @hook()
       myMethod(x: string) {
@@ -807,7 +807,7 @@ describe("hooks: decorators", () => {
   });
 
   it("should work with alternative names: auto-accessors", () => {
-    @Hook
+    @Hook()
     class AccessorsClass {
       @hook("myAccAlt") accessor myAcc: string = "initial";
       @hook("staticAccAlt") static accessor staticAcc: string = "staticInitial";
@@ -819,7 +819,7 @@ describe("hooks: decorators", () => {
 
     attach(AccessorsClass, "get myAccAlt", (next) => next() + ":getMid");
     attach(AccessorsClass, "set myAccAlt", (next, val) => next(val + ":setMid"));
-    attach(AccessorsClass, "get staticAccAlt", (next) => next() + ":staticGetMid");
+    attach(AccessorsClass, "static get staticAccAlt", (next) => next() + ":staticGetMid");
 
     expect(instance.myAcc).toBe("initial:getMid");
     instance.myAcc = "newVal";
@@ -828,8 +828,8 @@ describe("hooks: decorators", () => {
 
     // static init
     const acc2Symbol = Symbol("acc2");
-    attach(acc2Symbol, "init staticAccAlt", (next, val) => next(val + ":staticInitMid"));
-    @Hook
+    attach(acc2Symbol, "static init staticAccAlt", (next, val) => next(val + ":staticInitMid"));
+    @Hook()
     class AccessorsClass2 {
       @hook(dynamicHookKey(() => acc2Symbol), "staticAccAlt") static accessor staticAcc: string = "staticInitial";
     }
@@ -837,7 +837,7 @@ describe("hooks: decorators", () => {
   });
 
   it("should work with alternative names: separate getter/setter", () => {
-    @Hook
+    @Hook()
     class GetSetClass {
       static #staticVal = "staticInitial";
       #instanceVal = "initial";
@@ -862,8 +862,8 @@ describe("hooks: decorators", () => {
     expect(GetSetClass.staticVal).toBe("staticInitial");
     expect(instance.instanceVal).toBe("initial");
 
-    attach(GetSetClass, "get staticGetAlt", (next) => next() + ":staticGetMid");
-    attach(GetSetClass, "set staticSetAlt", (next, v) => next(v + ":staticSetMid"));
+    attach(GetSetClass, "static get staticGetAlt", (next) => next() + ":staticGetMid");
+    attach(GetSetClass, "static set staticSetAlt", (next, v) => next(v + ":staticSetMid"));
     attach(instance, "get getAlt", (next) => next() + ":getMid");
     attach(instance, "set setAlt", (next, v) => next(v + ":setMid"));
     attach(GetSetClass, "get getAlt", (next) => next() + ":getMid2");
@@ -879,7 +879,7 @@ describe("hooks: decorators", () => {
   });
 
   it("should work with alternative names: methods", () => {
-    @Hook
+    @Hook()
     class MethodsClass {
       @hook("myMethodAlt")
       myMethod(x: string) {
@@ -898,14 +898,14 @@ describe("hooks: decorators", () => {
 
     attach(MethodsClass, "myMethodAlt", (next, x) => next(x + ":classMid"));
     attach(instance, "myMethodAlt", (next, x) => next(x + ":instanceMid"));
-    attach(MethodsClass, "staticMethodAlt", (next, x) => next(x + ":staticMid"));
+    attach(MethodsClass, "static staticMethodAlt", (next, x) => next(x + ":staticMid"));
 
     expect(instance.myMethod("input")).toBe("input:instanceMid:classMid:original");
     expect(MethodsClass.staticMethod("input")).toBe("input:staticMid:staticOriginal");
   });
 
   it("should work with alternative names: private members (instance)", () => {
-    @Hook
+    @Hook()
     class PrivateInstanceClass {
       @hook("prvFieldAlt") #prvField = "initialField";
       @hook("prvAccAlt") accessor #prvAcc = "initialAcc";
@@ -993,7 +993,7 @@ describe("hooks: decorators", () => {
   it("should work with custom hook key and private accessor", () => {
     const privateKey = Symbol("bankAccountPrivateKey");
 
-    @Hook
+    @Hook()
     class SecureBankAccount {
       @hook(dynamicHookKey(() => privateKey))
       accessor #balance: number = 1000;
@@ -1010,7 +1010,7 @@ describe("hooks: decorators", () => {
   });
 
   it("should work with alternative names: private members (static)", () => {
-    @Hook
+    @Hook()
     class PrivateStaticClass {
       @hook("staticPrvFieldAlt") static #prvField = "initialField";
       @hook("staticPrvAccAlt") static accessor #prvAcc = "initialAcc";
@@ -1051,11 +1051,11 @@ describe("hooks: decorators", () => {
     expect(PrivateStaticClass.getVal()).toBe("initialGetSet");
     expect(PrivateStaticClass.callMethod("in")).toBe("in:original");
 
-    attach(PrivateStaticClass, "get staticPrvAccAlt", (next) => next() + ":getMid");
-    attach(PrivateStaticClass, "set staticPrvAccAlt", (next, v) => next(v + ":setMid"));
-    attach(PrivateStaticClass, "get staticPrvGetAlt", (next) => next() + ":getMid");
-    attach(PrivateStaticClass, "set staticPrvSetAlt", (next, v) => next(v + ":setMid"));
-    attach(PrivateStaticClass, "staticPrvMethodAlt", (next, x) => next(x + ":methodMid"));
+    attach(PrivateStaticClass, "static get staticPrvAccAlt", (next) => next() + ":getMid");
+    attach(PrivateStaticClass, "static set staticPrvAccAlt", (next, v) => next(v + ":setMid"));
+    attach(PrivateStaticClass, "static get staticPrvGetAlt", (next) => next() + ":getMid");
+    attach(PrivateStaticClass, "static set staticPrvSetAlt", (next, v) => next(v + ":setMid"));
+    attach(PrivateStaticClass, "static staticPrvMethodAlt", (next, x) => next(x + ":methodMid"));
 
     expect(PrivateStaticClass.getAcc()).toBe("initialAcc:getMid");
     PrivateStaticClass.setAcc("newAcc");
@@ -1070,7 +1070,7 @@ describe("hooks: decorators", () => {
 
   describe("Alternative Name and Dynamic Key Decorators (public)", () => {
     it("should work with alternativeName only on methods", () => {
-      @Hook
+      @Hook()
       class AlternativeNameOnlyMethodClass {
         @hook("methodAltOnly")
         method(x: string) {
@@ -1094,7 +1094,7 @@ describe("hooks: decorators", () => {
         });
       }
 
-      @Hook
+      @Hook()
       class DynamicKeyOnlyMethodClass {
         @hook(track("dynamicOnlyMethod"))
         method(x: string) {
@@ -1119,7 +1119,7 @@ describe("hooks: decorators", () => {
         });
       }
 
-      @Hook
+      @Hook()
       class AlternativeAndDynamicMethodClass {
         @hook("methodAltAndDynamic", track("methodAltAndDynamic"))
         method(x: string) {
@@ -1144,7 +1144,7 @@ describe("hooks: decorators", () => {
         });
       }
 
-      @Hook
+      @Hook()
       class DynamicAndAlternativeMethodClass {
         @hook(track("dynamicAndAlternativeMethod"), "methodDynamicAndAlternative")
         method(x: string) {
@@ -1160,7 +1160,7 @@ describe("hooks: decorators", () => {
     });
 
     it("should work with alternativeName only on accessors", () => {
-      @Hook
+      @Hook()
       class AlternativeNameOnlyAccessorClass {
         @hook("accAltOnly")
         accessor acc: string = "initial";
@@ -1185,7 +1185,7 @@ describe("hooks: decorators", () => {
         });
       }
 
-      @Hook
+      @Hook()
       class DynamicKeyOnlyAccessorClass {
         @hook(track("dynamicOnlyAccessor"))
         accessor acc: string = "initial";
@@ -1211,7 +1211,7 @@ describe("hooks: decorators", () => {
         });
       }
 
-      @Hook
+      @Hook()
       class AlternativeAndDynamicAccessorClass {
         @hook("accAltAndDynamic", track("accAltAndDynamic"))
         accessor acc: string = "initial";
@@ -1237,7 +1237,7 @@ describe("hooks: decorators", () => {
         });
       }
 
-      @Hook
+      @Hook()
       class DynamicAndAlternativeAccessorClass {
         @hook(track("dynamicAndAlternativeAccessor"), "accDynamicAndAlternative")
         accessor acc: string = "initial";
@@ -1254,7 +1254,7 @@ describe("hooks: decorators", () => {
     });
 
     it("should work with alternativeName only on fields", () => {
-      @Hook
+      @Hook()
       class AlternativeNameOnlyFieldClass {
         @hook("fieldAltOnly")
         field = "initial";
@@ -1276,7 +1276,7 @@ describe("hooks: decorators", () => {
         });
       }
 
-      @Hook
+      @Hook()
       class DynamicKeyOnlyFieldClass {
         @hook(track("dynamicOnlyField"))
         field = "initial";
@@ -1299,7 +1299,7 @@ describe("hooks: decorators", () => {
         });
       }
 
-      @Hook
+      @Hook()
       class AlternativeAndDynamicFieldClass {
         @hook("fieldAltAndDynamic", track("fieldAltAndDynamic"))
         field = "initial";
@@ -1322,7 +1322,7 @@ describe("hooks: decorators", () => {
         });
       }
 
-      @Hook
+      @Hook()
       class DynamicAndAlternativeFieldClass {
         @hook(track("dynamicAndAlternativeField"), "fieldDynamicAndAlternative")
         field = "initial";
@@ -1338,7 +1338,7 @@ describe("hooks: decorators", () => {
     });
 
     it("should work with alternativeName only on getter/setter pairs", () => {
-      @Hook
+      @Hook()
       class AlternativeNameOnlyGetSetClass {
         #value = "initial";
 
@@ -1377,7 +1377,7 @@ describe("hooks: decorators", () => {
         });
       }
 
-      @Hook
+      @Hook()
       class DynamicKeyOnlyGetSetClass {
         #value = "initial";
 
@@ -1412,7 +1412,7 @@ describe("hooks: decorators", () => {
         });
       }
 
-      @Hook
+      @Hook()
       class AlternativeAndDynamicGetSetClass {
         #value = "initial";
 
@@ -1447,7 +1447,7 @@ describe("hooks: decorators", () => {
         });
       }
 
-      @Hook
+      @Hook()
       class DynamicAndAlternativeGetSetClass {
         #value = "initial";
 
@@ -1487,7 +1487,7 @@ describe("hooks: decorators", () => {
     const tracks: { target: string; self: any }[] = [];
 
     it("should work with alternativeName only on static methods", () => {
-      @Hook
+      @Hook()
       class AlternativeNameOnlyStaticMethodClass {
         @hook("methodAltOnly")
         static method(x: string) {
@@ -1496,14 +1496,14 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeNameOnlyStaticMethodClass.method("hello")).toBe("hello:orig");
-      attach(AlternativeNameOnlyStaticMethodClass, "methodAltOnly", (next, x) => next(x + ":intercepted"));
+      attach(AlternativeNameOnlyStaticMethodClass, "static methodAltOnly", (next, x) => next(x + ":intercepted"));
       expect(AlternativeNameOnlyStaticMethodClass.method("hello")).toBe("hello:intercepted:orig");
     });
 
     it("should work with dynamicKey only on static methods", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicKeyOnlyStaticMethodClass {
         @hook(track("dynamicOnlyStaticMethod"))
         static method(x: string) {
@@ -1512,7 +1512,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(DynamicKeyOnlyStaticMethodClass.method("hello")).toBe("hello:orig");
-      attach(DynamicKeyOnlyStaticMethodClass, "method", (next, x) => next(x + ":intercepted"));
+      attach(DynamicKeyOnlyStaticMethodClass, "static method", (next, x) => next(x + ":intercepted"));
       expect(DynamicKeyOnlyStaticMethodClass.method("hello")).toBe("hello:intercepted:orig");
       expect(tracks).toContainEqual({ target: "dynamicOnlyStaticMethod", self: DynamicKeyOnlyStaticMethodClass });
     });
@@ -1520,7 +1520,7 @@ describe("hooks: decorators", () => {
     it("should work with alternativeName and dynamicKey on static methods", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class AlternativeAndDynamicStaticMethodClass {
         @hook("methodAltAndDynamic", track("methodAltAndDynamic"))
         static method(x: string) {
@@ -1529,7 +1529,9 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeAndDynamicStaticMethodClass.method("hello")).toBe("hello:orig");
-      attach(AlternativeAndDynamicStaticMethodClass, "methodAltAndDynamic", (next, x) => next(x + ":intercepted"));
+      attach(AlternativeAndDynamicStaticMethodClass, "static methodAltAndDynamic", (next, x) =>
+        next(x + ":intercepted"),
+      );
       expect(AlternativeAndDynamicStaticMethodClass.method("hello")).toBe("hello:intercepted:orig");
       expect(tracks).toContainEqual({ target: "methodAltAndDynamic", self: AlternativeAndDynamicStaticMethodClass });
     });
@@ -1537,7 +1539,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey and alternativeName on static methods", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicAndAlternativeStaticMethodClass {
         @hook(track("dynamicAndAlternativeStaticMethod"), "methodDynamicAndAlternative")
         static method(x: string) {
@@ -1546,7 +1548,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(DynamicAndAlternativeStaticMethodClass.method("hello")).toBe("hello:orig");
-      attach(DynamicAndAlternativeStaticMethodClass, "methodDynamicAndAlternative", (next, x) =>
+      attach(DynamicAndAlternativeStaticMethodClass, "static methodDynamicAndAlternative", (next, x) =>
         next(x + ":intercepted"),
       );
       expect(DynamicAndAlternativeStaticMethodClass.method("hello")).toBe("hello:intercepted:orig");
@@ -1557,15 +1559,15 @@ describe("hooks: decorators", () => {
     });
 
     it("should work with alternativeName only on static accessors", () => {
-      @Hook
+      @Hook()
       class AlternativeNameOnlyStaticAccessorClass {
         @hook("accAltOnly")
         static accessor acc: string = "initial";
       }
 
       expect(AlternativeNameOnlyStaticAccessorClass.acc).toBe("initial");
-      attach(AlternativeNameOnlyStaticAccessorClass, "get accAltOnly", (next) => next() + ":getMid");
-      attach(AlternativeNameOnlyStaticAccessorClass, "set accAltOnly", (next, value) => next(value + ":setMid"));
+      attach(AlternativeNameOnlyStaticAccessorClass, "static get accAltOnly", (next) => next() + ":getMid");
+      attach(AlternativeNameOnlyStaticAccessorClass, "static set accAltOnly", (next, value) => next(value + ":setMid"));
       expect(AlternativeNameOnlyStaticAccessorClass.acc).toBe("initial:getMid");
       AlternativeNameOnlyStaticAccessorClass.acc = "updated";
       expect(AlternativeNameOnlyStaticAccessorClass.acc).toBe("updated:setMid:getMid");
@@ -1574,15 +1576,15 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey only on static accessors", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicKeyOnlyStaticAccessorClass {
         @hook(track("dynamicOnlyStaticAccessor"))
         static accessor acc: string = "initial";
       }
 
       expect(DynamicKeyOnlyStaticAccessorClass.acc).toBe("initial");
-      attach(DynamicKeyOnlyStaticAccessorClass, "get acc", (next) => next() + ":getMid");
-      attach(DynamicKeyOnlyStaticAccessorClass, "set acc", (next, value) => next(value + ":setMid"));
+      attach(DynamicKeyOnlyStaticAccessorClass, "static get acc", (next) => next() + ":getMid");
+      attach(DynamicKeyOnlyStaticAccessorClass, "static set acc", (next, value) => next(value + ":setMid"));
       expect(DynamicKeyOnlyStaticAccessorClass.acc).toBe("initial:getMid");
       DynamicKeyOnlyStaticAccessorClass.acc = "updated";
       expect(DynamicKeyOnlyStaticAccessorClass.acc).toBe("updated:setMid:getMid");
@@ -1592,15 +1594,15 @@ describe("hooks: decorators", () => {
     it("should work with alternativeName and dynamicKey on static accessors", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class AlternativeAndDynamicStaticAccessorClass {
         @hook("accAltAndDynamic", track("accAltAndDynamic"))
         static accessor acc: string = "initial";
       }
 
       expect(AlternativeAndDynamicStaticAccessorClass.acc).toBe("initial");
-      attach(AlternativeAndDynamicStaticAccessorClass, "get accAltAndDynamic", (next) => next() + ":getMid");
-      attach(AlternativeAndDynamicStaticAccessorClass, "set accAltAndDynamic", (next, value) =>
+      attach(AlternativeAndDynamicStaticAccessorClass, "static get accAltAndDynamic", (next) => next() + ":getMid");
+      attach(AlternativeAndDynamicStaticAccessorClass, "static set accAltAndDynamic", (next, value) =>
         next(value + ":setMid"),
       );
       expect(AlternativeAndDynamicStaticAccessorClass.acc).toBe("initial:getMid");
@@ -1612,15 +1614,19 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey and alternativeName on static accessors", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicAndAlternativeStaticAccessorClass {
         @hook(track("dynamicAndAlternativeStaticAccessor"), "accDynamicAndAlternative")
         static accessor acc: string = "initial";
       }
 
       expect(DynamicAndAlternativeStaticAccessorClass.acc).toBe("initial");
-      attach(DynamicAndAlternativeStaticAccessorClass, "get accDynamicAndAlternative", (next) => next() + ":getMid");
-      attach(DynamicAndAlternativeStaticAccessorClass, "set accDynamicAndAlternative", (next, value) =>
+      attach(
+        DynamicAndAlternativeStaticAccessorClass,
+        "static get accDynamicAndAlternative",
+        (next) => next() + ":getMid",
+      );
+      attach(DynamicAndAlternativeStaticAccessorClass, "static set accDynamicAndAlternative", (next, value) =>
         next(value + ":setMid"),
       );
       expect(DynamicAndAlternativeStaticAccessorClass.acc).toBe("initial:getMid");
@@ -1633,7 +1639,7 @@ describe("hooks: decorators", () => {
     });
 
     it("should work with alternativeName only on static fields", () => {
-      @Hook
+      @Hook()
       class AlternativeNameOnlyStaticFieldClass {
         @hook("fieldAltOnly")
         static field = "initial";
@@ -1645,7 +1651,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey only on static fields", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicKeyOnlyStaticFieldClass {
         @hook(track("dynamicOnlyStaticField"))
         static field = "initial";
@@ -1658,7 +1664,7 @@ describe("hooks: decorators", () => {
     it("should work with alternativeName and dynamicKey on static fields", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class AlternativeAndDynamicStaticFieldClass {
         @hook("fieldAltAndDynamic", track("fieldAltAndDynamic"))
         static field = "initial";
@@ -1671,7 +1677,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey and alternativeName on static fields", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicAndAlternativeStaticFieldClass {
         @hook(track("dynamicAndAlternativeStaticField"), "fieldDynamicAndAlternative")
         static field = "initial";
@@ -1685,7 +1691,7 @@ describe("hooks: decorators", () => {
     });
 
     it("should work with alternativeName only on static getter/setter pairs", () => {
-      @Hook
+      @Hook()
       class AlternativeNameOnlyStaticGetSetClass {
         static #value = "initial";
 
@@ -1701,8 +1707,8 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeNameOnlyStaticGetSetClass.value).toBe("initial");
-      attach(AlternativeNameOnlyStaticGetSetClass, "get valueAltOnly", (next) => next() + ":getMid");
-      attach(AlternativeNameOnlyStaticGetSetClass, "set valueAltOnly", (next, value) => next(value + ":setMid"));
+      attach(AlternativeNameOnlyStaticGetSetClass, "static get valueAltOnly", (next) => next() + ":getMid");
+      attach(AlternativeNameOnlyStaticGetSetClass, "static set valueAltOnly", (next, value) => next(value + ":setMid"));
       expect(AlternativeNameOnlyStaticGetSetClass.value).toBe("initial:getMid");
       AlternativeNameOnlyStaticGetSetClass.value = "updated";
       expect(AlternativeNameOnlyStaticGetSetClass.value).toBe("updated:setMid:getMid");
@@ -1711,7 +1717,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey only on static getter/setter pairs", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicKeyOnlyStaticGetSetClass {
         static #value = "initial";
 
@@ -1727,8 +1733,8 @@ describe("hooks: decorators", () => {
       }
 
       expect(DynamicKeyOnlyStaticGetSetClass.value).toBe("initial");
-      attach(DynamicKeyOnlyStaticGetSetClass, "get value", (next) => next() + ":getMid");
-      attach(DynamicKeyOnlyStaticGetSetClass, "set value", (next, value) => next(value + ":setMid"));
+      attach(DynamicKeyOnlyStaticGetSetClass, "static get value", (next) => next() + ":getMid");
+      attach(DynamicKeyOnlyStaticGetSetClass, "static set value", (next, value) => next(value + ":setMid"));
       expect(DynamicKeyOnlyStaticGetSetClass.value).toBe("initial:getMid");
       DynamicKeyOnlyStaticGetSetClass.value = "updated";
       expect(DynamicKeyOnlyStaticGetSetClass.value).toBe("updated:setMid:getMid");
@@ -1738,7 +1744,7 @@ describe("hooks: decorators", () => {
     it("should work with alternativeName and dynamicKey on static getter/setter pairs", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class AlternativeAndDynamicStaticGetSetClass {
         static #value = "initial";
 
@@ -1754,8 +1760,8 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeAndDynamicStaticGetSetClass.value).toBe("initial");
-      attach(AlternativeAndDynamicStaticGetSetClass, "get valueAltAndDynamic", (next) => next() + ":getMid");
-      attach(AlternativeAndDynamicStaticGetSetClass, "set valueAltAndDynamic", (next, value) =>
+      attach(AlternativeAndDynamicStaticGetSetClass, "static get valueAltAndDynamic", (next) => next() + ":getMid");
+      attach(AlternativeAndDynamicStaticGetSetClass, "static set valueAltAndDynamic", (next, value) =>
         next(value + ":setMid"),
       );
       expect(AlternativeAndDynamicStaticGetSetClass.value).toBe("initial:getMid");
@@ -1767,7 +1773,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey and alternativeName on static getter/setter pairs", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicAndAlternativeStaticGetSetClass {
         static #value = "initial";
 
@@ -1783,8 +1789,12 @@ describe("hooks: decorators", () => {
       }
 
       expect(DynamicAndAlternativeStaticGetSetClass.value).toBe("initial");
-      attach(DynamicAndAlternativeStaticGetSetClass, "get valueDynamicAndAlternative", (next) => next() + ":getMid");
-      attach(DynamicAndAlternativeStaticGetSetClass, "set valueDynamicAndAlternative", (next, value) =>
+      attach(
+        DynamicAndAlternativeStaticGetSetClass,
+        "static get valueDynamicAndAlternative",
+        (next) => next() + ":getMid",
+      );
+      attach(DynamicAndAlternativeStaticGetSetClass, "static set valueDynamicAndAlternative", (next, value) =>
         next(value + ":setMid"),
       );
       expect(DynamicAndAlternativeStaticGetSetClass.value).toBe("initial:getMid");
@@ -1808,7 +1818,7 @@ describe("hooks: decorators", () => {
     const tracks: { target: string; self: any }[] = [];
 
     it("should work with alternativeName only on private methods", () => {
-      @Hook
+      @Hook()
       class AlternativeNameOnlyPrivateMethodClass {
         @hook("methodAltOnly")
         #method(x: string) {
@@ -1829,7 +1839,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey only on private methods", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicKeyOnlyPrivateMethodClass {
         @hook(track("dynamicOnlyPrivateMethod"))
         #method(x: string) {
@@ -1851,7 +1861,7 @@ describe("hooks: decorators", () => {
     it("should work with alternativeName and dynamicKey on private methods", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class AlternativeAndDynamicPrivateMethodClass {
         @hook("methodAltAndDynamic", track("methodAltAndDynamic"))
         #method(x: string) {
@@ -1873,7 +1883,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey and alternativeName on private methods", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicAndAlternativePrivateMethodClass {
         @hook(track("dynamicAndAlternativePrivateMethod"), "methodDynamicAndAlternative")
         #method(x: string) {
@@ -1893,7 +1903,7 @@ describe("hooks: decorators", () => {
     });
 
     it("should work with alternativeName only on private accessors", () => {
-      @Hook
+      @Hook()
       class AlternativeNameOnlyPrivateAccessorClass {
         @hook("accAltOnly")
         accessor #acc: string = "initial";
@@ -1919,7 +1929,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey only on private accessors", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicKeyOnlyPrivateAccessorClass {
         @hook(track("dynamicOnlyPrivateAccessor"))
         accessor #acc: string = "initial";
@@ -1946,7 +1956,7 @@ describe("hooks: decorators", () => {
     it("should work with alternativeName and dynamicKey on private accessors", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class AlternativeAndDynamicPrivateAccessorClass {
         @hook("accAltAndDynamic", track("accAltAndDynamic"))
         accessor #acc: string = "initial";
@@ -1973,7 +1983,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey and alternativeName on private accessors", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicAndAlternativePrivateAccessorClass {
         @hook(track("dynamicAndAlternativePrivateAccessor"), "accDynamicAndAlternative")
         accessor #acc: string = "initial";
@@ -1998,7 +2008,7 @@ describe("hooks: decorators", () => {
     });
 
     it("should work with alternativeName only on private fields", () => {
-      @Hook
+      @Hook()
       class AlternativeNameOnlyPrivateFieldClass {
         @hook("fieldAltOnly")
         #field = "initial";
@@ -2015,7 +2025,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey only on private fields", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicKeyOnlyPrivateFieldClass {
         @hook(track("dynamicOnlyPrivateField"))
         #field = "initial";
@@ -2033,7 +2043,7 @@ describe("hooks: decorators", () => {
     it("should work with alternativeName and dynamicKey on private fields", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class AlternativeAndDynamicPrivateFieldClass {
         @hook("fieldAltAndDynamic", track("fieldAltAndDynamic"))
         #field = "initial";
@@ -2051,7 +2061,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey and alternativeName on private fields", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicAndAlternativePrivateFieldClass {
         @hook(track("dynamicAndAlternativePrivateField"), "fieldDynamicAndAlternative")
         #field = "initial";
@@ -2067,7 +2077,7 @@ describe("hooks: decorators", () => {
     });
 
     it("should work with alternativeName only on private getter/setter pairs", () => {
-      @Hook
+      @Hook()
       class AlternativeNameOnlyPrivateGetSetClass {
         #value = "initial";
 
@@ -2102,7 +2112,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey only on private getter/setter pairs", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicKeyOnlyPrivateGetSetClass {
         #value = "initial";
 
@@ -2138,7 +2148,7 @@ describe("hooks: decorators", () => {
     it("should work with alternativeName and dynamicKey on private getter/setter pairs", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class AlternativeAndDynamicPrivateGetSetClass {
         #value = "initial";
 
@@ -2174,7 +2184,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey and alternativeName on private getter/setter pairs", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicAndAlternativePrivateGetSetClass {
         #value = "initial";
 
@@ -2222,7 +2232,7 @@ describe("hooks: decorators", () => {
     const tracks: { target: string; self: any }[] = [];
 
     it("should work with alternativeName only on static private methods", () => {
-      @Hook
+      @Hook()
       class AlternativeNameOnlyStaticPrivateMethodClass {
         @hook("methodAltOnly")
         static #method(x: string) {
@@ -2235,14 +2245,16 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeNameOnlyStaticPrivateMethodClass.callMethod("hello")).toBe("hello:orig");
-      attach(AlternativeNameOnlyStaticPrivateMethodClass, "methodAltOnly", (next, x) => next(x + ":intercepted"));
+      attach(AlternativeNameOnlyStaticPrivateMethodClass, "static methodAltOnly", (next, x) =>
+        next(x + ":intercepted"),
+      );
       expect(AlternativeNameOnlyStaticPrivateMethodClass.callMethod("hello")).toBe("hello:intercepted:orig");
     });
 
     it("should work with dynamicKey only on static private methods", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicKeyOnlyStaticPrivateMethodClass {
         @hook(track("dynamicOnlyStaticPrivateMethod"))
         static #method(x: string) {
@@ -2255,7 +2267,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(DynamicKeyOnlyStaticPrivateMethodClass.callMethod("hello")).toBe("hello:orig");
-      attach(DynamicKeyOnlyStaticPrivateMethodClass, "#method", (next, x) => next(x + ":intercepted"));
+      attach(DynamicKeyOnlyStaticPrivateMethodClass, "static #method", (next, x) => next(x + ":intercepted"));
       expect(DynamicKeyOnlyStaticPrivateMethodClass.callMethod("hello")).toBe("hello:intercepted:orig");
       expect(tracks).toContainEqual({
         target: "dynamicOnlyStaticPrivateMethod",
@@ -2266,7 +2278,7 @@ describe("hooks: decorators", () => {
     it("should work with alternativeName and dynamicKey on static private methods", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class AlternativeAndDynamicStaticPrivateMethodClass {
         @hook("methodAltAndDynamic", track("methodAltAndDynamic"))
         static #method(x: string) {
@@ -2279,7 +2291,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeAndDynamicStaticPrivateMethodClass.callMethod("hello")).toBe("hello:orig");
-      attach(AlternativeAndDynamicStaticPrivateMethodClass, "methodAltAndDynamic", (next, x) =>
+      attach(AlternativeAndDynamicStaticPrivateMethodClass, "static methodAltAndDynamic", (next, x) =>
         next(x + ":intercepted"),
       );
       expect(AlternativeAndDynamicStaticPrivateMethodClass.callMethod("hello")).toBe("hello:intercepted:orig");
@@ -2292,7 +2304,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey and alternativeName on static private methods", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicAndAlternativeStaticPrivateMethodClass {
         @hook(track("dynamicAndAlternativeStaticPrivateMethod"), "methodDynamicAndAlternative")
         static #method(x: string) {
@@ -2305,7 +2317,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(DynamicAndAlternativeStaticPrivateMethodClass.callMethod("hello")).toBe("hello:orig");
-      attach(DynamicAndAlternativeStaticPrivateMethodClass, "methodDynamicAndAlternative", (next, x) =>
+      attach(DynamicAndAlternativeStaticPrivateMethodClass, "static methodDynamicAndAlternative", (next, x) =>
         next(x + ":intercepted"),
       );
       expect(DynamicAndAlternativeStaticPrivateMethodClass.callMethod("hello")).toBe("hello:intercepted:orig");
@@ -2316,7 +2328,7 @@ describe("hooks: decorators", () => {
     });
 
     it("should work with alternativeName only on static private accessors", () => {
-      @Hook
+      @Hook()
       class AlternativeNameOnlyStaticPrivateAccessorClass {
         @hook("accAltOnly")
         static accessor #acc: string = "initial";
@@ -2331,8 +2343,10 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeNameOnlyStaticPrivateAccessorClass.getAcc()).toBe("initial");
-      attach(AlternativeNameOnlyStaticPrivateAccessorClass, "get accAltOnly", (next) => next() + ":getMid");
-      attach(AlternativeNameOnlyStaticPrivateAccessorClass, "set accAltOnly", (next, value) => next(value + ":setMid"));
+      attach(AlternativeNameOnlyStaticPrivateAccessorClass, "static get accAltOnly", (next) => next() + ":getMid");
+      attach(AlternativeNameOnlyStaticPrivateAccessorClass, "static set accAltOnly", (next, value) =>
+        next(value + ":setMid"),
+      );
       expect(AlternativeNameOnlyStaticPrivateAccessorClass.getAcc()).toBe("initial:getMid");
       AlternativeNameOnlyStaticPrivateAccessorClass.setAcc("updated");
       expect(AlternativeNameOnlyStaticPrivateAccessorClass.getAcc()).toBe("updated:setMid:getMid");
@@ -2341,7 +2355,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey only on static private accessors", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicKeyOnlyStaticPrivateAccessorClass {
         @hook(track("dynamicOnlyStaticPrivateAccessor"))
         static accessor #acc: string = "initial";
@@ -2356,8 +2370,8 @@ describe("hooks: decorators", () => {
       }
 
       expect(DynamicKeyOnlyStaticPrivateAccessorClass.getAcc()).toBe("initial");
-      attach(DynamicKeyOnlyStaticPrivateAccessorClass, "get #acc", (next) => next() + ":getMid");
-      attach(DynamicKeyOnlyStaticPrivateAccessorClass, "set #acc", (next, value) => next(value + ":setMid"));
+      attach(DynamicKeyOnlyStaticPrivateAccessorClass, "static get #acc", (next) => next() + ":getMid");
+      attach(DynamicKeyOnlyStaticPrivateAccessorClass, "static set #acc", (next, value) => next(value + ":setMid"));
       expect(DynamicKeyOnlyStaticPrivateAccessorClass.getAcc()).toBe("initial:getMid");
       DynamicKeyOnlyStaticPrivateAccessorClass.setAcc("updated");
       expect(DynamicKeyOnlyStaticPrivateAccessorClass.getAcc()).toBe("updated:setMid:getMid");
@@ -2370,7 +2384,7 @@ describe("hooks: decorators", () => {
     it("should work with alternativeName and dynamicKey on static private accessors", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class AlternativeAndDynamicStaticPrivateAccessorClass {
         @hook("accAltAndDynamic", track("accAltAndDynamic"))
         static accessor #acc: string = "initial";
@@ -2385,8 +2399,12 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeAndDynamicStaticPrivateAccessorClass.getAcc()).toBe("initial");
-      attach(AlternativeAndDynamicStaticPrivateAccessorClass, "get accAltAndDynamic", (next) => next() + ":getMid");
-      attach(AlternativeAndDynamicStaticPrivateAccessorClass, "set accAltAndDynamic", (next, value) =>
+      attach(
+        AlternativeAndDynamicStaticPrivateAccessorClass,
+        "static get accAltAndDynamic",
+        (next) => next() + ":getMid",
+      );
+      attach(AlternativeAndDynamicStaticPrivateAccessorClass, "static set accAltAndDynamic", (next, value) =>
         next(value + ":setMid"),
       );
       expect(AlternativeAndDynamicStaticPrivateAccessorClass.getAcc()).toBe("initial:getMid");
@@ -2401,7 +2419,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey and alternativeName on static private accessors", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicAndAlternativeStaticPrivateAccessorClass {
         @hook(track("dynamicAndAlternativeStaticPrivateAccessor"), "accDynamicAndAlternative")
         static accessor #acc: string = "initial";
@@ -2418,10 +2436,10 @@ describe("hooks: decorators", () => {
       expect(DynamicAndAlternativeStaticPrivateAccessorClass.getAcc()).toBe("initial");
       attach(
         DynamicAndAlternativeStaticPrivateAccessorClass,
-        "get accDynamicAndAlternative",
+        "static get accDynamicAndAlternative",
         (next) => next() + ":getMid",
       );
-      attach(DynamicAndAlternativeStaticPrivateAccessorClass, "set accDynamicAndAlternative", (next, value) =>
+      attach(DynamicAndAlternativeStaticPrivateAccessorClass, "static set accDynamicAndAlternative", (next, value) =>
         next(value + ":setMid"),
       );
       expect(DynamicAndAlternativeStaticPrivateAccessorClass.getAcc()).toBe("initial:getMid");
@@ -2434,7 +2452,7 @@ describe("hooks: decorators", () => {
     });
 
     it("should work with alternativeName only on static private fields", () => {
-      @Hook
+      @Hook()
       class AlternativeNameOnlyStaticPrivateFieldClass {
         @hook("fieldAltOnly")
         static #field = "initial";
@@ -2450,7 +2468,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey only on static private fields", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicKeyOnlyStaticPrivateFieldClass {
         @hook(track("dynamicOnlyStaticPrivateField"))
         static #field = "initial";
@@ -2470,7 +2488,7 @@ describe("hooks: decorators", () => {
     it("should work with alternativeName and dynamicKey on static private fields", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class AlternativeAndDynamicStaticPrivateFieldClass {
         @hook("fieldAltAndDynamic", track("fieldAltAndDynamic"))
         static #field = "initial";
@@ -2490,7 +2508,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey and alternativeName on static private fields", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicAndAlternativeStaticPrivateFieldClass {
         @hook(track("dynamicAndAlternativeStaticPrivateField"), "fieldDynamicAndAlternative")
         static #field = "initial";
@@ -2508,7 +2526,7 @@ describe("hooks: decorators", () => {
     });
 
     it("should work with alternativeName only on static private getter/setter pairs", () => {
-      @Hook
+      @Hook()
       class AlternativeNameOnlyStaticPrivateGetSetClass {
         static #value = "initial";
 
@@ -2532,8 +2550,10 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeNameOnlyStaticPrivateGetSetClass.getValue()).toBe("initial");
-      attach(AlternativeNameOnlyStaticPrivateGetSetClass, "get valueAltOnly", (next) => next() + ":getMid");
-      attach(AlternativeNameOnlyStaticPrivateGetSetClass, "set valueAltOnly", (next, value) => next(value + ":setMid"));
+      attach(AlternativeNameOnlyStaticPrivateGetSetClass, "static get valueAltOnly", (next) => next() + ":getMid");
+      attach(AlternativeNameOnlyStaticPrivateGetSetClass, "static set valueAltOnly", (next, value) =>
+        next(value + ":setMid"),
+      );
       expect(AlternativeNameOnlyStaticPrivateGetSetClass.getValue()).toBe("initial:getMid");
       AlternativeNameOnlyStaticPrivateGetSetClass.setValue("updated");
       expect(AlternativeNameOnlyStaticPrivateGetSetClass.getValue()).toBe("updated:setMid:getMid");
@@ -2542,7 +2562,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey only on static private getter/setter pairs", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicKeyOnlyStaticPrivateGetSetClass {
         static #value = "initial";
 
@@ -2566,8 +2586,8 @@ describe("hooks: decorators", () => {
       }
 
       expect(DynamicKeyOnlyStaticPrivateGetSetClass.getValue()).toBe("initial");
-      attach(DynamicKeyOnlyStaticPrivateGetSetClass, "get #valueGet", (next) => next() + ":getMid");
-      attach(DynamicKeyOnlyStaticPrivateGetSetClass, "set #valueSet", (next, value) => next(value + ":setMid"));
+      attach(DynamicKeyOnlyStaticPrivateGetSetClass, "static get #valueGet", (next) => next() + ":getMid");
+      attach(DynamicKeyOnlyStaticPrivateGetSetClass, "static set #valueSet", (next, value) => next(value + ":setMid"));
       expect(DynamicKeyOnlyStaticPrivateGetSetClass.getValue()).toBe("initial:getMid");
       DynamicKeyOnlyStaticPrivateGetSetClass.setValue("updated");
       expect(DynamicKeyOnlyStaticPrivateGetSetClass.getValue()).toBe("updated:setMid:getMid");
@@ -2580,7 +2600,7 @@ describe("hooks: decorators", () => {
     it("should work with alternativeName and dynamicKey on static private getter/setter pairs", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class AlternativeAndDynamicStaticPrivateGetSetClass {
         static #value = "initial";
 
@@ -2604,8 +2624,12 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeAndDynamicStaticPrivateGetSetClass.getValue()).toBe("initial");
-      attach(AlternativeAndDynamicStaticPrivateGetSetClass, "get valueAltAndDynamic", (next) => next() + ":getMid");
-      attach(AlternativeAndDynamicStaticPrivateGetSetClass, "set valueAltAndDynamic", (next, value) =>
+      attach(
+        AlternativeAndDynamicStaticPrivateGetSetClass,
+        "static get valueAltAndDynamic",
+        (next) => next() + ":getMid",
+      );
+      attach(AlternativeAndDynamicStaticPrivateGetSetClass, "static set valueAltAndDynamic", (next, value) =>
         next(value + ":setMid"),
       );
       expect(AlternativeAndDynamicStaticPrivateGetSetClass.getValue()).toBe("initial:getMid");
@@ -2620,7 +2644,7 @@ describe("hooks: decorators", () => {
     it("should work with dynamicKey and alternativeName on static private getter/setter pairs", () => {
       tracks.length = 0;
 
-      @Hook
+      @Hook()
       class DynamicAndAlternativeStaticPrivateGetSetClass {
         static #value = "initial";
 
@@ -2646,10 +2670,10 @@ describe("hooks: decorators", () => {
       expect(DynamicAndAlternativeStaticPrivateGetSetClass.getValue()).toBe("initial");
       attach(
         DynamicAndAlternativeStaticPrivateGetSetClass,
-        "get valueDynamicAndAlternative",
+        "static get valueDynamicAndAlternative",
         (next) => next() + ":getMid",
       );
-      attach(DynamicAndAlternativeStaticPrivateGetSetClass, "set valueDynamicAndAlternative", (next, value) =>
+      attach(DynamicAndAlternativeStaticPrivateGetSetClass, "static set valueDynamicAndAlternative", (next, value) =>
         next(value + ":setMid"),
       );
       expect(DynamicAndAlternativeStaticPrivateGetSetClass.getValue()).toBe("initial:getMid");

@@ -76,13 +76,13 @@ describe("builder", () => {
 
     Hooks(MixedClass)
       .method("method", "methodAlt")
-      .method("staticMethod", "staticMethodAlt")
+      .method("static staticMethod", "staticMethodAlt")
       .field("field", "fieldAlt")
       .accessor("acc", "accAlt")
       .getter("value", "valueAlt")
       .setter("value", "valueAlt")
-      .getter("staticVal", "staticGetAlt")
-      .setter("staticVal", "staticSetAlt");
+      .getter("static staticVal", "staticGetAlt")
+      .setter("static staticVal", "staticSetAlt");
 
     const instance = new MixedClass();
 
@@ -90,15 +90,15 @@ describe("builder", () => {
 
     attach(MixedClass, "methodAlt", (next, x) => next(x + ":classMid"));
     attach(instance, "methodAlt", (next, x) => next(x + ":instanceMid"));
-    attach(MixedClass, "staticMethodAlt", (next, x) => next(x + ":staticMid"));
+    attach(MixedClass, "static staticMethodAlt", (next, x) => next(x + ":staticMid"));
     attach(MixedClass, "init fieldAlt", (next, value) => next(value + ":fieldInit"));
     attach(MixedClass, "init accAlt", (next, value) => next(value + ":accInit"));
     attach(instance, "get accAlt", (next) => next() + ":getAcc");
     attach(instance, "set accAlt", (next, value) => next(value + ":setAcc"));
     attach(instance, "get valueAlt", (next) => next() + ":getValue");
     attach(instance, "set valueAlt", (next, value) => next(value + ":setValue"));
-    attach(MixedClass, "get staticGetAlt", (next) => next() + ":staticGet");
-    attach(MixedClass, "set staticSetAlt", (next, value) => next(value + ":staticSet"));
+    attach(MixedClass, "static get staticGetAlt", (next) => next() + ":staticGet");
+    attach(MixedClass, "static set staticSetAlt", (next, value) => next(value + ":staticSet"));
 
     expect(instance.method("input")).toBe("input:instanceMid:classMid:orig");
     expect(MixedClass.staticMethod("input")).toBe("input:staticMid:staticOrig");
