@@ -766,7 +766,7 @@ export type MiddlewareMethod<A extends any[] = any[], R = any, TThis = unknown> 
   ...args: A
 ) => R;
 
-type HookOrigin<T> = T extends { [HOOK_DATA]: infer HookData }
+export type HookOrigin<T> = T extends { [HOOK_DATA]: infer HookData }
   ? HookData extends { origin: infer Origin }
     ? Origin extends (...args: infer A) => infer R
       ? [A, R]
@@ -776,10 +776,10 @@ type HookOrigin<T> = T extends { [HOOK_DATA]: infer HookData }
     ? [A, R]
     : [any[], any];
 
-type HookOriginArgs<T> = HookOrigin<T>[0];
-type HookOriginResult<T> = HookOrigin<T>[1];
+export type HookOriginArgs<T> = HookOrigin<T>[0];
+export type HookOriginResult<T> = HookOrigin<T>[1];
 
-type HookOriginThis<T> = T extends { [HOOK_DATA]: infer HookData }
+export type HookOriginThis<T> = T extends { [HOOK_DATA]: infer HookData }
   ? HookData extends { origin: infer Origin }
     ? Origin extends (this: infer ThisArg, ...args: any[]) => any
       ? ThisArg
@@ -789,23 +789,31 @@ type HookOriginThis<T> = T extends { [HOOK_DATA]: infer HookData }
     ? ThisArg
     : unknown;
 
-type HookNamePropertyKey<N extends HookName> = N extends `get ${infer P}`
+export type HookExpPropertyKey<N extends HookName> = N extends `get ${infer P}`
   ? P & PropertyKey
   : N extends `set ${infer P}`
     ? P & PropertyKey
     : N extends `init ${infer P}`
       ? P & PropertyKey
-      : N extends PropertyKey
-        ? N
-        : never;
+      : N extends `static get ${infer P}`
+        ? P & PropertyKey
+        : N extends `static set ${infer P}`
+          ? P & PropertyKey
+          : N extends `static init ${infer P}`
+            ? P & PropertyKey
+            : N extends `static ${infer P}`
+              ? P & PropertyKey
+              : N extends PropertyKey
+                ? N
+                : never;
 
-type HookPrototype<TObject> = TObject extends abstract new (...args: any[]) => any
+export type HookPrototype<TObject> = TObject extends abstract new (...args: any[]) => any
   ? TObject extends { prototype: infer TPrototype }
     ? TPrototype
     : never
   : never;
 
-type ResolveMemberValue<TObject, TName extends PropertyKey> = TObject extends object
+export type ResolveMemberValue<TObject, TName extends PropertyKey> = TObject extends object
   ? TName extends keyof TObject
     ? TObject[TName]
     : TObject extends abstract new (...args: any[]) => any
@@ -815,8 +823,8 @@ type ResolveMemberValue<TObject, TName extends PropertyKey> = TObject extends ob
       : never
   : never;
 
-type InferHookSignature<TObject, TName extends HookName> = TName extends string
-  ? ResolveMemberValue<TObject, HookNamePropertyKey<TName>> extends infer Member
+export type InferHookSignature<TObject, TName extends HookName> = TName extends string
+  ? ResolveMemberValue<TObject, HookExpPropertyKey<TName>> extends infer Member
     ? [Member] extends [never]
       ? [any[], any]
       : Member extends { [HOOK_DATA]: infer HookData }
@@ -833,14 +841,20 @@ type InferHookSignature<TObject, TName extends HookName> = TName extends string
               ? [[Member], void]
               : TName extends `init ${string}`
                 ? [[Member], Member]
-                : [any[], any]
+                : TName extends `static init ${string}`
+                  ? [[Member], Member]
+                  : TName extends `static get ${string}`
+                    ? [[], Member]
+                    : TName extends `static set ${string}`
+                      ? [[Member], Member]
+                      : [any[], any]
     : [any[], any]
   : [any[], any];
 
 type InferMiddlewareArgs<TObject, TName extends HookName> = InferHookSignature<TObject, TName>[0];
 type InferMiddlewareResult<TObject, TName extends HookName> = InferHookSignature<TObject, TName>[1];
 type InferMiddlewareThis<TObject, TName extends HookName> =
-  ResolveMemberValue<TObject, HookNamePropertyKey<TName>> extends infer Member
+  ResolveMemberValue<TObject, HookExpPropertyKey<TName>> extends infer Member
     ? Member extends { [HOOK_DATA]: infer HookData }
       ? HookData extends { origin: infer Origin }
         ? Origin extends (this: infer ThisArg, ...args: any[]) => any
