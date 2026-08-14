@@ -202,7 +202,7 @@ describe("hooks: class utilities", () => {
       );
 
       // need to be declared before hookUtils.field is called, otherwise the init hook will not be called
-      attach(StaticMembersClass, "static init staticFieldAlt", (next, value) => next(value + ":fieldInit"));
+      attach(StaticMembersClass, "!static init staticFieldAlt", (next, value) => next(value + ":fieldInit"));
 
       hook.field(StaticMembersClass, "staticField", "staticFieldAlt");
 
@@ -235,7 +235,7 @@ describe("hooks: class utilities", () => {
         return next(value + ":ERROR");
       });
 
-      attach(DynamicHookClass, "init myValueAlt", (next, value) => {
+      attach(DynamicHookClass, "!init myValueAlt", (next, value) => {
         return next(value + ":initAcc");
       });
 
@@ -260,7 +260,7 @@ describe("hooks: class utilities", () => {
         return next(value + ":ERROR");
       });
 
-      attach(DynamicHookClass, "static init myValueAlt", (next, value) => {
+      attach(DynamicHookClass, "!static init myValueAlt", (next, value) => {
         return next(value + ":initAcc");
       });
 
@@ -353,9 +353,9 @@ describe("hooks: class utilities", () => {
         static field = 10;
       }
 
-      attach(StaticAccessorClass, "static init fieldAlt", (next, value) => next(value + 1));
-      attach(StaticAccessorClass, "static get fieldAlt", (next) => next() * 2);
-      attach(StaticAccessorClass, "static set fieldAlt", (next, value) => next(value + 3));
+      attach(StaticAccessorClass, "!static init fieldAlt", (next, value) => next(value + 1));
+      attach(StaticAccessorClass, "!static get fieldAlt", (next) => next() * 2);
+      attach(StaticAccessorClass, "!static set fieldAlt", (next, value) => next(value + 3));
 
       hook.accessor(StaticAccessorClass, "static field", "fieldAlt");
 
@@ -415,7 +415,7 @@ describe("hooks: class utilities", () => {
 
     it("accessor should work with static accessors and should read private values", () => {
       const initVal = Symbol("initVal");
-      attach(initVal, "static init val", (next, value) => next(value + " init"));
+      attach(initVal, "!static init val", (next, value) => next(value + " init"));
 
       let Product = class Product {
         static #prv = " prv";

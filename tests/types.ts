@@ -1,4 +1,10 @@
-import type { HookExpPropertyKey, ResolveMemberValue, IHookFn, MiddlewareMethod } from "../src/index";
+import type {
+  StrictHookExpPropertyKey,
+  ResolveMemberValue,
+  IHookFn,
+  IsStrictHookExp,
+  MiddlewareMethod,
+} from "../src/index";
 import { argsProvider, attach, Hook, hook, Hooks } from "../src/index";
 
 // NOTICE: tests contains a lot of types that are also checked within "test" script
@@ -175,6 +181,27 @@ attach(ManualExample, "myMethod", (next, x) => {
   return next(x + 1);
 });
 
+attach(ManualExample, "method myMethod", (next, x) => {
+  return next(x);
+});
+
+// @ts-expect-error middleware should require a number argument for myMethod
+attach(ManualExample, "method myMethod", (next, x: string) => {
+  // @ts-expect-error middleware should require a number argument for myMethod
+  next(x);
+});
+
+// @ts-expect-error method does not exist
+attach(ManualExample, "method non_exists", (next, x) => {
+  return 8;
+  // return next(x);
+  // return next(8);
+});
+
+attach(ManualExample, "!method non_exists", (next, x) => {
+  return 8;
+});
+
 // @ts-expect-error middleware should require a number argument for myMethod
 attach(ManualExample, "myMethod", (next, x: string) => {
   // @ts-expect-error middleware should require a number argument for myMethod
@@ -271,8 +298,8 @@ attach(FnManualExample, "init value", (next, value: string) => {
   return next(value + 1);
 });
 
-const _T: HookExpPropertyKey<"static init initStatic"> = "initStatic";
-const _T2: ResolveMemberValue<typeof FnManualExample, HookExpPropertyKey<"static init initStatic">> = "value";
+const _T: StrictHookExpPropertyKey<"static init initStatic"> = "initStatic";
+const _T2: ResolveMemberValue<typeof FnManualExample, StrictHookExpPropertyKey<"static init initStatic">> = "value";
 const _T3: ResolveMemberValue<typeof FnManualExample, "initStatic"> = "value";
 attach(FnManualExample, "static init initStatic", (next, value) => {
   return next(value);

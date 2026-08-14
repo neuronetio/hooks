@@ -1,3 +1,5 @@
+import type { HookDecoratableExpression } from "./class-utilities";
+
 export const PREFIX = `[@neuronet/hooks]`;
 
 export const DEFAULT_HOOK_NAME = Symbol("[default_hook_name]");
@@ -789,23 +791,60 @@ export type HookOriginThis<T> = T extends { [HOOK_DATA]: infer HookData }
     ? ThisArg
     : unknown;
 
-export type HookExpPropertyKey<N extends HookName> = N extends `get ${infer P}`
+export type StrictHookExpPropertyKey<N extends HookName> = N extends `get ${infer P}`
   ? P & PropertyKey
   : N extends `set ${infer P}`
     ? P & PropertyKey
     : N extends `init ${infer P}`
       ? P & PropertyKey
-      : N extends `static get ${infer P}`
+      : N extends `method ${infer P}`
         ? P & PropertyKey
-        : N extends `static set ${infer P}`
+        : N extends `static get ${infer P}`
           ? P & PropertyKey
-          : N extends `static init ${infer P}`
+          : N extends `static set ${infer P}`
             ? P & PropertyKey
-            : N extends `static ${infer P}`
+            : N extends `static init ${infer P}`
               ? P & PropertyKey
-              : N extends PropertyKey
-                ? N
-                : never;
+              : N extends `static method ${infer P}`
+                ? P & PropertyKey
+                : N extends `static ${infer P}`
+                  ? P & PropertyKey
+                  : N extends PropertyKey
+                    ? N
+                    : never;
+
+export type LooseHookExpPropertyKey<N extends HookName> = N extends `!get ${infer P}`
+  ? P & PropertyKey
+  : N extends `!set ${infer P}`
+    ? P & PropertyKey
+    : N extends `!init ${infer P}`
+      ? P & PropertyKey
+      : N extends `!method ${infer P}`
+        ? P & PropertyKey
+        : N extends `!static get ${infer P}`
+          ? P & PropertyKey
+          : N extends `!static set ${infer P}`
+            ? P & PropertyKey
+            : N extends `!static init ${infer P}`
+              ? P & PropertyKey
+              : N extends `!static method ${infer P}`
+                ? P & PropertyKey
+                : N extends `!static ${infer P}`
+                  ? P & PropertyKey
+                  : N extends PropertyKey
+                    ? N
+                    : never;
+
+export type HookExpPropertyKey<N extends HookName> = StrictHookExpPropertyKey<N> | LooseHookExpPropertyKey<N>;
+
+export type IsStrictHookExp<N extends HookName> =
+  StrictHookExpPropertyKey<N> extends N
+    ? false
+    : StrictHookExpPropertyKey<N> extends infer P
+      ? P extends `#${string}`
+        ? false
+        : true
+      : true;
 
 export type HookPrototype<TObject> = TObject extends abstract new (...args: any[]) => any
   ? TObject extends { prototype: infer TPrototype }
@@ -826,7 +865,9 @@ export type ResolveMemberValue<TObject, TName extends PropertyKey> = TObject ext
 export type InferHookSignature<TObject, TName extends HookName> = TName extends string
   ? ResolveMemberValue<TObject, HookExpPropertyKey<TName>> extends infer Member
     ? [Member] extends [never]
-      ? [any[], any]
+      ? IsStrictHookExp<TName> extends true
+        ? never
+        : [any[], any]
       : Member extends { [HOOK_DATA]: infer HookData }
         ? HookData extends { origin: infer Origin }
           ? Origin extends (...args: infer A) => infer R
@@ -841,13 +882,15 @@ export type InferHookSignature<TObject, TName extends HookName> = TName extends 
               ? [[Member], void]
               : TName extends `init ${string}`
                 ? [[Member], Member]
-                : TName extends `static init ${string}`
-                  ? [[Member], Member]
-                  : TName extends `static get ${string}`
-                    ? [[], Member]
-                    : TName extends `static set ${string}`
-                      ? [[Member], Member]
-                      : [any[], any]
+                : TName extends `method ${string}`
+                  ? "method"
+                  : TName extends `static init ${string}`
+                    ? [[Member], Member]
+                    : TName extends `static get ${string}`
+                      ? [[], Member]
+                      : TName extends `static set ${string}`
+                        ? [[Member], Member]
+                        : [any[], any]
     : [any[], any]
   : [any[], any];
 
@@ -1084,6 +1127,10 @@ export function attach<A extends any[] = any[], R = any>(
       return noop;
     }
     key = key[0]!;
+  }
+
+  if (typeof name === "string" && name.startsWith("!")) {
+    name = name.substring(1) as HookName;
   }
 
   let methods = middleware.get(key);

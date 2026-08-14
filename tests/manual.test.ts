@@ -30,7 +30,7 @@ describe("manual decorators", () => {
 
   it("static initializer should work with private static fields", () => {
     const initVal = Symbol("initVal");
-    attach(initVal, "init val", (next, value) => next(value + " init"));
+    attach(initVal, "!init val", (next, value) => next(value + " init"));
 
     class Product {
       static #prv = "prv";

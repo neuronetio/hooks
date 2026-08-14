@@ -15,18 +15,32 @@ const SUB_PREFIX = "[class-utilities]";
 
 /** A member name, optionally prefixed with `"static "` to force static-member resolution. */
 export type HookDecoratableName<TClass extends HookDecoratedClass> =
-  | HookPropertyName<TClass>
-  | `static ${string & HookPropertyName<TClass>}`;
+  HookPropertyName<TClass> | `static ${string & HookPropertyName<TClass>}`;
 
 export type HookDecoratableExpression<TClass extends HookDecoratedClass> =
   | HookDecoratableName<TClass>
   | `get ${string & HookPropertyName<TClass>}`
+  | `!get ${string & HookPropertyName<TClass>}`
   | `set ${string & HookPropertyName<TClass>}`
+  | `!set ${string & HookPropertyName<TClass>}`
   | `accessor ${string & HookPropertyName<TClass>}`
+  | `!accessor ${string & HookPropertyName<TClass>}`
+  | `init ${string & HookPropertyName<TClass>}`
+  | `!init ${string & HookPropertyName<TClass>}`
+  | `method ${string & HookPropertyName<TClass>}`
+  | `!method ${string & HookPropertyName<TClass>}`
   | `static ${string & HookPropertyName<TClass>}`
+  | `!static ${string & HookPropertyName<TClass>}`
   | `static get ${string & HookPropertyName<TClass>}`
+  | `!static get ${string & HookPropertyName<TClass>}`
   | `static set ${string & HookPropertyName<TClass>}`
-  | `static accessor ${string & HookPropertyName<TClass>}`;
+  | `!static set ${string & HookPropertyName<TClass>}`
+  | `static accessor ${string & HookPropertyName<TClass>}`
+  | `!static accessor ${string & HookPropertyName<TClass>}`
+  | `static init ${string & HookPropertyName<TClass>}`
+  | `!static init ${string & HookPropertyName<TClass>}`
+  | `static method ${string & HookPropertyName<TClass>}`
+  | `!static method ${string & HookPropertyName<TClass>}`;
 
 export interface IHookClassUtilitiesState {
   instanceInitializers: Array<(instance: any) => void>;

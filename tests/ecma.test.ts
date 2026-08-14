@@ -622,10 +622,10 @@ describe("hooks: decorators", () => {
     expect(instance1.myValue2).toBe("initial2");
     expect(instance1.myValue3).toBe("initial3");
 
-    attach(DynamicHookClass, "init myValue2Alt", (next, value) => {
+    attach(DynamicHookClass, "!init myValue2Alt", (next, value) => {
       return next(value + ":initAlt2");
     });
-    attach(DynamicHookClass, "init myValue3Alt", (next, value) => {
+    attach(DynamicHookClass, "!init myValue3Alt", (next, value) => {
       return next(value + ":initAlt3");
     });
 
@@ -799,7 +799,7 @@ describe("hooks: decorators", () => {
 
     expect(new FieldsClass().myField).toBe("initial");
 
-    attach(FieldsClass, "init myFieldAlt", (next, value) => {
+    attach(FieldsClass, "!init myFieldAlt", (next, value) => {
       return next(value + ":initMid");
     });
 
@@ -817,9 +817,9 @@ describe("hooks: decorators", () => {
     expect(instance.myAcc).toBe("initial");
     expect(AccessorsClass.staticAcc).toBe("staticInitial");
 
-    attach(AccessorsClass, "get myAccAlt", (next) => next() + ":getMid");
-    attach(AccessorsClass, "set myAccAlt", (next, val) => next(val + ":setMid"));
-    attach(AccessorsClass, "static get staticAccAlt", (next) => next() + ":staticGetMid");
+    attach(AccessorsClass, "!get myAccAlt", (next) => next() + ":getMid");
+    attach(AccessorsClass, "!set myAccAlt", (next, val) => next(val + ":setMid"));
+    attach(AccessorsClass, "!static get staticAccAlt", (next) => next() + ":staticGetMid");
 
     expect(instance.myAcc).toBe("initial:getMid");
     instance.myAcc = "newVal";
@@ -828,7 +828,7 @@ describe("hooks: decorators", () => {
 
     // static init
     const acc2Symbol = Symbol("acc2");
-    attach(acc2Symbol, "static init staticAccAlt", (next, val) => next(val + ":staticInitMid"));
+    attach(acc2Symbol, "!static init staticAccAlt", (next, val) => next(val + ":staticInitMid"));
     @Hook()
     class AccessorsClass2 {
       @hook(dynamicHookKey(() => acc2Symbol), "staticAccAlt") static accessor staticAcc: string = "staticInitial";
@@ -862,12 +862,12 @@ describe("hooks: decorators", () => {
     expect(GetSetClass.staticVal).toBe("staticInitial");
     expect(instance.instanceVal).toBe("initial");
 
-    attach(GetSetClass, "static get staticGetAlt", (next) => next() + ":staticGetMid");
-    attach(GetSetClass, "static set staticSetAlt", (next, v) => next(v + ":staticSetMid"));
-    attach(instance, "get getAlt", (next) => next() + ":getMid");
-    attach(instance, "set setAlt", (next, v) => next(v + ":setMid"));
-    attach(GetSetClass, "get getAlt", (next) => next() + ":getMid2");
-    attach(GetSetClass, "set setAlt", (next, v) => next(v + ":setMid2"));
+    attach(GetSetClass, "!static get staticGetAlt", (next) => next() + ":staticGetMid");
+    attach(GetSetClass, "!static set staticSetAlt", (next, v) => next(v + ":staticSetMid"));
+    attach(instance, "!get getAlt", (next) => next() + ":getMid");
+    attach(instance, "!set setAlt", (next, v) => next(v + ":setMid"));
+    attach(GetSetClass, "!get getAlt", (next) => next() + ":getMid2");
+    attach(GetSetClass, "!set setAlt", (next, v) => next(v + ":setMid2"));
 
     expect(GetSetClass.staticVal).toBe("staticInitial:staticGetMid");
     GetSetClass.staticVal = "newStatic";
@@ -898,7 +898,7 @@ describe("hooks: decorators", () => {
 
     attach(MethodsClass, "myMethodAlt", (next, x) => next(x + ":classMid"));
     attach(instance, "myMethodAlt", (next, x) => next(x + ":instanceMid"));
-    attach(MethodsClass, "static staticMethodAlt", (next, x) => next(x + ":staticMid"));
+    attach(MethodsClass, "!static staticMethodAlt", (next, x) => next(x + ":staticMid"));
 
     expect(instance.myMethod("input")).toBe("input:instanceMid:classMid:original");
     expect(MethodsClass.staticMethod("input")).toBe("input:staticMid:staticOriginal");
@@ -948,11 +948,11 @@ describe("hooks: decorators", () => {
     expect(instance.getVal()).toBe("initialGetSet");
     expect(instance.callMethod("in")).toBe("in:original");
 
-    attach(instance, "get prvAccAlt", (next) => next() + ":getMidI");
-    attach(instance, "set prvAccAlt", (next, v) => next(v + ":setMidI"));
-    attach(instance, "get prvGetAlt", (next) => next() + ":getMidI");
-    attach(instance, "set prvSetAlt", (next, v) => next(v + ":setMidI"));
-    attach(instance, "prvMethodAlt", (next, x) => next(x + ":methodMidI"));
+    attach(instance, "!get prvAccAlt", (next) => next() + ":getMidI");
+    attach(instance, "!set prvAccAlt", (next, v) => next(v + ":setMidI"));
+    attach(instance, "!get prvGetAlt", (next) => next() + ":getMidI");
+    attach(instance, "!set prvSetAlt", (next, v) => next(v + ":setMidI"));
+    attach(instance, "!prvMethodAlt", (next, x) => next(x + ":methodMidI"));
 
     expect(instance.getAcc()).toBe("initialAcc:getMidI");
     instance.setAcc("newAcc");
@@ -962,13 +962,13 @@ describe("hooks: decorators", () => {
     expect(instance.getVal()).toBe("newVal:setMidI:getMidI");
     expect(instance.callMethod("in")).toBe("in:methodMidI:original");
 
-    attach(PrivateInstanceClass, "init prvFieldAlt", (next, v) => next(v + ":initMidC"));
-    attach(PrivateInstanceClass, "init prvAccAlt", (next, v) => next(v + ":initMidC"));
-    attach(PrivateInstanceClass, "get prvAccAlt", (next) => next() + ":getMidC");
-    attach(PrivateInstanceClass, "set prvAccAlt", (next, v) => next(v + ":setMidC"));
-    attach(PrivateInstanceClass, "get prvGetAlt", (next) => next() + ":getMidC");
-    attach(PrivateInstanceClass, "set prvSetAlt", (next, v) => next(v + ":setMidC"));
-    attach(PrivateInstanceClass, "prvMethodAlt", (next, x) => next(x + ":methodMidC"));
+    attach(PrivateInstanceClass, "!init prvFieldAlt", (next, v) => next(v + ":initMidC"));
+    attach(PrivateInstanceClass, "!init prvAccAlt", (next, v) => next(v + ":initMidC"));
+    attach(PrivateInstanceClass, "!get prvAccAlt", (next) => next() + ":getMidC");
+    attach(PrivateInstanceClass, "!set prvAccAlt", (next, v) => next(v + ":setMidC"));
+    attach(PrivateInstanceClass, "!get prvGetAlt", (next) => next() + ":getMidC");
+    attach(PrivateInstanceClass, "!set prvSetAlt", (next, v) => next(v + ":setMidC"));
+    attach(PrivateInstanceClass, "!prvMethodAlt", (next, x) => next(x + ":methodMidC"));
 
     expect(instance.getField()).toBe("initialField");
     expect(instance.getAcc()).toBe("newAcc:setMidI:getMidC:getMidI");
@@ -1051,11 +1051,11 @@ describe("hooks: decorators", () => {
     expect(PrivateStaticClass.getVal()).toBe("initialGetSet");
     expect(PrivateStaticClass.callMethod("in")).toBe("in:original");
 
-    attach(PrivateStaticClass, "static get staticPrvAccAlt", (next) => next() + ":getMid");
-    attach(PrivateStaticClass, "static set staticPrvAccAlt", (next, v) => next(v + ":setMid"));
-    attach(PrivateStaticClass, "static get staticPrvGetAlt", (next) => next() + ":getMid");
-    attach(PrivateStaticClass, "static set staticPrvSetAlt", (next, v) => next(v + ":setMid"));
-    attach(PrivateStaticClass, "static staticPrvMethodAlt", (next, x) => next(x + ":methodMid"));
+    attach(PrivateStaticClass, "!static get staticPrvAccAlt", (next) => next() + ":getMid");
+    attach(PrivateStaticClass, "!static set staticPrvAccAlt", (next, v) => next(v + ":setMid"));
+    attach(PrivateStaticClass, "!static get staticPrvGetAlt", (next) => next() + ":getMid");
+    attach(PrivateStaticClass, "!static set staticPrvSetAlt", (next, v) => next(v + ":setMid"));
+    attach(PrivateStaticClass, "!static staticPrvMethodAlt", (next, x) => next(x + ":methodMid"));
 
     expect(PrivateStaticClass.getAcc()).toBe("initialAcc:getMid");
     PrivateStaticClass.setAcc("newAcc");
@@ -1168,8 +1168,8 @@ describe("hooks: decorators", () => {
 
       const instance = new AlternativeNameOnlyAccessorClass();
       expect(instance.acc).toBe("initial");
-      attach(instance, "get accAltOnly", (next) => next() + ":getMid");
-      attach(instance, "set accAltOnly", (next, value) => next(value + ":setMid"));
+      attach(instance, "!get accAltOnly", (next) => next() + ":getMid");
+      attach(instance, "!set accAltOnly", (next, value) => next(value + ":setMid"));
       expect(instance.acc).toBe("initial:getMid");
       instance.acc = "updated";
       expect(instance.acc).toBe("updated:setMid:getMid");
@@ -1219,8 +1219,8 @@ describe("hooks: decorators", () => {
 
       const instance = new AlternativeAndDynamicAccessorClass();
       expect(instance.acc).toBe("initial");
-      attach(instance, "get accAltAndDynamic", (next) => next() + ":getMid");
-      attach(instance, "set accAltAndDynamic", (next, value) => next(value + ":setMid"));
+      attach(instance, "!get accAltAndDynamic", (next) => next() + ":getMid");
+      attach(instance, "!set accAltAndDynamic", (next, value) => next(value + ":setMid"));
       expect(instance.acc).toBe("initial:getMid");
       instance.acc = "updated";
       expect(instance.acc).toBe("updated:setMid:getMid");
@@ -1245,8 +1245,8 @@ describe("hooks: decorators", () => {
 
       const instance = new DynamicAndAlternativeAccessorClass();
       expect(instance.acc).toBe("initial");
-      attach(instance, "get accDynamicAndAlternative", (next) => next() + ":getMid");
-      attach(instance, "set accDynamicAndAlternative", (next, value) => next(value + ":setMid"));
+      attach(instance, "!get accDynamicAndAlternative", (next) => next() + ":getMid");
+      attach(instance, "!set accDynamicAndAlternative", (next, value) => next(value + ":setMid"));
       expect(instance.acc).toBe("initial:getMid");
       instance.acc = "updated";
       expect(instance.acc).toBe("updated:setMid:getMid");
@@ -1261,7 +1261,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(new AlternativeNameOnlyFieldClass().field).toBe("initial");
-      attach(AlternativeNameOnlyFieldClass, "init fieldAltOnly", (next, value) => next(value + ":initMid"));
+      attach(AlternativeNameOnlyFieldClass, "!init fieldAltOnly", (next, value) => next(value + ":initMid"));
       const instance = new AlternativeNameOnlyFieldClass();
       expect(instance.field).toBe("initial:initMid");
     });
@@ -1306,7 +1306,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(new AlternativeAndDynamicFieldClass().field).toBe("initial");
-      attach(AlternativeAndDynamicFieldClass, "init fieldAltAndDynamic", (next, value) => next(value + ":initMid"));
+      attach(AlternativeAndDynamicFieldClass, "!init fieldAltAndDynamic", (next, value) => next(value + ":initMid"));
       const instance = new AlternativeAndDynamicFieldClass();
       expect(instance.field).toBe("initial:initMid");
       expect(tracks).toContainEqual({ target: "fieldAltAndDynamic", self: instance });
@@ -1329,7 +1329,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(new DynamicAndAlternativeFieldClass().field).toBe("initial");
-      attach(DynamicAndAlternativeFieldClass, "init fieldDynamicAndAlternative", (next, value) =>
+      attach(DynamicAndAlternativeFieldClass, "!init fieldDynamicAndAlternative", (next, value) =>
         next(value + ":initMid"),
       );
       const instance = new DynamicAndAlternativeFieldClass();
@@ -1355,8 +1355,8 @@ describe("hooks: decorators", () => {
 
       const instance = new AlternativeNameOnlyGetSetClass();
       expect(instance.value).toBe("initial");
-      attach(instance, "get valueAltOnly", (next) => next() + ":getMid");
-      attach(instance, "set valueAltOnly", (next, value) => next(value + ":setMid"));
+      attach(instance, "!get valueAltOnly", (next) => next() + ":getMid");
+      attach(instance, "!set valueAltOnly", (next, value) => next(value + ":setMid"));
       expect(instance.value).toBe("initial:getMid");
       instance.value = "updated";
       expect(instance.value).toBe("updated:setMid:getMid");
@@ -1429,8 +1429,8 @@ describe("hooks: decorators", () => {
 
       const instance = new AlternativeAndDynamicGetSetClass();
       expect(instance.value).toBe("initial");
-      attach(instance, "get valueAltAndDynamic", (next) => next() + ":getMid");
-      attach(instance, "set valueAltAndDynamic", (next, value) => next(value + ":setMid"));
+      attach(instance, "!get valueAltAndDynamic", (next) => next() + ":getMid");
+      attach(instance, "!set valueAltAndDynamic", (next, value) => next(value + ":setMid"));
       expect(instance.value).toBe("initial:getMid");
       instance.value = "updated";
       expect(instance.value).toBe("updated:setMid:getMid");
@@ -1464,8 +1464,8 @@ describe("hooks: decorators", () => {
 
       const instance = new DynamicAndAlternativeGetSetClass();
       expect(instance.value).toBe("initial");
-      attach(instance, "get valueDynamicAndAlternative", (next) => next() + ":getMid");
-      attach(instance, "set valueDynamicAndAlternative", (next, value) => next(value + ":setMid"));
+      attach(instance, "!get valueDynamicAndAlternative", (next) => next() + ":getMid");
+      attach(instance, "!set valueDynamicAndAlternative", (next, value) => next(value + ":setMid"));
       expect(instance.value).toBe("initial:getMid");
       instance.value = "updated";
       expect(instance.value).toBe("updated:setMid:getMid");
@@ -1496,7 +1496,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeNameOnlyStaticMethodClass.method("hello")).toBe("hello:orig");
-      attach(AlternativeNameOnlyStaticMethodClass, "static methodAltOnly", (next, x) => next(x + ":intercepted"));
+      attach(AlternativeNameOnlyStaticMethodClass, "!static methodAltOnly", (next, x) => next(x + ":intercepted"));
       expect(AlternativeNameOnlyStaticMethodClass.method("hello")).toBe("hello:intercepted:orig");
     });
 
@@ -1529,7 +1529,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeAndDynamicStaticMethodClass.method("hello")).toBe("hello:orig");
-      attach(AlternativeAndDynamicStaticMethodClass, "static methodAltAndDynamic", (next, x) =>
+      attach(AlternativeAndDynamicStaticMethodClass, "!static methodAltAndDynamic", (next, x) =>
         next(x + ":intercepted"),
       );
       expect(AlternativeAndDynamicStaticMethodClass.method("hello")).toBe("hello:intercepted:orig");
@@ -1548,7 +1548,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(DynamicAndAlternativeStaticMethodClass.method("hello")).toBe("hello:orig");
-      attach(DynamicAndAlternativeStaticMethodClass, "static methodDynamicAndAlternative", (next, x) =>
+      attach(DynamicAndAlternativeStaticMethodClass, "!static methodDynamicAndAlternative", (next, x) =>
         next(x + ":intercepted"),
       );
       expect(DynamicAndAlternativeStaticMethodClass.method("hello")).toBe("hello:intercepted:orig");
@@ -1566,8 +1566,10 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeNameOnlyStaticAccessorClass.acc).toBe("initial");
-      attach(AlternativeNameOnlyStaticAccessorClass, "static get accAltOnly", (next) => next() + ":getMid");
-      attach(AlternativeNameOnlyStaticAccessorClass, "static set accAltOnly", (next, value) => next(value + ":setMid"));
+      attach(AlternativeNameOnlyStaticAccessorClass, "!static get accAltOnly", (next) => next() + ":getMid");
+      attach(AlternativeNameOnlyStaticAccessorClass, "!static set accAltOnly", (next, value) =>
+        next(value + ":setMid"),
+      );
       expect(AlternativeNameOnlyStaticAccessorClass.acc).toBe("initial:getMid");
       AlternativeNameOnlyStaticAccessorClass.acc = "updated";
       expect(AlternativeNameOnlyStaticAccessorClass.acc).toBe("updated:setMid:getMid");
@@ -1601,8 +1603,8 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeAndDynamicStaticAccessorClass.acc).toBe("initial");
-      attach(AlternativeAndDynamicStaticAccessorClass, "static get accAltAndDynamic", (next) => next() + ":getMid");
-      attach(AlternativeAndDynamicStaticAccessorClass, "static set accAltAndDynamic", (next, value) =>
+      attach(AlternativeAndDynamicStaticAccessorClass, "!static get accAltAndDynamic", (next) => next() + ":getMid");
+      attach(AlternativeAndDynamicStaticAccessorClass, "!static set accAltAndDynamic", (next, value) =>
         next(value + ":setMid"),
       );
       expect(AlternativeAndDynamicStaticAccessorClass.acc).toBe("initial:getMid");
@@ -1623,10 +1625,10 @@ describe("hooks: decorators", () => {
       expect(DynamicAndAlternativeStaticAccessorClass.acc).toBe("initial");
       attach(
         DynamicAndAlternativeStaticAccessorClass,
-        "static get accDynamicAndAlternative",
+        "!static get accDynamicAndAlternative",
         (next) => next() + ":getMid",
       );
-      attach(DynamicAndAlternativeStaticAccessorClass, "static set accDynamicAndAlternative", (next, value) =>
+      attach(DynamicAndAlternativeStaticAccessorClass, "!static set accDynamicAndAlternative", (next, value) =>
         next(value + ":setMid"),
       );
       expect(DynamicAndAlternativeStaticAccessorClass.acc).toBe("initial:getMid");
@@ -1707,8 +1709,10 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeNameOnlyStaticGetSetClass.value).toBe("initial");
-      attach(AlternativeNameOnlyStaticGetSetClass, "static get valueAltOnly", (next) => next() + ":getMid");
-      attach(AlternativeNameOnlyStaticGetSetClass, "static set valueAltOnly", (next, value) => next(value + ":setMid"));
+      attach(AlternativeNameOnlyStaticGetSetClass, "!static get valueAltOnly", (next) => next() + ":getMid");
+      attach(AlternativeNameOnlyStaticGetSetClass, "!static set valueAltOnly", (next, value) =>
+        next(value + ":setMid"),
+      );
       expect(AlternativeNameOnlyStaticGetSetClass.value).toBe("initial:getMid");
       AlternativeNameOnlyStaticGetSetClass.value = "updated";
       expect(AlternativeNameOnlyStaticGetSetClass.value).toBe("updated:setMid:getMid");
@@ -1760,8 +1764,8 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeAndDynamicStaticGetSetClass.value).toBe("initial");
-      attach(AlternativeAndDynamicStaticGetSetClass, "static get valueAltAndDynamic", (next) => next() + ":getMid");
-      attach(AlternativeAndDynamicStaticGetSetClass, "static set valueAltAndDynamic", (next, value) =>
+      attach(AlternativeAndDynamicStaticGetSetClass, "!static get valueAltAndDynamic", (next) => next() + ":getMid");
+      attach(AlternativeAndDynamicStaticGetSetClass, "!static set valueAltAndDynamic", (next, value) =>
         next(value + ":setMid"),
       );
       expect(AlternativeAndDynamicStaticGetSetClass.value).toBe("initial:getMid");
@@ -1791,10 +1795,10 @@ describe("hooks: decorators", () => {
       expect(DynamicAndAlternativeStaticGetSetClass.value).toBe("initial");
       attach(
         DynamicAndAlternativeStaticGetSetClass,
-        "static get valueDynamicAndAlternative",
+        "!static get valueDynamicAndAlternative",
         (next) => next() + ":getMid",
       );
-      attach(DynamicAndAlternativeStaticGetSetClass, "static set valueDynamicAndAlternative", (next, value) =>
+      attach(DynamicAndAlternativeStaticGetSetClass, "!static set valueDynamicAndAlternative", (next, value) =>
         next(value + ":setMid"),
       );
       expect(DynamicAndAlternativeStaticGetSetClass.value).toBe("initial:getMid");
@@ -1919,8 +1923,8 @@ describe("hooks: decorators", () => {
 
       const instance = new AlternativeNameOnlyPrivateAccessorClass();
       expect(instance.getAcc()).toBe("initial");
-      attach(instance, "get accAltOnly", (next) => next() + ":getMid");
-      attach(instance, "set accAltOnly", (next, value) => next(value + ":setMid"));
+      attach(instance, "!get accAltOnly", (next) => next() + ":getMid");
+      attach(instance, "!set accAltOnly", (next, value) => next(value + ":setMid"));
       expect(instance.getAcc()).toBe("initial:getMid");
       instance.setAcc("updated");
       expect(instance.getAcc()).toBe("updated:setMid:getMid");
@@ -1972,8 +1976,8 @@ describe("hooks: decorators", () => {
 
       const instance = new AlternativeAndDynamicPrivateAccessorClass();
       expect(instance.getAcc()).toBe("initial");
-      attach(instance, "get accAltAndDynamic", (next) => next() + ":getMid");
-      attach(instance, "set accAltAndDynamic", (next, value) => next(value + ":setMid"));
+      attach(instance, "!get accAltAndDynamic", (next) => next() + ":getMid");
+      attach(instance, "!set accAltAndDynamic", (next, value) => next(value + ":setMid"));
       expect(instance.getAcc()).toBe("initial:getMid");
       instance.setAcc("updated");
       expect(instance.getAcc()).toBe("updated:setMid:getMid");
@@ -1999,8 +2003,8 @@ describe("hooks: decorators", () => {
 
       const instance = new DynamicAndAlternativePrivateAccessorClass();
       expect(instance.getAcc()).toBe("initial");
-      attach(instance, "get accDynamicAndAlternative", (next) => next() + ":getMid");
-      attach(instance, "set accDynamicAndAlternative", (next, value) => next(value + ":setMid"));
+      attach(instance, "!get accDynamicAndAlternative", (next) => next() + ":getMid");
+      attach(instance, "!set accDynamicAndAlternative", (next, value) => next(value + ":setMid"));
       expect(instance.getAcc()).toBe("initial:getMid");
       instance.setAcc("updated");
       expect(instance.getAcc()).toBe("updated:setMid:getMid");
@@ -2102,8 +2106,8 @@ describe("hooks: decorators", () => {
 
       const instance = new AlternativeNameOnlyPrivateGetSetClass();
       expect(instance.getValue()).toBe("initial");
-      attach(instance, "get valueAltOnly", (next) => next() + ":getMid");
-      attach(instance, "set valueAltOnly", (next, value) => next(value + ":setMid"));
+      attach(instance, "!get valueAltOnly", (next) => next() + ":getMid");
+      attach(instance, "!set valueAltOnly", (next, value) => next(value + ":setMid"));
       expect(instance.getValue()).toBe("initial:getMid");
       instance.setValue("updated");
       expect(instance.getValue()).toBe("updated:setMid:getMid");
@@ -2173,8 +2177,8 @@ describe("hooks: decorators", () => {
 
       const instance = new AlternativeAndDynamicPrivateGetSetClass();
       expect(instance.getValue()).toBe("initial");
-      attach(instance, "get valueAltAndDynamic", (next) => next() + ":getMid");
-      attach(instance, "set valueAltAndDynamic", (next, value) => next(value + ":setMid"));
+      attach(instance, "!get valueAltAndDynamic", (next) => next() + ":getMid");
+      attach(instance, "!set valueAltAndDynamic", (next, value) => next(value + ":setMid"));
       expect(instance.getValue()).toBe("initial:getMid");
       instance.setValue("updated");
       expect(instance.getValue()).toBe("updated:setMid:getMid");
@@ -2209,8 +2213,8 @@ describe("hooks: decorators", () => {
 
       const instance = new DynamicAndAlternativePrivateGetSetClass();
       expect(instance.getValue()).toBe("initial");
-      attach(instance, "get valueDynamicAndAlternative", (next) => next() + ":getMid");
-      attach(instance, "set valueDynamicAndAlternative", (next, value) => next(value + ":setMid"));
+      attach(instance, "!get valueDynamicAndAlternative", (next) => next() + ":getMid");
+      attach(instance, "!set valueDynamicAndAlternative", (next, value) => next(value + ":setMid"));
       expect(instance.getValue()).toBe("initial:getMid");
       instance.setValue("updated");
       expect(instance.getValue()).toBe("updated:setMid:getMid");
@@ -2245,7 +2249,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeNameOnlyStaticPrivateMethodClass.callMethod("hello")).toBe("hello:orig");
-      attach(AlternativeNameOnlyStaticPrivateMethodClass, "static methodAltOnly", (next, x) =>
+      attach(AlternativeNameOnlyStaticPrivateMethodClass, "!static methodAltOnly", (next, x) =>
         next(x + ":intercepted"),
       );
       expect(AlternativeNameOnlyStaticPrivateMethodClass.callMethod("hello")).toBe("hello:intercepted:orig");
@@ -2291,7 +2295,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeAndDynamicStaticPrivateMethodClass.callMethod("hello")).toBe("hello:orig");
-      attach(AlternativeAndDynamicStaticPrivateMethodClass, "static methodAltAndDynamic", (next, x) =>
+      attach(AlternativeAndDynamicStaticPrivateMethodClass, "!static methodAltAndDynamic", (next, x) =>
         next(x + ":intercepted"),
       );
       expect(AlternativeAndDynamicStaticPrivateMethodClass.callMethod("hello")).toBe("hello:intercepted:orig");
@@ -2317,7 +2321,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(DynamicAndAlternativeStaticPrivateMethodClass.callMethod("hello")).toBe("hello:orig");
-      attach(DynamicAndAlternativeStaticPrivateMethodClass, "static methodDynamicAndAlternative", (next, x) =>
+      attach(DynamicAndAlternativeStaticPrivateMethodClass, "!static methodDynamicAndAlternative", (next, x) =>
         next(x + ":intercepted"),
       );
       expect(DynamicAndAlternativeStaticPrivateMethodClass.callMethod("hello")).toBe("hello:intercepted:orig");
@@ -2343,8 +2347,8 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeNameOnlyStaticPrivateAccessorClass.getAcc()).toBe("initial");
-      attach(AlternativeNameOnlyStaticPrivateAccessorClass, "static get accAltOnly", (next) => next() + ":getMid");
-      attach(AlternativeNameOnlyStaticPrivateAccessorClass, "static set accAltOnly", (next, value) =>
+      attach(AlternativeNameOnlyStaticPrivateAccessorClass, "!static get accAltOnly", (next) => next() + ":getMid");
+      attach(AlternativeNameOnlyStaticPrivateAccessorClass, "!static set accAltOnly", (next, value) =>
         next(value + ":setMid"),
       );
       expect(AlternativeNameOnlyStaticPrivateAccessorClass.getAcc()).toBe("initial:getMid");
@@ -2401,10 +2405,10 @@ describe("hooks: decorators", () => {
       expect(AlternativeAndDynamicStaticPrivateAccessorClass.getAcc()).toBe("initial");
       attach(
         AlternativeAndDynamicStaticPrivateAccessorClass,
-        "static get accAltAndDynamic",
+        "!static get accAltAndDynamic",
         (next) => next() + ":getMid",
       );
-      attach(AlternativeAndDynamicStaticPrivateAccessorClass, "static set accAltAndDynamic", (next, value) =>
+      attach(AlternativeAndDynamicStaticPrivateAccessorClass, "!static set accAltAndDynamic", (next, value) =>
         next(value + ":setMid"),
       );
       expect(AlternativeAndDynamicStaticPrivateAccessorClass.getAcc()).toBe("initial:getMid");
@@ -2436,10 +2440,10 @@ describe("hooks: decorators", () => {
       expect(DynamicAndAlternativeStaticPrivateAccessorClass.getAcc()).toBe("initial");
       attach(
         DynamicAndAlternativeStaticPrivateAccessorClass,
-        "static get accDynamicAndAlternative",
+        "!static get accDynamicAndAlternative",
         (next) => next() + ":getMid",
       );
-      attach(DynamicAndAlternativeStaticPrivateAccessorClass, "static set accDynamicAndAlternative", (next, value) =>
+      attach(DynamicAndAlternativeStaticPrivateAccessorClass, "!static set accDynamicAndAlternative", (next, value) =>
         next(value + ":setMid"),
       );
       expect(DynamicAndAlternativeStaticPrivateAccessorClass.getAcc()).toBe("initial:getMid");
@@ -2550,8 +2554,8 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeNameOnlyStaticPrivateGetSetClass.getValue()).toBe("initial");
-      attach(AlternativeNameOnlyStaticPrivateGetSetClass, "static get valueAltOnly", (next) => next() + ":getMid");
-      attach(AlternativeNameOnlyStaticPrivateGetSetClass, "static set valueAltOnly", (next, value) =>
+      attach(AlternativeNameOnlyStaticPrivateGetSetClass, "!static get valueAltOnly", (next) => next() + ":getMid");
+      attach(AlternativeNameOnlyStaticPrivateGetSetClass, "!static set valueAltOnly", (next, value) =>
         next(value + ":setMid"),
       );
       expect(AlternativeNameOnlyStaticPrivateGetSetClass.getValue()).toBe("initial:getMid");
@@ -2626,10 +2630,10 @@ describe("hooks: decorators", () => {
       expect(AlternativeAndDynamicStaticPrivateGetSetClass.getValue()).toBe("initial");
       attach(
         AlternativeAndDynamicStaticPrivateGetSetClass,
-        "static get valueAltAndDynamic",
+        "!static get valueAltAndDynamic",
         (next) => next() + ":getMid",
       );
-      attach(AlternativeAndDynamicStaticPrivateGetSetClass, "static set valueAltAndDynamic", (next, value) =>
+      attach(AlternativeAndDynamicStaticPrivateGetSetClass, "!static set valueAltAndDynamic", (next, value) =>
         next(value + ":setMid"),
       );
       expect(AlternativeAndDynamicStaticPrivateGetSetClass.getValue()).toBe("initial:getMid");
@@ -2670,10 +2674,10 @@ describe("hooks: decorators", () => {
       expect(DynamicAndAlternativeStaticPrivateGetSetClass.getValue()).toBe("initial");
       attach(
         DynamicAndAlternativeStaticPrivateGetSetClass,
-        "static get valueDynamicAndAlternative",
+        "!static get valueDynamicAndAlternative",
         (next) => next() + ":getMid",
       );
-      attach(DynamicAndAlternativeStaticPrivateGetSetClass, "static set valueDynamicAndAlternative", (next, value) =>
+      attach(DynamicAndAlternativeStaticPrivateGetSetClass, "!static set valueDynamicAndAlternative", (next, value) =>
         next(value + ":setMid"),
       );
       expect(DynamicAndAlternativeStaticPrivateGetSetClass.getValue()).toBe("initial:getMid");
