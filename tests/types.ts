@@ -228,6 +228,10 @@ attach(ManualExample, "staticMethod", (next, x: number) => {
   return next(x.toUpperCase());
 });
 
+attach(Symbol("test"), "custom_name", (next) => {
+  return next();
+});
+
 class FnManualExample {
   myMethod(x: number): string {
     return String(x);
