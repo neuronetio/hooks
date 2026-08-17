@@ -484,7 +484,6 @@ declare module "./hook.js" {
  */
 export function inherit(classOrInstance: object): object[] {
   const constructors: object[] = [];
-
   const isClass = typeof classOrInstance === "function" && (classOrInstance as any).prototype !== undefined;
 
   // if it's an instance, we want to include it before the proxy
@@ -494,9 +493,7 @@ export function inherit(classOrInstance: object): object[] {
 
   let Class = (classOrInstance as any).prototype?.constructor ?? Object.getPrototypeOf(classOrInstance)?.constructor;
   while (Class && Class.prototype !== undefined) {
-    if (typeof Class === "function") {
-      constructors.push(Class);
-    }
+    constructors.push(Class);
     Class = Object.getPrototypeOf(Class);
   }
 
@@ -852,7 +849,7 @@ export type HookPrototype<TObject> = TObject extends abstract new (...args: any[
     : never
   : never;
 
-export type ResolveMemberValue<TObject, TName extends PropertyKey> = TObject extends object
+export type ResolveMemberValue<TObject extends object | symbol, TName extends PropertyKey> = TObject extends object
   ? TName extends keyof TObject
     ? TObject[TName]
     : TObject extends abstract new (...args: any[]) => any
@@ -862,7 +859,7 @@ export type ResolveMemberValue<TObject, TName extends PropertyKey> = TObject ext
       : never
   : never;
 
-export type InferHookSignature<TObject, TName extends HookName> = TName extends string
+export type InferHookSignature<TObject extends object | symbol, TName extends HookName> = TName extends string
   ? ResolveMemberValue<TObject, HookExpPropertyKey<TName>> extends infer Member
     ? [Member] extends [never]
       ? IsStrictHookExp<TName> extends true
@@ -894,9 +891,15 @@ export type InferHookSignature<TObject, TName extends HookName> = TName extends 
     : [any[], any]
   : [any[], any];
 
-type InferMiddlewareArgs<TObject, TName extends HookName> = InferHookSignature<TObject, TName>[0];
-type InferMiddlewareResult<TObject, TName extends HookName> = InferHookSignature<TObject, TName>[1];
-type InferMiddlewareThis<TObject, TName extends HookName> =
+type InferMiddlewareArgs<TObject extends object | symbol, TName extends HookName> = InferHookSignature<
+  TObject,
+  TName
+>[0];
+type InferMiddlewareResult<TObject extends object | symbol, TName extends HookName> = InferHookSignature<
+  TObject,
+  TName
+>[1];
+type InferMiddlewareThis<TObject extends object | symbol, TName extends HookName> =
   ResolveMemberValue<TObject, HookExpPropertyKey<TName>> extends infer Member
     ? Member extends { [HOOK_DATA]: infer HookData }
       ? HookData extends { origin: infer Origin }
@@ -955,7 +958,7 @@ export interface HookApi {
    * @param fn The middleware to attach.
    * @returns A function that detaches the middleware.
    */
-  attach<TObject, TName extends HookName>(
+  attach<TObject extends object | symbol, TName extends HookName>(
     key: TObject,
     name: TName,
     fn: MiddlewareMethod<
@@ -1040,7 +1043,7 @@ export function attach<A extends any[] = any[], R = any>(key: HookKeyOrKeys, fn:
  * @param fn The middleware to attach.
  * @returns A function that detaches the middleware.
  */
-export function attach<TObject, TName extends HookName>(
+export function attach<TObject extends object | symbol, TName extends HookName>(
   key: TObject,
   name: TName,
   fn: MiddlewareMethod<
@@ -1089,6 +1092,14 @@ export function attach<A extends any[] = any[], R = any>(
   let name: HookName = DEFAULT_HOOK_NAME;
   let fn: MiddlewareMethod<A, R>;
 
+  if (typeof arg1 !== "function" && typeof arg1 !== "object" && typeof arg1 !== "symbol" && !Array.isArray(arg1)) {
+    return noop;
+  }
+
+  if (arg1 === null) {
+    return noop;
+  }
+
   const maybeHook = (arg1 as IHookFn<A, R>)[HOOK_DATA];
 
   if (maybeHook) {
@@ -1106,17 +1117,7 @@ export function attach<A extends any[] = any[], R = any>(
     // middleware(hookFn, fn) OR middleware(key, fn)
     fn = arg2 as MiddlewareMethod<A, R>;
   } else {
-    throw new Error(`${PREFIX}[attach] Invalid arguments`);
-  }
-
-  if (key instanceof HookKeyDynamic) {
-    throw new Error(
-      `${PREFIX}[attach] Cannot attach middleware to dynamic hook key. Use static hook key or composite keys instead.`,
-    );
-  }
-
-  if (key === null) {
-    return noop;
+    throw new Error(`${PREFIX}[attach] Invalid arguments.`);
   }
 
   if (Array.isArray(key)) {
@@ -1127,6 +1128,16 @@ export function attach<A extends any[] = any[], R = any>(
       return noop;
     }
     key = key[0]!;
+  }
+
+  if (key instanceof HookKeyDynamic) {
+    throw new Error(
+      `${PREFIX}[attach] Cannot attach middleware to dynamic hook key. Use static hook key or composite keys instead.`,
+    );
+  }
+
+  if (key === null) {
+    return noop;
   }
 
   if (typeof name === "string" && name.startsWith("!")) {

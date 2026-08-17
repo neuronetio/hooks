@@ -527,7 +527,7 @@ describe("hooks", () => {
     });
   });
 
-  describe("null function functionality", () => {
+  describe("null function", () => {
     it("should work with hook(null)", () => {
       const h = hook(null);
       expect(h()).toBeUndefined();
@@ -779,6 +779,37 @@ describe("hooks", () => {
         expect(middlewareCalled).toBe(false);
       });
       expect(withoutCalled).toBe(true);
+    });
+
+    it("should work with null key", () => {
+      let middleware1Called = false;
+      // @ts-expect-error testing null key
+      const result1 = attach(null, "hello", () => {
+        middleware1Called = true;
+      });
+      expect(result1).toBe(noop);
+      let middleware2Called = false;
+      // @ts-expect-error testing null key
+      const result2 = attach(null, () => {
+        middleware1Called = true;
+      });
+      expect(result2).toBe(noop);
+      // @ts-expect-error testing null key
+      hook(null, () => {});
+      // @ts-expect-error testing null key
+      hook(null, "test", () => {});
+      expect(middleware1Called).toBe(false);
+      expect(middleware2Called).toBe(false);
+
+      // @ts-expect-error testing null key
+      const fn = hook(null, "test", () => {});
+      expect(fn[HOOK_DATA].keyOrKeys).toBe(null);
+      expect(attach(fn, (next) => {})).toBe(noop);
+    });
+
+    it("should work with undefined key", () => {
+      // @ts-expect-error testing undefined key
+      expect(attach(undefined, "test", () => {})).toBe(noop);
     });
   });
 });
