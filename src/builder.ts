@@ -1,4 +1,4 @@
-import type { HookDecoratedClass, HookDecoratableName, HookKeyDynamic, HookDecoratorArgument } from "./index.js";
+import type { HookDecoratedClass, HookDecorName, HookKeyDynamic, HookDecoratorArgument } from "./index.js";
 import { hook } from "./index.js";
 
 /**
@@ -24,30 +24,30 @@ export interface IHookDecoratorBuilder<TClass extends HookDecoratedClass = HookD
    * @param arg2 Optional dynamic hook key or alternative hook name.
    * @returns The same builder so you can keep chaining calls.
    */
-  accessor<TName extends HookDecoratableName<TClass>>(propertyKey: TName): IHookDecoratorBuilder<TClass>;
-  accessor<TName extends HookDecoratableName<TClass>>(
+  accessor<TName extends HookDecorName<TClass>>(propertyKey: TName): IHookDecoratorBuilder<TClass>;
+  accessor<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
   ): IHookDecoratorBuilder<TClass>;
-  accessor<TName extends HookDecoratableName<TClass>>(
+  accessor<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
   ): IHookDecoratorBuilder<TClass>;
-  accessor<TName extends HookDecoratableName<TClass>>(
+  accessor<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKeyOrName: HookKeyDynamic | string,
   ): IHookDecoratorBuilder<TClass>;
-  accessor<TName extends HookDecoratableName<TClass>>(
+  accessor<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
     alternativeName: string,
   ): IHookDecoratorBuilder<TClass>;
-  accessor<TName extends HookDecoratableName<TClass>>(
+  accessor<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
     dynamicKey: HookKeyDynamic,
   ): IHookDecoratorBuilder<TClass>;
-  accessor<TName extends HookDecoratableName<TClass>>(
+  accessor<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
@@ -60,30 +60,30 @@ export interface IHookDecoratorBuilder<TClass extends HookDecoratedClass = HookD
    * @param arg2 Optional dynamic hook key or alternative hook name.
    * @returns The same builder so you can keep chaining calls.
    */
-  field<TName extends HookDecoratableName<TClass>>(propertyKey: TName): IHookDecoratorBuilder<TClass>;
-  field<TName extends HookDecoratableName<TClass>>(
+  field<TName extends HookDecorName<TClass>>(propertyKey: TName): IHookDecoratorBuilder<TClass>;
+  field<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
   ): IHookDecoratorBuilder<TClass>;
-  field<TName extends HookDecoratableName<TClass>>(
+  field<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
   ): IHookDecoratorBuilder<TClass>;
-  field<TName extends HookDecoratableName<TClass>>(
+  field<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKeyOrName: HookKeyDynamic | string,
   ): IHookDecoratorBuilder<TClass>;
-  field<TName extends HookDecoratableName<TClass>>(
+  field<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
     alternativeName: string,
   ): IHookDecoratorBuilder<TClass>;
-  field<TName extends HookDecoratableName<TClass>>(
+  field<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
     dynamicKey: HookKeyDynamic,
   ): IHookDecoratorBuilder<TClass>;
-  field<TName extends HookDecoratableName<TClass>>(
+  field<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
@@ -96,30 +96,30 @@ export interface IHookDecoratorBuilder<TClass extends HookDecoratedClass = HookD
    * @param arg2 Optional dynamic hook key or alternative hook name.
    * @returns The same builder so you can keep chaining calls.
    */
-  getter<TName extends HookDecoratableName<TClass>>(propertyKey: TName): IHookDecoratorBuilder<TClass>;
-  getter<TName extends HookDecoratableName<TClass>>(
+  getter<TName extends HookDecorName<TClass>>(propertyKey: TName): IHookDecoratorBuilder<TClass>;
+  getter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
   ): IHookDecoratorBuilder<TClass>;
-  getter<TName extends HookDecoratableName<TClass>>(
+  getter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
   ): IHookDecoratorBuilder<TClass>;
-  getter<TName extends HookDecoratableName<TClass>>(
+  getter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKeyOrName: HookKeyDynamic | string,
   ): IHookDecoratorBuilder<TClass>;
-  getter<TName extends HookDecoratableName<TClass>>(
+  getter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
     alternativeName: string,
   ): IHookDecoratorBuilder<TClass>;
-  getter<TName extends HookDecoratableName<TClass>>(
+  getter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
     dynamicKey: HookKeyDynamic,
   ): IHookDecoratorBuilder<TClass>;
-  getter<TName extends HookDecoratableName<TClass>>(
+  getter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
@@ -132,30 +132,30 @@ export interface IHookDecoratorBuilder<TClass extends HookDecoratedClass = HookD
    * @param arg2 Optional dynamic hook key or alternative hook name.
    * @returns The same builder so you can keep chaining calls.
    */
-  method<TName extends HookDecoratableName<TClass>>(propertyKey: TName): IHookDecoratorBuilder<TClass>;
-  method<TName extends HookDecoratableName<TClass>>(
+  method<TName extends HookDecorName<TClass>>(propertyKey: TName): IHookDecoratorBuilder<TClass>;
+  method<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
   ): IHookDecoratorBuilder<TClass>;
-  method<TName extends HookDecoratableName<TClass>>(
+  method<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
   ): IHookDecoratorBuilder<TClass>;
-  method<TName extends HookDecoratableName<TClass>>(
+  method<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKeyOrName: HookKeyDynamic | string,
   ): IHookDecoratorBuilder<TClass>;
-  method<TName extends HookDecoratableName<TClass>>(
+  method<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
     alternativeName: string,
   ): IHookDecoratorBuilder<TClass>;
-  method<TName extends HookDecoratableName<TClass>>(
+  method<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
     dynamicKey: HookKeyDynamic,
   ): IHookDecoratorBuilder<TClass>;
-  method<TName extends HookDecoratableName<TClass>>(
+  method<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
@@ -168,30 +168,30 @@ export interface IHookDecoratorBuilder<TClass extends HookDecoratedClass = HookD
    * @param arg2 Optional dynamic hook key or alternative hook name.
    * @returns The same builder so you can keep chaining calls.
    */
-  setter<TName extends HookDecoratableName<TClass>>(propertyKey: TName): IHookDecoratorBuilder<TClass>;
-  setter<TName extends HookDecoratableName<TClass>>(
+  setter<TName extends HookDecorName<TClass>>(propertyKey: TName): IHookDecoratorBuilder<TClass>;
+  setter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
   ): IHookDecoratorBuilder<TClass>;
-  setter<TName extends HookDecoratableName<TClass>>(
+  setter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
   ): IHookDecoratorBuilder<TClass>;
-  setter<TName extends HookDecoratableName<TClass>>(
+  setter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKeyOrName: HookKeyDynamic | string,
   ): IHookDecoratorBuilder<TClass>;
-  setter<TName extends HookDecoratableName<TClass>>(
+  setter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
     alternativeName: string,
   ): IHookDecoratorBuilder<TClass>;
-  setter<TName extends HookDecoratableName<TClass>>(
+  setter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
     dynamicKey: HookKeyDynamic,
   ): IHookDecoratorBuilder<TClass>;
-  setter<TName extends HookDecoratableName<TClass>>(
+  setter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
@@ -218,30 +218,30 @@ export class HookDecoratorBuilder<
     return this;
   }
 
-  accessor<TName extends HookDecoratableName<TClass>>(propertyKey: TName): HookDecoratorBuilder<TClass>;
-  accessor<TName extends HookDecoratableName<TClass>>(
+  accessor<TName extends HookDecorName<TClass>>(propertyKey: TName): HookDecoratorBuilder<TClass>;
+  accessor<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
   ): HookDecoratorBuilder<TClass>;
-  accessor<TName extends HookDecoratableName<TClass>>(
+  accessor<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
   ): HookDecoratorBuilder<TClass>;
-  accessor<TName extends HookDecoratableName<TClass>>(
+  accessor<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKeyOrName: HookKeyDynamic | string,
   ): HookDecoratorBuilder<TClass>;
-  accessor<TName extends HookDecoratableName<TClass>>(
+  accessor<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
     alternativeName: string,
   ): HookDecoratorBuilder<TClass>;
-  accessor<TName extends HookDecoratableName<TClass>>(
+  accessor<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
     dynamicKey: HookKeyDynamic,
   ): HookDecoratorBuilder<TClass>;
-  accessor<TName extends HookDecoratableName<TClass>>(
+  accessor<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
@@ -250,30 +250,27 @@ export class HookDecoratorBuilder<
     return this;
   }
 
-  field<TName extends HookDecoratableName<TClass>>(propertyKey: TName): HookDecoratorBuilder<TClass>;
-  field<TName extends HookDecoratableName<TClass>>(
-    propertyKey: TName,
-    alternativeName: string,
-  ): HookDecoratorBuilder<TClass>;
-  field<TName extends HookDecoratableName<TClass>>(
+  field<TName extends HookDecorName<TClass>>(propertyKey: TName): HookDecoratorBuilder<TClass>;
+  field<TName extends HookDecorName<TClass>>(propertyKey: TName, alternativeName: string): HookDecoratorBuilder<TClass>;
+  field<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
   ): HookDecoratorBuilder<TClass>;
-  field<TName extends HookDecoratableName<TClass>>(
+  field<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKeyOrName: HookKeyDynamic | string,
   ): HookDecoratorBuilder<TClass>;
-  field<TName extends HookDecoratableName<TClass>>(
+  field<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
     alternativeName: string,
   ): HookDecoratorBuilder<TClass>;
-  field<TName extends HookDecoratableName<TClass>>(
+  field<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
     dynamicKey: HookKeyDynamic,
   ): HookDecoratorBuilder<TClass>;
-  field<TName extends HookDecoratableName<TClass>>(
+  field<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
@@ -282,30 +279,30 @@ export class HookDecoratorBuilder<
     return this;
   }
 
-  getter<TName extends HookDecoratableName<TClass>>(propertyKey: TName): HookDecoratorBuilder<TClass>;
-  getter<TName extends HookDecoratableName<TClass>>(
+  getter<TName extends HookDecorName<TClass>>(propertyKey: TName): HookDecoratorBuilder<TClass>;
+  getter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
   ): HookDecoratorBuilder<TClass>;
-  getter<TName extends HookDecoratableName<TClass>>(
+  getter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
   ): HookDecoratorBuilder<TClass>;
-  getter<TName extends HookDecoratableName<TClass>>(
+  getter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKeyOrName: HookKeyDynamic | string,
   ): HookDecoratorBuilder<TClass>;
-  getter<TName extends HookDecoratableName<TClass>>(
+  getter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
     alternativeName: string,
   ): HookDecoratorBuilder<TClass>;
-  getter<TName extends HookDecoratableName<TClass>>(
+  getter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
     dynamicKey: HookKeyDynamic,
   ): HookDecoratorBuilder<TClass>;
-  getter<TName extends HookDecoratableName<TClass>>(
+  getter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
@@ -314,30 +311,30 @@ export class HookDecoratorBuilder<
     return this;
   }
 
-  method<TName extends HookDecoratableName<TClass>>(propertyKey: TName): HookDecoratorBuilder<TClass>;
-  method<TName extends HookDecoratableName<TClass>>(
+  method<TName extends HookDecorName<TClass>>(propertyKey: TName): HookDecoratorBuilder<TClass>;
+  method<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
   ): HookDecoratorBuilder<TClass>;
-  method<TName extends HookDecoratableName<TClass>>(
+  method<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
   ): HookDecoratorBuilder<TClass>;
-  method<TName extends HookDecoratableName<TClass>>(
+  method<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKeyOrName: HookKeyDynamic | string,
   ): HookDecoratorBuilder<TClass>;
-  method<TName extends HookDecoratableName<TClass>>(
+  method<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
     alternativeName: string,
   ): HookDecoratorBuilder<TClass>;
-  method<TName extends HookDecoratableName<TClass>>(
+  method<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
     dynamicKey: HookKeyDynamic,
   ): HookDecoratorBuilder<TClass>;
-  method<TName extends HookDecoratableName<TClass>>(
+  method<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,
@@ -346,30 +343,30 @@ export class HookDecoratorBuilder<
     return this;
   }
 
-  setter<TName extends HookDecoratableName<TClass>>(propertyKey: TName): HookDecoratorBuilder<TClass>;
-  setter<TName extends HookDecoratableName<TClass>>(
+  setter<TName extends HookDecorName<TClass>>(propertyKey: TName): HookDecoratorBuilder<TClass>;
+  setter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
   ): HookDecoratorBuilder<TClass>;
-  setter<TName extends HookDecoratableName<TClass>>(
+  setter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
   ): HookDecoratorBuilder<TClass>;
-  setter<TName extends HookDecoratableName<TClass>>(
+  setter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKeyOrName: HookKeyDynamic | string,
   ): HookDecoratorBuilder<TClass>;
-  setter<TName extends HookDecoratableName<TClass>>(
+  setter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     dynamicKey: HookKeyDynamic,
     alternativeName: string,
   ): HookDecoratorBuilder<TClass>;
-  setter<TName extends HookDecoratableName<TClass>>(
+  setter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     alternativeName: string,
     dynamicKey: HookKeyDynamic,
   ): HookDecoratorBuilder<TClass>;
-  setter<TName extends HookDecoratableName<TClass>>(
+  setter<TName extends HookDecorName<TClass>>(
     propertyKey: TName,
     arg1?: HookDecoratorArgument,
     arg2?: HookDecoratorArgument,

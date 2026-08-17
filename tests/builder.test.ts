@@ -8,7 +8,7 @@ describe("builder", () => {
       field = "field";
       acc: string = "initial";
 
-      method(x: string) {
+      myMethod(x: string) {
         return x + ":orig";
       }
 
@@ -26,7 +26,7 @@ describe("builder", () => {
 
     let runCalled = false;
     const decorated = builder
-      .method("method", "methodAlt")
+      .method("myMethod", "methodAlt")
       .run(() => {
         runCalled = true;
       })
@@ -54,7 +54,7 @@ describe("builder", () => {
         hook.init(this);
       }
 
-      method(x: string) {
+      myMethod(x: string) {
         return x + ":orig";
       }
 
@@ -80,7 +80,7 @@ describe("builder", () => {
     }
 
     Hooks(MixedClass)
-      .method("method", "methodAlt")
+      .method("myMethod", "methodAlt")
       .method("static staticMethod", "staticMethodAlt")
       .field("field", "fieldAlt")
       .accessor("acc", "accAlt")
@@ -93,9 +93,9 @@ describe("builder", () => {
 
     expect(instance instanceof MixedClass).toBe(true);
 
-    attach(MixedClass, "methodAlt", (next, x) => next(x + ":classMid"));
-    attach(instance, "methodAlt", (next, x) => next(x + ":instanceMid"));
-    attach(MixedClass, "!static staticMethodAlt", (next, x) => next(x + ":staticMid"));
+    attach(MixedClass, "!method methodAlt", (next, x) => next(x + ":classMid"));
+    attach(instance, "!method methodAlt", (next, x) => next(x + ":instanceMid"));
+    attach(MixedClass, "!static method staticMethodAlt", (next, x) => next(x + ":staticMid"));
     attach(MixedClass, "!init fieldAlt", (next, value) => next(value + ":fieldInit"));
     attach(MixedClass, "!init accAlt", (next, value) => next(value + ":accInit"));
     attach(instance, "!get accAlt", (next) => next() + ":getAcc");
@@ -105,7 +105,7 @@ describe("builder", () => {
     attach(MixedClass, "!static get staticGetAlt", (next) => next() + ":staticGet");
     attach(MixedClass, "!static set staticSetAlt", (next, value) => next(value + ":staticSet"));
 
-    expect(instance.method("input")).toBe("input:instanceMid:classMid:orig");
+    expect(instance.myMethod("input")).toBe("input:instanceMid:classMid:orig");
     expect(MixedClass.staticMethod("input")).toBe("input:staticMid:staticOrig");
 
     const initialized = new MixedClass();
@@ -128,15 +128,15 @@ describe("builder", () => {
   it("should wrap class instantly", () => {
     const API = Hooks(
       class API {
-        method(x: string) {
+        myMethod(x: string) {
           return x + " orig";
         }
       },
     )
-      .method("method")
+      .method("myMethod")
       .get();
 
-    attach(API, "method", (next, x) => next(x + " mid"));
-    expect(new API().method("input")).toBe("input mid orig");
+    attach(API, "method myMethod", (next, x) => next(x + " mid"));
+    expect(new API().myMethod("input")).toBe("input mid orig");
   });
 });

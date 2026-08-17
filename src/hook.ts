@@ -1,5 +1,3 @@
-import type { HookDecoratableExpression } from "./class-utilities";
-
 export const PREFIX = `[@neuronet/hooks]`;
 
 export const DEFAULT_HOOK_NAME = Symbol("[default_hook_name]");
@@ -526,10 +524,6 @@ export function Hook() {
 
 export type HookDecoratorArgument = HookKeyDynamic | string;
 export type HookDecoratedClass = new (...args: any[]) => any;
-export type HookPropertyName<TClass extends HookDecoratedClass> = Exclude<
-  Extract<keyof InstanceType<TClass> | keyof TClass | "constructor", PropertyKey>,
-  "prototype"
->;
 
 interface IHookDecoratorOptions {
   dynamicKey?: HookKeyDynamic;

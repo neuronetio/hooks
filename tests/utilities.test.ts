@@ -121,7 +121,7 @@ describe("hooks: class utilities", () => {
 
     it("should work with sub-classing", () => {
       class MyClass {
-        method() {
+        myMethod() {
           return "ok";
         }
 
@@ -131,17 +131,17 @@ describe("hooks: class utilities", () => {
       }
 
       const original = new MyClass();
-      expect(original.method()).toBe("ok");
+      expect(original.myMethod()).toBe("ok");
       expect(MyClass.staticMethod()).toBe("ok");
 
-      hook.method(MyClass, "method");
+      hook.method(MyClass, "myMethod");
 
-      attach(MyClass, "method", (next) => next() + " MyClass_mid");
+      attach(MyClass, "method myMethod", (next) => next() + " MyClass_mid");
 
-      expect(original.method()).toBe("ok MyClass_mid");
+      expect(original.myMethod()).toBe("ok MyClass_mid");
 
       const myClassInstance = new MyClass();
-      expect(myClassInstance.method()).toBe("ok MyClass_mid");
+      expect(myClassInstance.myMethod()).toBe("ok MyClass_mid");
 
       class SubClass extends MyClass {}
       const subClassInstance = new SubClass();
@@ -149,17 +149,17 @@ describe("hooks: class utilities", () => {
       expect(subClassInstance instanceof SubClass).toBe(true);
       expect(subClassInstance instanceof MyClass).toBe(true);
 
-      attach(MyClass, "method", (next) => next() + " MyClass_mid2");
+      attach(MyClass, "method myMethod", (next) => next() + " MyClass_mid2");
 
-      expect(subClassInstance.method()).toBe("ok MyClass_mid2 MyClass_mid");
+      expect(subClassInstance.myMethod()).toBe("ok MyClass_mid2 MyClass_mid");
 
-      attach(SubClass, "method", (next) => next() + " subMid");
+      attach(SubClass, "method myMethod", (next) => next() + " subMid");
 
-      expect(subClassInstance.method()).toBe("ok MyClass_mid2 MyClass_mid subMid");
+      expect(subClassInstance.myMethod()).toBe("ok MyClass_mid2 MyClass_mid subMid");
 
-      attach(SubClass, "method", (_next) => "short-circuit");
+      attach(SubClass, "method myMethod", (_next) => "short-circuit");
 
-      expect(subClassInstance.method()).toBe("short-circuit subMid");
+      expect(subClassInstance.myMethod()).toBe("short-circuit subMid");
     });
   });
 
@@ -204,9 +204,16 @@ describe("hooks: class utilities", () => {
       // need to be declared before hookUtils.field is called, otherwise the init hook will not be called
       attach(StaticMembersClass, "!static init staticFieldAlt", (next, value) => next(value + ":fieldInit"));
 
-      hook.field(StaticMembersClass, "staticField", "staticFieldAlt");
+      hook.field(StaticMembersClass, "static staticField", "staticFieldAlt");
 
       expect(StaticMembersClass.staticField).toBe("staticField:fieldInit");
+    });
+
+    it("should throw if field is described as static but it's not", () => {
+      class Origin {
+        notStaticField = "staticField";
+      }
+      expect(() => hook.field(Origin, "static notStaticField")).toThrow("is not static");
     });
 
     it("should work with dynamic hook keys & alternative name for instance fields", () => {
@@ -299,6 +306,24 @@ describe("hooks: class utilities", () => {
       expect(() => hook.field(TestClass, "s")).toThrow("field");
       expect(() => hook.field(TestClass, "method")).toThrow("field");
       expect(() => hook.field(TestClass, "constructor")).toThrow("field");
+    });
+
+    it("should throw if field is called on a static getter or setter", () => {
+      class TestClass {
+        static get g() {
+          return 8;
+        }
+        static set s(v: any) {}
+      }
+      expect(() => hook.field(TestClass, "static g")).toThrow("field");
+      expect(() => hook.field(TestClass, "static s")).toThrow("field");
+    });
+
+    it("should throw when a static member does not exist", () => {
+      class TestClass {}
+      expect(() => hook.method(TestClass as any, "static missing")).toThrow("[class-utilities][method]");
+      expect(() => hook.getter(TestClass as any, "static missing")).toThrow("[class-utilities][getter]");
+      expect(() => hook.setter(TestClass as any, "static missing")).toThrow("[class-utilities][setter]");
     });
   });
 
@@ -454,7 +479,64 @@ describe("hooks: class utilities", () => {
       expect(Product.price).toBe(32); // 2 + 20 + 10 = 32
     });
 
-    // TODO: accessor with getter & setter on instance & static
+    it("accessor should work with instance getters and setters", () => {
+      class Origin {
+        #value: string = "initial";
+
+        constructor() {
+          hook.init(this);
+        }
+
+        get myValue() {
+          return this.#value;
+        }
+
+        set myValue(value: string) {
+          this.#value = value;
+        }
+      }
+
+      const AccessorClass = hook.class(Origin);
+      hook.accessor(AccessorClass, "myValue");
+
+      attach(AccessorClass, "init myValue", (next, value) => next(value + ":init"));
+      attach(AccessorClass, "get myValue", (next) => next() + ":get");
+      attach(AccessorClass, "set myValue", (next, value) => next(value + ":set"));
+
+      const instance = new AccessorClass();
+      expect(instance.myValue).toBe("initial:init:get");
+
+      instance.myValue = "next";
+      expect(instance.myValue).toBe("next:set:get");
+
+      // middleware attached per instance is honoured as well
+      attach(instance, "get myValue", (next) => next() + ":getInstance");
+      expect(instance.myValue).toBe("next:set:get:getInstance");
+    });
+
+    it("accessor should work with static getters and setters", () => {
+      let Counter = class Counter {
+        static #value = 10;
+
+        static get value() {
+          return this.#value;
+        }
+
+        static set value(next: number) {
+          this.#value = next;
+        }
+      };
+
+      attach(Counter as any, "static init static value", (next, value) => next(value + 1));
+      attach(Counter as any, "static get static value", (next) => next() + 2);
+      attach(Counter as any, "static set static value", (next, value) => next(value + 3));
+
+      Counter = hook.accessor(Counter, "static value");
+
+      expect(Counter.value).toBe(13); // 10 + 1 + 2 = 13
+      Counter.value = 5;
+      expect(Counter.value).toBe(10); // 5 + 3 + 2 = 10
+    });
   });
 
   describe("getters and setters", () => {
@@ -635,7 +717,7 @@ describe("hooks: class utilities", () => {
         return next(x + ":sub");
       });
 
-      const detach1 = attach(StaticMethodsClass, "static testStatic", (next, x) => {
+      const detach1 = attach(StaticMethodsClass, "static method testStatic", (next, x) => {
         return next(x + ":mid1");
       });
 
@@ -675,18 +757,18 @@ describe("hooks: class utilities", () => {
       const classHookData = (MethodsClass.prototype.myMethod as any)[HOOK_DATA] as IHookData;
 
       expect(classHookData).toBeDefined();
-      expect(classHookData.name).toBe("myMethod");
+      expect(classHookData.name).toBe("method myMethod");
       expect(classHookData.keyOrKeys).toBeInstanceOf(HookKeyDynamic);
 
       const instanceHookData = (instance.myMethod as any)[HOOK_DATA] as IHookData;
       expect(instanceHookData).toBeDefined();
-      expect(instanceHookData.name).toBe("myMethod");
+      expect(instanceHookData.name).toBe("method myMethod");
 
       expect(instanceHookData.keyOrKeys).toBeInstanceOf(HookKeyDynamic);
 
       expect(instance.myMethod("a")).toBe("a:original");
       const logs: string[] = [];
-      attach(instance, "myMethod", (next, x) => {
+      attach(instance, "method myMethod", (next, x) => {
         logs.push(`instance middleware #1 called with ${x}`);
         return next(x + ":mid1");
       });
@@ -701,7 +783,7 @@ describe("hooks: class utilities", () => {
       instance.myMethod("b");
       expect(subInstanceCalledWith).toEqual(["b:mid1"]);
 
-      attach(instance, "myMethod", (next, x) => {
+      attach(instance, "method myMethod", (next, x) => {
         logs.push(`instance middleware #2 called with ${x}`);
         return next(x + ":mid2");
       });
@@ -712,11 +794,11 @@ describe("hooks: class utilities", () => {
       subInstanceCalledWith = [];
       logs.length = 0;
 
-      attach(MethodsClass, "myMethod", (next, x) => {
+      attach(MethodsClass, "method myMethod", (next, x) => {
         logs.push(`class byPrototype middleware called with ${x}`);
         return next(x + ":class1");
       });
-      attach(MethodsClass, "myMethod", (next, x) => {
+      attach(MethodsClass, "method myMethod", (next, x) => {
         logs.push(`class byMethodName called with ${x}`);
         return next(x + ":class2");
       });
@@ -750,7 +832,7 @@ describe("hooks: class utilities", () => {
 
       hook.method(ConstructorCallClass, "myMethod");
 
-      attach(ConstructorCallClass, "myMethod", (next, x) => {
+      attach(ConstructorCallClass, "method myMethod", (next, x) => {
         return next(x + ":class");
       });
 
@@ -772,12 +854,12 @@ describe("hooks: class utilities", () => {
 
       hook.method(Origin, "myMethod");
 
-      attach(Origin, "myMethod", (next, x) => next(x + " attached"));
+      attach(Origin, "method myMethod", (next, x) => next(x + " attached"));
 
       // attached because the prototype was changed
       expect(instance.myMethod("test")).toBe("test attached private");
 
-      attach(Origin, "myMethod", (next, x) => next(x + " origin_affected"));
+      attach(Origin, "method myMethod", (next, x) => next(x + " origin_affected"));
       expect(instance.myMethod("test")).toBe("test attached origin_affected private");
 
       const afterInstance = new Origin();
@@ -793,7 +875,7 @@ describe("hooks: class utilities", () => {
       };
       expect(Counter.myMethod("test")).toBe("test private");
       Counter = hook.method(Counter, "static myMethod");
-      attach(Counter, "static myMethod", (next, x) => next(x + " attached"));
+      attach(Counter, "static method myMethod", (next, x) => next(x + " attached"));
       expect(Counter.myMethod("test")).toBe("test attached private");
     });
 
@@ -803,7 +885,7 @@ describe("hooks: class utilities", () => {
           return x + ":original";
         }
       }
-      attach(Origin, "myMethod", (next, x) => next(x + ":mid1"));
+      attach(Origin, "method myMethod", (next, x) => next(x + ":mid1"));
       const MyClass = hook.method(Origin, "myMethod");
       const instance = new MyClass();
       expect(instance instanceof MyClass).toBe(true);
@@ -845,7 +927,7 @@ describe("hooks: class utilities", () => {
         return next(x);
       });
 
-      attach(DynamicHookClass, "dynamicMethod", (next, x) => {
+      attach(DynamicHookClass, "method dynamicMethod", (next, x) => {
         return next(x + ":mid1");
       });
 
@@ -855,7 +937,7 @@ describe("hooks: class utilities", () => {
         }),
       ).toThrow("dynamic");
 
-      attach(DynamicHookClass, "dynamicMethod", (next, x) => {
+      attach(DynamicHookClass, "method dynamicMethod", (next, x) => {
         return next(x + ":mid2");
       });
 
@@ -865,7 +947,7 @@ describe("hooks: class utilities", () => {
         }),
       ).toThrow("dynamic");
 
-      attach(instance, "dynamicMethod", (next, x) => {
+      attach(instance, "method dynamicMethod", (next, x) => {
         return next(x + ":mid3");
       });
 
@@ -894,9 +976,20 @@ describe("hooks: class utilities", () => {
       const instance = new MyClass();
       expect(instance.myMethod()).toBe("ok");
 
-      attach(instance.myKey, "myMethod", (next) => "intercepted " + next());
+      attach(instance.myKey, "!method myMethod", (next) => "intercepted " + next());
 
       expect(instance.myMethod()).toBe("intercepted ok");
+    });
+
+    it("should throw when there is no 'method' keyword", () => {
+      class MyClass {
+        myMethod() {}
+        static myStaticMethod() {}
+      }
+      // @ts-expect-error missing `method` kind
+      expect(() => hook.class(MyClass, "myMethod")).toThrow("Invalid expression");
+      // @ts-expect-error missing `method` kind
+      expect(() => hook.class(MyClass, "static myStaticMethod")).toThrow("Invalid expression");
     });
   });
 
@@ -914,7 +1007,7 @@ describe("hooks: class utilities", () => {
       const instance = new InnerHooksClass();
 
       const instanceHookKeys: any[] = [];
-      attach(instance, "myMethod", (next, x) => {
+      attach(instance, "method myMethod", (next, x) => {
         const innerResult = hook("innerHook", (v) => {
           instanceHookKeys.push(getCurrentHookKeyContext());
           return v;
@@ -923,7 +1016,7 @@ describe("hooks: class utilities", () => {
       });
 
       const classHookKeys: any[] = [];
-      attach(InnerHooksClass, "myMethod", (next, x) => {
+      attach(InnerHooksClass, "method myMethod", (next, x) => {
         const innerResult = hook("innerHook", (v) => {
           classHookKeys.push(getCurrentHookKeyContext());
           return v;
@@ -1001,7 +1094,7 @@ describe("hooks: class utilities", () => {
       hook.method(MyClass, "myMethod");
 
       attach(MyClass, "init field", (next, value) => next(value + ":init"));
-      attach(MyClass, "myMethod", (next, x) => next(x + ":mid"));
+      attach(MyClass, "method myMethod", (next, x) => next(x + ":mid"));
 
       const instance = new MyClass();
       expect(instance.field).toBe("field:init");
@@ -1038,7 +1131,7 @@ describe("hooks: class utilities", () => {
 
       const StaticMethodsClass = hook.method(Origin, "static testStatic");
 
-      attach(StaticMethodsClass, "static testStatic", (next, x) => {
+      attach(StaticMethodsClass, "static method testStatic", (next, x) => {
         return next(x + ":mid1");
       });
 
@@ -1097,6 +1190,152 @@ describe("hooks: class utilities", () => {
       expect(Origin.field).toBe(22); // (10 + 1) * 2 = 22
       Origin.field = 7;
       expect(Origin.field).toBe(20); // (7 + 3) * 2 = 20
+    });
+  });
+
+  describe("hook.class expression", () => {
+    it("should reject a two-word expression that is neither `static`, `get`, `set`, nor `accessor`", () => {
+      class MyClass {
+        method() {}
+      }
+      expect(() => hook.class(MyClass as any, "method field")).toThrow("Could not find a compatible member");
+    });
+
+    it("should reject a three-part expression that does not start with `static`", () => {
+      class MyClass {
+        get value() {
+          return 1;
+        }
+      }
+      expect(() => hook.class(MyClass as any, "get foo bar")).toThrow(
+        "[class-utilities][hookClass] Invalid expression",
+      );
+    });
+
+    it("should reject a three-part expression with an unknown kind after `static`", () => {
+      class MyClass {
+        static field = 1;
+      }
+      // @ts-expect-error no such kind
+      expect(() => hook.class(MyClass as any, "static unknown field")).toThrow(
+        "[class-utilities][hookClass] Invalid expression",
+      );
+    });
+
+    it("should handle a leading static followed by an init", () => {
+      class MyClass {
+        static field = 1;
+      }
+      let middlewareCalled = false;
+      attach(MyClass, "static init field", (next, v) => {
+        middlewareCalled = true;
+        return next(v + 1);
+      });
+      expect(middlewareCalled).toBe(false);
+      hook.class(MyClass, "static init field");
+      expect(middlewareCalled).toBe(true);
+      expect(MyClass.field).toBe(2);
+    });
+
+    it("should reject a single-word expression that is not a method key", () => {
+      class MyClass {
+        field = 1;
+      }
+      // @ts-expect-error hook.class should define kind of decorator
+      expect(() => hook.class(MyClass, "field")).toThrow("Invalid expression");
+    });
+
+    it("should work with a plain method name", () => {
+      class MyClass {
+        myMethod(x: string) {
+          return x + ":original";
+        }
+      }
+      hook.class(MyClass, "method myMethod");
+      attach(MyClass, "method myMethod", (next, x) => next(x + ":mid"));
+      expect(new MyClass().myMethod("input")).toBe("input:mid:original");
+    });
+
+    it("should work with `get`, `set`, `accessor` and `init` kinds", () => {
+      let Product = class Product {
+        price = 0;
+        constructor() {
+          hook.init(this);
+        }
+      };
+      Product = hook.class(Product, "accessor price");
+
+      attach(Product, "init price", (next, value) => next(value + 1));
+      attach(Product, "get price", (next) => next() * 2);
+      attach(Product, "set price", (next, value) => next(value + 3));
+
+      const instance = new Product();
+      expect(instance.price).toBe(2); // (0 + 1) * 2 = 2
+      instance.price = 5;
+      expect(instance.price).toBe(16); // (5 + 3) * 2 = 16
+    });
+
+    it("should work with static method, static getter, static setter and static accessor kinds", () => {
+      class Origin {
+        static #value = 0;
+
+        static myMethod(x: string) {
+          return x + ":method";
+        }
+
+        static get value() {
+          return this.#value;
+        }
+
+        static set value(next: number) {
+          this.#value = next;
+        }
+      }
+
+      const StaticMethod = hook.class(Origin, "static method myMethod");
+      attach(StaticMethod, "static method myMethod", (next, x) => next(x + ":mid"));
+      expect(StaticMethod.myMethod("input")).toBe("input:mid:method");
+
+      const StaticGetter = hook.class(Origin, "static get value");
+      attach(StaticGetter, "static get value", (next) => next() + 1);
+      expect(StaticGetter.value).toBe(1);
+
+      const StaticSetter = hook.class(Origin, "static set value");
+      attach(StaticSetter, "static set value", (next, value) => next(value + 1));
+      StaticSetter.value = 2;
+      expect(StaticSetter.value).toBe(4); // 2 + 1 (set) + 1 (get) = 4
+    });
+
+    it("should work with a static accessor kind", () => {
+      class Origin {
+        static field = 10;
+      }
+
+      attach(Origin, "static init field", (next, value) => next(value + 1));
+      attach(Origin, "static get field", (next) => next() * 2);
+      attach(Origin, "static set field", (next, value) => next(value + 3));
+
+      const Hooked = hook.class(Origin, "static accessor field");
+      expect(Hooked.field).toBe(22); // (10 + 1) * 2 = 22
+      Hooked.field = 7;
+      expect(Hooked.field).toBe(20); // (7 + 3) * 2 = 20
+    });
+
+    it("should reject too long expressions", () => {
+      // @ts-expect-error too long expression
+      expect(() => hook.class(class {}, "static get value extra")).toThrow("Invalid expression");
+    });
+
+    it("should work with three part expression that contains method", () => {
+      class Origin {
+        static myMethod(x: string) {
+          return x + ":method";
+        }
+      }
+
+      hook.class(Origin, "static method myMethod");
+      attach(Origin, "static method myMethod", (next, x) => next(x + ":mid"));
+      expect(Origin.myMethod("input")).toBe("input:mid:method");
     });
   });
 });
