@@ -24,14 +24,19 @@ describe("builder", () => {
     const builder = Hooks(BuilderClass);
     expect(builder).toBeInstanceOf(HookDecoratorBuilder);
 
+    let runCalled = false;
     const decorated = builder
       .method("method", "methodAlt")
+      .run(() => {
+        runCalled = true;
+      })
       .field("field", "fieldAlt")
       .accessor("acc", "accAlt")
       .getter("value", "valueAlt")
       .setter("value", "valueAlt")
       .get();
 
+    expect(runCalled).toBe(true);
     expect(decorated).toBe(BuilderClass);
     const instance = new decorated();
     expect(instance).toBeInstanceOf(BuilderClass);
