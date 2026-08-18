@@ -21,17 +21,33 @@ export type HookDecorName<TClass extends HookDecoratedClass> =
   | HookPropertyName<TClass>
   | `static ${string & HookPropertyName<TClass>}`;
 
-export type HookClassExpression<TClass extends HookDecoratedClass> =
+export type StrictHookClassExpression<TClass extends HookDecoratedClass> =
   | `init ${string & HookPropertyName<TClass>}`
   | `get ${string & HookPropertyName<TClass>}`
   | `set ${string & HookPropertyName<TClass>}`
   | `accessor ${string & HookPropertyName<TClass>}`
-  | `method ${string & HookDecorName<TClass>}`
+  | `method ${string & HookPropertyName<TClass>}`
   | `static init ${string & HookPropertyName<TClass>}`
   | `static get ${string & HookPropertyName<TClass>}`
   | `static set ${string & HookPropertyName<TClass>}`
   | `static accessor ${string & HookPropertyName<TClass>}`
   | `static method ${string & HookPropertyName<TClass>}`;
+
+export type LooseHookClassExpression =
+  | `!init ${string}`
+  | `!get ${string}`
+  | `!set ${string}`
+  | `!accessor ${string}`
+  | `!method ${string}`
+  | `!static init ${string}`
+  | `!static get ${string}`
+  | `!static set ${string}`
+  | `!static accessor ${string}`
+  | `!static method ${string}`;
+
+export type HookClassExpression<TClass extends HookDecoratedClass> =
+  | StrictHookClassExpression<TClass>
+  | LooseHookClassExpression;
 
 export interface IHookClassUtilitiesState {
   instanceInitializers: Array<(instance: any) => void>;
@@ -780,9 +796,12 @@ export function hookClass<TClass extends HookDecoratedClass>(
   Class: TClass,
   expression?: string & HookClassExpression<TClass>,
 ): TClass {
-  if (expression === undefined) {
+  if (typeof expression !== "string") {
     classUtilitiesState(Class);
     return Class;
+  }
+  if (expression.startsWith("!")) {
+    expression = expression.slice(1) as string & HookClassExpression<TClass>;
   }
   const parts = expression.split(" ");
   let isStatic = false;
