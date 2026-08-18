@@ -928,7 +928,7 @@ export function attach<A extends any[] = any[], R = any>(key: HookKeyOrKeys, fn:
  * @param fn The middleware to attach.
  * @returns A function that detaches the middleware.
  */
-export function attach<TObject extends object | symbol, TName extends HookName>(
+export function attach<TObject extends object, TName extends HookName>(
   key: TObject,
   name: TName,
   fn: MiddlewareMethod<

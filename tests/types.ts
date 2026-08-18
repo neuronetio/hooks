@@ -269,7 +269,7 @@ hook.method(FnManualExample, "withThis");
 hook.getter(FnManualExample, "value");
 hook.setter(FnManualExample, "value");
 hook.field(FnManualExample, "initField");
-hook.method(FnManualExample, "staticMethod");
+hook.method(FnManualExample, "static staticMethod");
 
 // @ts-expect-error hookMethod should reject non existing method
 hook.method(FnManualExample, "nonExistingMethod");
@@ -332,6 +332,7 @@ attach(FnManualExample, "static init initStatic", (next, value) => {
   return next(value);
 });
 
+// @ts-expect-error static init should not be available on instance
 attach(fnInstance, "static init initStatic", (next, value) => {
   // @ts-expect-error static init should not be available on instance
   return next(value);

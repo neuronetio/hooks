@@ -136,16 +136,16 @@ export type HookDecorName<TClass extends HookDecoratedClass> =
   | `static ${string & HookClassStaticPropertyName<TClass>}`;
 
 export type StrictHookClassExpression<TClass extends HookDecoratedClass> =
-  | `init ${string & HookClassPropertyName<TClass>}`
-  | `get ${string & HookClassPropertyName<TClass>}`
-  | `set ${string & HookClassPropertyName<TClass>}`
-  | `accessor ${string & HookClassPropertyName<TClass>}`
-  | `method ${string & HookClassPropertyName<TClass>}`
-  | `static init ${string & HookClassPropertyName<TClass>}`
-  | `static get ${string & HookClassPropertyName<TClass>}`
-  | `static set ${string & HookClassPropertyName<TClass>}`
-  | `static accessor ${string & HookClassPropertyName<TClass>}`
-  | `static method ${string & HookClassPropertyName<TClass>}`;
+  | `init ${string & HookClassInstancePropertyName<TClass>}`
+  | `get ${string & HookClassInstancePropertyName<TClass>}`
+  | `set ${string & HookClassInstancePropertyName<TClass>}`
+  | `accessor ${string & HookClassInstancePropertyName<TClass>}`
+  | `method ${string & HookClassInstancePropertyName<TClass>}`
+  | `static init ${string & HookClassStaticPropertyName<TClass>}`
+  | `static get ${string & HookClassStaticPropertyName<TClass>}`
+  | `static set ${string & HookClassStaticPropertyName<TClass>}`
+  | `static accessor ${string & HookClassStaticPropertyName<TClass>}`
+  | `static method ${string & HookClassStaticPropertyName<TClass>}`;
 
 export type LooseHookClassExpression =
   | `!init ${string}`
