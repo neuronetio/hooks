@@ -286,14 +286,30 @@ attach(FnManualExample, "myMethod", (next, x) => {
   return next(x + 1);
 });
 
+const fnInstance = new FnManualExample();
+
+attach(fnInstance, "method myMethod", (next, x) => {
+  return next(x);
+});
+
 // @ts-expect-error middleware should require a number argument for myMethod
 attach(FnManualExample, "myMethod", (next, x: string) => {
   // @ts-expect-error middleware should require a number argument for myMethod
   return next(x + 1);
 });
 
+// @ts-expect-error middleware should require a number argument for myMethod
+attach(fnInstance, "method myMethod", (next, x: string) => {
+  // @ts-expect-error middleware should require a number argument for myMethod
+  return next(x);
+});
+
 attach(FnManualExample, "init value", (next, value) => {
   return next(value + 1);
+});
+
+attach(fnInstance, "init value", (next, x) => {
+  return next(x + 1);
 });
 
 // @ts-expect-error middleware should require a number argument for myMethod
@@ -302,10 +318,22 @@ attach(FnManualExample, "init value", (next, value: string) => {
   return next(value + 1);
 });
 
+// @ts-expect-error middleware should require a number argument for myMethod
+attach(fnInstance, "init value", (next, value: string) => {
+  // @ts-expect-error number is expected
+  return next(value);
+});
+
 const _T: StrictHookExpPropertyKey<"static init initStatic"> = "initStatic";
 const _T2: ResolveMemberValue<typeof FnManualExample, StrictHookExpPropertyKey<"static init initStatic">> = "value";
 const _T3: ResolveMemberValue<typeof FnManualExample, "initStatic"> = "value";
+
 attach(FnManualExample, "static init initStatic", (next, value) => {
+  return next(value);
+});
+
+attach(fnInstance, "static init initStatic", (next, value) => {
+  // @ts-expect-error static init should not be available on instance
   return next(value);
 });
 

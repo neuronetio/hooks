@@ -1,4 +1,3 @@
-import type { HookDecoratedClass, HookDecoratorArgument, HookKeyDynamic, HookName } from "./hook.js";
 import {
   _resolveHookDecoratorOptions,
   _createAccessorDecorator,
@@ -9,49 +8,19 @@ import {
   HOOK_CLASS_STATE,
   PREFIX,
   dhk,
-} from "./hook.js";
+} from "./index.js";
+import type {
+  HookDecoratedClass,
+  HookDecoratorArgument,
+  HookKeyDynamic,
+  HookName,
+  IHookClassUtilitiesState,
+  HookDecorName,
+  HookClassExpression,
+  HookClassPropertyName,
+} from "./shared.js";
 
 const SUB_PREFIX = "[class-utilities]";
-export type HookPropertyName<TClass extends HookDecoratedClass> = Exclude<
-  Extract<keyof InstanceType<TClass> | keyof TClass | "constructor", PropertyKey>,
-  "prototype"
->;
-/** A member name, optionally prefixed with `"static "` to force static-member resolution. */
-export type HookDecorName<TClass extends HookDecoratedClass> =
-  | HookPropertyName<TClass>
-  | `static ${string & HookPropertyName<TClass>}`;
-
-export type StrictHookClassExpression<TClass extends HookDecoratedClass> =
-  | `init ${string & HookPropertyName<TClass>}`
-  | `get ${string & HookPropertyName<TClass>}`
-  | `set ${string & HookPropertyName<TClass>}`
-  | `accessor ${string & HookPropertyName<TClass>}`
-  | `method ${string & HookPropertyName<TClass>}`
-  | `static init ${string & HookPropertyName<TClass>}`
-  | `static get ${string & HookPropertyName<TClass>}`
-  | `static set ${string & HookPropertyName<TClass>}`
-  | `static accessor ${string & HookPropertyName<TClass>}`
-  | `static method ${string & HookPropertyName<TClass>}`;
-
-export type LooseHookClassExpression =
-  | `!init ${string}`
-  | `!get ${string}`
-  | `!set ${string}`
-  | `!accessor ${string}`
-  | `!method ${string}`
-  | `!static init ${string}`
-  | `!static get ${string}`
-  | `!static set ${string}`
-  | `!static accessor ${string}`
-  | `!static method ${string}`;
-
-export type HookClassExpression<TClass extends HookDecoratedClass> =
-  | StrictHookClassExpression<TClass>
-  | LooseHookClassExpression;
-
-export interface IHookClassUtilitiesState {
-  instanceInitializers: Array<(instance: any) => void>;
-}
 
 /**
  * Returns the cached utilities hook runtime state for a class, creating it when needed.
@@ -800,14 +769,14 @@ export function hookClass<TClass extends HookDecoratedClass>(
   const parts = expression.split(" ");
   let isStatic = false;
   let type: HookClassExpressionType = "init";
-  let key: HookPropertyName<TClass> = "" as HookPropertyName<TClass>;
+  let key: HookClassPropertyName<TClass> = "" as HookClassPropertyName<TClass>;
   switch (parts.length) {
     case 2: {
       const parts0 = parts[0]!;
       if (parts0 === "method" || parts0 === "init" || parts0 === "get" || parts0 === "set" || parts0 === "accessor") {
         isStatic = false;
         type = parts0;
-        key = parts[1]! as HookPropertyName<TClass>;
+        key = parts[1]! as HookClassPropertyName<TClass>;
       } else {
         throw new Error(`${PREFIX}${SUB_PREFIX}[hookClass] Invalid expression: "${expression}".`);
       }
@@ -821,7 +790,7 @@ export function hookClass<TClass extends HookDecoratedClass>(
       const parts1 = parts[1];
       if (parts1 === "method" || parts1 === "init" || parts1 === "get" || parts1 === "set" || parts1 === "accessor") {
         type = parts1!;
-        key = parts[2]! as HookPropertyName<TClass>;
+        key = parts[2]! as HookClassPropertyName<TClass>;
       } else {
         throw new Error(`${PREFIX}${SUB_PREFIX}[hookClass] Invalid expression: "${expression}".`);
       }
@@ -833,19 +802,19 @@ export function hookClass<TClass extends HookDecoratedClass>(
   }
   switch (type) {
     case "init": {
-      return hookField(Class, ((isStatic ? "static " : "") + String(key)) as HookPropertyName<TClass>);
+      return hookField(Class, ((isStatic ? "static " : "") + String(key)) as HookClassPropertyName<TClass>);
     }
     case "get": {
-      return hookGetter(Class, ((isStatic ? "static " : "") + String(key)) as HookPropertyName<TClass>);
+      return hookGetter(Class, ((isStatic ? "static " : "") + String(key)) as HookClassPropertyName<TClass>);
     }
     case "set": {
-      return hookSetter(Class, ((isStatic ? "static " : "") + String(key)) as HookPropertyName<TClass>);
+      return hookSetter(Class, ((isStatic ? "static " : "") + String(key)) as HookClassPropertyName<TClass>);
     }
     case "accessor": {
-      return hookAccessor(Class, ((isStatic ? "static " : "") + String(key)) as HookPropertyName<TClass>);
+      return hookAccessor(Class, ((isStatic ? "static " : "") + String(key)) as HookClassPropertyName<TClass>);
     }
     case "method": {
-      return hookMethod(Class, ((isStatic ? "static " : "") + String(key)) as HookPropertyName<TClass>);
+      return hookMethod(Class, ((isStatic ? "static " : "") + String(key)) as HookClassPropertyName<TClass>);
     }
   }
   /* v8 ignore next 1 */

@@ -213,6 +213,7 @@ describe("hooks: class utilities", () => {
       class Origin {
         notStaticField = "staticField";
       }
+      // @ts-expect-error no such field
       expect(() => hook.field(Origin, "static notStaticField")).toThrow("is not static");
     });
 
@@ -1085,6 +1086,7 @@ describe("hooks: class utilities", () => {
       expect(() => hook.setter(InvalidClass, "field")).toThrow("[class-utilities][setter]");
       expect(() => hook.accessor(InvalidClass, "onlyGetter")).toThrow("[class-utilities][accessor]");
       expect(() => hook.field(InvalidClass, "constructor")).toThrow("[class-utilities][field]");
+      // @ts-expect-error no such field
       expect(() => hook.field(StaticFieldClassFn, "bad")).not.toThrow("[class-utilities][field]");
       expect(() => hook.accessor(StaticFieldClassFn, "bad")).not.toThrow("[class-utilities][accessor]");
     });
@@ -1114,10 +1116,10 @@ describe("hooks: class utilities", () => {
         }
       }
 
-      attach(MyClass, "init staticField", (next, value) => next(value + ":init"));
+      attach(MyClass, "static init staticField", (next, value) => next(value + ":init"));
 
       hook.field(MyClass, "field");
-      hook.field(MyClass, "staticField");
+      hook.field(MyClass, "static staticField");
       hook.method(MyClass, "myMethod");
 
       attach(MyClass, "init field", (next, value) => next(value + ":init"));
@@ -1126,6 +1128,7 @@ describe("hooks: class utilities", () => {
       const instance = new MyClass();
       expect(instance.field).toBe("field:init");
       expect(instance.myMethod("input")).toBe("input:mid:original");
+      expect(MyClass.staticField).toBe("staticField:init");
     });
 
     it("should work with `constructor` middleware", () => {
