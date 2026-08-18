@@ -1089,6 +1089,17 @@ describe("hooks: class utilities", () => {
       expect(() => hook.accessor(StaticFieldClassFn, "bad")).not.toThrow("[class-utilities][accessor]");
     });
 
+    it("should reject accessor on a setter-only instance property", () => {
+      class SetterOnly {
+        // oxlint-disable-next-line no-unused-private-class-members
+        #_value = "initial";
+        set onlySet(val: string) {
+          this.#_value = val;
+        }
+      }
+      expect(() => hook.accessor(SetterOnly, "onlySet")).toThrow("[class-utilities][accessor]");
+    });
+
     it("should work without reassigning the class", () => {
       class MyClass {
         field = "field";
@@ -1270,6 +1281,42 @@ describe("hooks: class utilities", () => {
       hook.class(MyClass, "method myMethod");
       attach(MyClass, "method myMethod", (next, x) => next(x + ":mid"));
       expect(new MyClass().myMethod("input")).toBe("input:mid:original");
+    });
+
+    it("should work with non-static get expression in hook.class", () => {
+      class MyClass {
+        #value = "test";
+        get value() {
+          return this.#value;
+        }
+      }
+
+      hook.class(MyClass, "get value");
+
+      attach(MyClass, "get value", (next) => next() + ":hooked");
+
+      const instance = new MyClass();
+      expect(instance.value).toBe("test:hooked");
+    });
+
+    it("should work with non-static set expression in hook.class", () => {
+      class MyClass {
+        #value = "test";
+        get value() {
+          return this.#value;
+        }
+        set value(val: string) {
+          this.#value = val;
+        }
+      }
+
+      hook.class(MyClass, "set value");
+
+      attach(MyClass, "set value", (next, val) => next(val + ":hooked"));
+
+      const instance = new MyClass();
+      instance.value = "new";
+      expect(instance.value).toBe("new:hooked");
     });
 
     it("should work with `get`, `set`, `accessor` and `init` kinds", () => {

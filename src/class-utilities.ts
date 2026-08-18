@@ -642,16 +642,16 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
   arg2?: HookDecoratorArgument,
 ): TClass {
   const state = classUtilitiesState(Class);
-  const { static: forceStatic, key } = parseStaticPrefix(propertyKey);
+  const { static: isStatic, key } = parseStaticPrefix(propertyKey);
   const { dynamicKey, alternativeName } = _resolveHookDecoratorOptions(arg1, arg2);
   const hookName = (alternativeName ?? key) as HookName;
 
   const staticDescriptor = Object.getOwnPropertyDescriptor(Class, key);
-  if (forceStatic && typeof staticDescriptor?.get === "function" && typeof staticDescriptor?.set === "function") {
+  if (isStatic && typeof staticDescriptor?.get === "function" && typeof staticDescriptor?.set === "function") {
     const originalGet = staticDescriptor.get;
     const originalSet = staticDescriptor.set;
     const decoratedAccessor = _createAccessorDecorator(
-      forceStatic,
+      isStatic,
       key,
       "static " + String(key),
       originalGet,
@@ -688,17 +688,10 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
   }
 
   const instanceDescriptor = Object.getOwnPropertyDescriptor(Class.prototype, key);
-  if (!forceStatic && typeof instanceDescriptor?.get === "function" && typeof instanceDescriptor?.set === "function") {
+  if (!isStatic && typeof instanceDescriptor?.get === "function" && typeof instanceDescriptor?.set === "function") {
     const originalGet = instanceDescriptor.get;
     const originalSet = instanceDescriptor.set;
-    const decoratedAccessor = _createAccessorDecorator(
-      forceStatic,
-      key,
-      hookName,
-      originalGet,
-      originalSet,
-      dynamicKey,
-    );
+    const decoratedAccessor = _createAccessorDecorator(isStatic, key, hookName, originalGet, originalSet, dynamicKey);
     const initializedKey = Symbol(`${PREFIX}[initialized ${String(key)}]`);
     function ensureInitialized(this: any) {
       if (this[initializedKey]) {
@@ -731,11 +724,11 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
   }
 
   if (
-    (forceStatic && staticDescriptor === undefined) ||
-    (forceStatic &&
+    (isStatic && staticDescriptor === undefined) ||
+    (isStatic &&
       staticDescriptor &&
       (typeof staticDescriptor.get === "function" || typeof staticDescriptor.set === "function")) ||
-    (!forceStatic &&
+    (!isStatic &&
       instanceDescriptor &&
       (typeof instanceDescriptor.get === "function" || typeof instanceDescriptor.set === "function"))
   ) {
@@ -744,7 +737,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
     );
   }
 
-  const descriptor = staticDescriptor ?? (forceStatic ? undefined : instanceDescriptor);
+  const descriptor = staticDescriptor ?? instanceDescriptor;
 
   const valueKey = Symbol(`${PREFIX}[accessor-value ${String(key)}]`);
   function originalGet(this: any) {
@@ -753,8 +746,8 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
   function originalSet(this: any, value: any) {
     this[valueKey] = value;
   }
-  const decoratedAccessor = _createAccessorDecorator(forceStatic, key, hookName, originalGet, originalSet, dynamicKey);
-  const target = forceStatic ? Class : Class.prototype;
+  const decoratedAccessor = _createAccessorDecorator(isStatic, key, hookName, originalGet, originalSet, dynamicKey);
+  const target = isStatic ? Class : Class.prototype;
 
   Object.defineProperty(target, key, {
     configurable: descriptor?.configurable ?? true,
@@ -767,7 +760,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
     },
   });
 
-  if (forceStatic) {
+  if (isStatic) {
     const nextValue = decoratedAccessor.init.call(Class, staticDescriptor?.value);
     originalSet.call(Class, nextValue);
     return Class;
