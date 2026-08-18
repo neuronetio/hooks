@@ -325,6 +325,22 @@ describe("hooks: class utilities", () => {
       expect(() => hook.getter(TestClass as any, "static missing")).toThrow("[class-utilities][getter]");
       expect(() => hook.setter(TestClass as any, "static missing")).toThrow("[class-utilities][setter]");
     });
+
+    it("should work with prototype fields", () => {
+      class Origin {
+        constructor() {
+          hook.init(this);
+        }
+      }
+      // @ts-ignore
+      Origin.prototype.field = "val";
+      // @ts-ignore
+      expect(new Origin().field).toBe("val");
+      attach(Origin, "!init field", (next, value) => next(value + ":mid"));
+      hook.class(Origin, "!init field");
+      // @ts-ignore
+      expect(new Origin().field).toBe("val:mid");
+    });
   });
 
   describe("accessors", () => {
