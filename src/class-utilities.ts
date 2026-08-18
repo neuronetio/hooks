@@ -723,6 +723,7 @@ export function hookAccessor<TClass extends HookDecoratedClass>(
     return Class;
   }
 
+  // !isStatic && !instanceDescriptor is not checked by purpose because of instance properties declared inside constructor
   if (
     (isStatic && staticDescriptor === undefined) ||
     (isStatic &&
