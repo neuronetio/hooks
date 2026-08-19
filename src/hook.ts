@@ -7,8 +7,11 @@ import type {
   IHookData,
   MetadataHooks,
   IHookDecoratorOptions,
-  HookDecoratorArgument,
+  DynamicKeyOrAlternativeName,
   IAccessorDecoratorHooks,
+  InferMiddlewareArgs,
+  InferMiddlewareResult,
+  InferMiddlewareThis,
 } from "./shared.js";
 import { PREFIX, DEFAULT_HOOK_NAME, HOOK_DATA, _identity, noop, ArgumentsProvider, HookKeyDynamic } from "./shared.js";
 
@@ -437,8 +440,8 @@ export function Hook() {
  * @internal
  */
 export function _resolveHookDecoratorOptions(
-  arg1?: HookDecoratorArgument,
-  arg2?: HookDecoratorArgument,
+  arg1?: DynamicKeyOrAlternativeName,
+  arg2?: DynamicKeyOrAlternativeName,
 ): IHookDecoratorOptions {
   if (typeof arg1 === "string") {
     return {
@@ -590,6 +593,7 @@ export function hookDecorator(
   dynamicKey = resolvedOptions.dynamicKey;
   alternativeName = resolvedOptions.alternativeName;
 
+  // TODO: must align with expressions like `method myMethod` or `static method myMethod`
   return function decorate(this: any, value: any, context: HookDecoratorContext): any {
     let propertyKey = context.name;
     let hookName = (alternativeName || propertyKey) as string | symbol;
@@ -641,11 +645,13 @@ export function hookDecorator(
   };
 }
 
-export type MiddlewareMethod<A extends any[] = any[], R = any, TThis = unknown> = (
-  this: TThis,
-  next: (...args: A) => R,
-  ...args: A
-) => R;
+export type MiddlewareMethod<A extends any[] = any[], R = any, TThis = unknown> = [A] extends [never]
+  ? never
+  : [R] extends [never]
+    ? never
+    : [TThis] extends [never]
+      ? never
+      : (this: TThis, next: (...args: A) => R, ...args: A) => R;
 
 export type HookOrigin<T> = T extends { [HOOK_DATA]: infer HookData }
   ? HookData extends { origin: infer Origin }
@@ -668,130 +674,6 @@ export type HookOriginThis<T> = T extends { [HOOK_DATA]: infer HookData }
     : unknown
   : T extends (this: infer ThisArg, ...args: any[]) => any
     ? ThisArg
-    : unknown;
-
-export type StrictHookExpPropertyKey<N extends HookName> = N extends `get ${infer P}`
-  ? P & PropertyKey
-  : N extends `set ${infer P}`
-    ? P & PropertyKey
-    : N extends `init ${infer P}`
-      ? P & PropertyKey
-      : N extends `method ${infer P}`
-        ? P & PropertyKey
-        : N extends `static get ${infer P}`
-          ? P & PropertyKey
-          : N extends `static set ${infer P}`
-            ? P & PropertyKey
-            : N extends `static init ${infer P}`
-              ? P & PropertyKey
-              : N extends `static method ${infer P}`
-                ? P & PropertyKey
-                : N extends `static ${infer P}`
-                  ? P & PropertyKey
-                  : N extends PropertyKey
-                    ? N
-                    : never;
-
-export type LooseHookExpPropertyKey<N extends HookName> = N extends `!get ${infer P}`
-  ? P & PropertyKey
-  : N extends `!set ${infer P}`
-    ? P & PropertyKey
-    : N extends `!init ${infer P}`
-      ? P & PropertyKey
-      : N extends `!method ${infer P}`
-        ? P & PropertyKey
-        : N extends `!static get ${infer P}`
-          ? P & PropertyKey
-          : N extends `!static set ${infer P}`
-            ? P & PropertyKey
-            : N extends `!static init ${infer P}`
-              ? P & PropertyKey
-              : N extends `!static method ${infer P}`
-                ? P & PropertyKey
-                : N extends `!static ${infer P}`
-                  ? P & PropertyKey
-                  : N extends PropertyKey
-                    ? N
-                    : never;
-
-export type HookExpPropertyKey<N extends HookName> = StrictHookExpPropertyKey<N> | LooseHookExpPropertyKey<N>;
-
-export type IsStrictHookExp<N extends HookName> =
-  StrictHookExpPropertyKey<N> extends N
-    ? false
-    : StrictHookExpPropertyKey<N> extends infer P
-      ? P extends `#${string}`
-        ? false
-        : true
-      : true;
-
-export type HookPrototype<TObject> = TObject extends abstract new (...args: any[]) => any
-  ? TObject extends { prototype: infer TPrototype }
-    ? TPrototype
-    : never
-  : never;
-
-export type ResolveMemberValue<TObject extends object | symbol, TName extends PropertyKey> = TObject extends object
-  ? TName extends keyof TObject
-    ? TObject[TName]
-    : TObject extends abstract new (...args: any[]) => any
-      ? TName extends keyof HookPrototype<TObject>
-        ? HookPrototype<TObject>[TName]
-        : never
-      : never
-  : never;
-
-export type InferHookSignature<TObject extends object | symbol, TName extends HookName> = TName extends string
-  ? ResolveMemberValue<TObject, HookExpPropertyKey<TName>> extends infer Member
-    ? [Member] extends [never]
-      ? IsStrictHookExp<TName> extends true
-        ? never
-        : [any[], any]
-      : Member extends { [HOOK_DATA]: infer HookData }
-        ? HookData extends { origin: infer Origin }
-          ? Origin extends (...args: infer A) => infer R
-            ? [A, R]
-            : [any[], any]
-          : [any[], any]
-        : Member extends (...args: infer A) => infer R
-          ? [A, R]
-          : TName extends `get ${string}`
-            ? [[], Member]
-            : TName extends `set ${string}`
-              ? [[Member], void]
-              : TName extends `init ${string}`
-                ? [[Member], Member]
-                : TName extends `method ${string}`
-                  ? "method"
-                  : TName extends `static init ${string}`
-                    ? [[Member], Member]
-                    : TName extends `static get ${string}`
-                      ? [[], Member]
-                      : TName extends `static set ${string}`
-                        ? [[Member], Member]
-                        : [any[], any]
-    : [any[], any]
-  : [any[], any];
-
-type InferMiddlewareArgs<TObject extends object | symbol, TName extends HookName> = InferHookSignature<
-  TObject,
-  TName
->[0];
-type InferMiddlewareResult<TObject extends object | symbol, TName extends HookName> = InferHookSignature<
-  TObject,
-  TName
->[1];
-type InferMiddlewareThis<TObject extends object | symbol, TName extends HookName> =
-  ResolveMemberValue<TObject, HookExpPropertyKey<TName>> extends infer Member
-    ? Member extends { [HOOK_DATA]: infer HookData }
-      ? HookData extends { origin: infer Origin }
-        ? Origin extends (this: infer ThisArg, ...args: any[]) => any
-          ? ThisArg
-          : unknown
-        : unknown
-      : Member extends (this: infer ThisArg, ...args: any[]) => any
-        ? ThisArg
-        : unknown
     : unknown;
 
 export interface IMiddlewareMethods {
@@ -840,7 +722,7 @@ export interface HookApi {
    * @param fn The middleware to attach.
    * @returns A function that detaches the middleware.
    */
-  attach<TObject extends object | symbol, TName extends HookName>(
+  attach<TObject extends object, TName extends HookName>(
     key: TObject,
     name: TName,
     fn: MiddlewareMethod<
@@ -904,6 +786,7 @@ export function attach<T extends (...args: any[]) => any>(
   hookFn: T,
   fn: MiddlewareMethod<HookOriginArgs<T>, HookOriginResult<T>, HookOriginThis<T>>,
 ): () => void;
+
 /**
  * Attaches a middleware to a hook key.
  *
@@ -916,6 +799,13 @@ export function attach<T extends (...args: any[]) => any>(
  * @returns A function that detaches the middleware.
  */
 export function attach<A extends any[] = any[], R = any>(key: HookKeyOrKeys, fn: MiddlewareMethod<A, R>): () => void;
+
+export function attach<S extends symbol, N extends HookName>(
+  key: S,
+  name: N,
+  fn: MiddlewareMethod<any[], any>,
+): () => void;
+
 /**
  * Attaches a middleware to a named hook on an object or class.
  *
@@ -937,6 +827,19 @@ export function attach<TObject extends object, TName extends HookName>(
     InferMiddlewareThis<TObject, TName>
   >,
 ): () => void;
+
+/*
+export function attach<TObject extends object, TName extends HookName>(
+  key: TObject,
+  name: TName,
+  fn: MiddlewareMethod<
+    InferMiddlewareArgs<TObject, TName>,
+    InferMiddlewareResult<TObject, TName>,
+    InferMiddlewareThis<TObject, TName>
+  >,
+): () => void;
+*/
+
 /**
  * Attaches a middleware to a named hook on a key.
  *
@@ -949,7 +852,8 @@ export function attach<TObject extends object, TName extends HookName>(
  * @param fn The middleware to attach.
  * @returns A function that detaches the middleware.
  */
-export function attach(keyOrKeys: HookKeyOrKeys, name: HookName, fn: MiddlewareMethod<any[], unknown>): () => void;
+//export function attach(keyOrKeys: HookKeyOrKeys, name: HookName, fn: MiddlewareMethod<any[], unknown>): () => void;
+
 /**
  * Attaches a middleware to a hook function or hook key.
  *

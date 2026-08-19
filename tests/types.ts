@@ -1,10 +1,4 @@
-import type {
-  StrictHookExpPropertyKey,
-  ResolveMemberValue,
-  IHookFn,
-  IsStrictHookExp,
-  MiddlewareMethod,
-} from "../src/index";
+import type { StrictHookExpPropertyKey, ResolveMemberValue, IHookFn, MiddlewareMethod } from "../src/index";
 import { argsProvider, attach, Hook, hook, Hooks } from "../src/index";
 
 // NOTICE: tests contains a lot of types that are also checked within "test" script
@@ -292,6 +286,18 @@ attach(fnInstance, "method myMethod", (next, x) => {
   return next(x);
 });
 
+attach(fnInstance, "!method myMethod", (next, x: string) => {
+  return next(x);
+});
+
+attach(fnInstance, "!static method myMethod", (next, x: string) => {
+  return next(x);
+});
+
+attach(fnInstance, "myMethod", (next, x) => {
+  return next(x);
+});
+
 // @ts-expect-error middleware should require a number argument for myMethod
 attach(FnManualExample, "myMethod", (next, x: string) => {
   // @ts-expect-error middleware should require a number argument for myMethod
@@ -332,14 +338,18 @@ attach(FnManualExample, "static init initStatic", (next, value) => {
   return next(value);
 });
 
+attach(Symbol("test"), "name", (next) => {
+  return next() + 2;
+});
+
 // @ts-expect-error static init should not be available on instance
 attach(fnInstance, "static init initStatic", (next, value) => {
-  // @ts-expect-error static init should not be available on instance
+  // ts-expect-error static init should not be available on instance
   return next(value);
 });
 
 // @ts-expect-error middleware should require a string argument for initStatic
-attach(FnManualExample, "static init initStatic", (next, value: number) => {
+attach(FnManualExample, "static init initStatic", (next, _value: number) => {
   next("test");
   return 8;
 });
@@ -364,12 +374,12 @@ attach(FnManualExample, "static set staticSet", (next, value: number) => {
   return next(8);
 });
 
-attach(FnManualExample, "static staticMethod", (next, x) => {
+attach(FnManualExample, "static method staticMethod", (next, x) => {
   return next(x.toUpperCase());
 });
 
 // @ts-expect-error middleware should require a string argument for staticMethod
-attach(FnManualExample, "static staticMethod", (next, x: number) => {
+attach(FnManualExample, "static method staticMethod", (next, x: number) => {
   // @ts-expect-error string is expected
   return next(x);
 });

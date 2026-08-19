@@ -103,8 +103,8 @@ export interface IHookFn<A extends any[] = any[], R = any, CallArgs extends any[
   [HOOK_DATA]: IHookData<A, R>;
 }
 
-export type HookDecoratorArgument = HookKeyDynamic | string;
-export type HookDecoratedClass = new (...args: any[]) => any;
+export type DynamicKeyOrAlternativeName = HookKeyDynamic | string;
+export type AnyClass = abstract new (...args: any[]) => any;
 
 export interface IHookDecoratorOptions {
   dynamicKey?: HookKeyDynamic;
@@ -117,25 +117,22 @@ export interface IAccessorDecoratorHooks {
   init: (initialValue: any) => any;
 }
 
-export type HookClassStaticPropertyName<TClass extends HookDecoratedClass> = Exclude<
-  Extract<keyof TClass, PropertyKey>,
-  "prototype"
->;
+export type HookClassStaticPropertyName<TClass extends AnyClass> = Exclude<Extract<keyof TClass, string>, "prototype">;
 
-export type HookClassInstancePropertyName<TClass extends HookDecoratedClass> = Extract<
+export type HookClassInstancePropertyName<TClass extends AnyClass> = Extract<
   keyof InstanceType<TClass> | "constructor",
-  PropertyKey
+  string
 >;
 
-export type HookClassPropertyName<TClass extends HookDecoratedClass> =
-  | HookClassStaticPropertyName<TClass>
-  | HookClassInstancePropertyName<TClass>;
+export type HookPropertyName<TClass extends object> = TClass extends AnyClass
+  ? HookClassInstancePropertyName<TClass> | `static ${string & HookClassStaticPropertyName<TClass>}`
+  : TClass extends { constructor: infer C }
+    ? C extends AnyClass
+      ? HookClassInstancePropertyName<C>
+      : never
+    : never;
 
-export type HookDecorName<TClass extends HookDecoratedClass> =
-  | HookClassInstancePropertyName<TClass>
-  | `static ${string & HookClassStaticPropertyName<TClass>}`;
-
-export type StrictHookClassExpression<TClass extends HookDecoratedClass> =
+export type StrictHookClassExpression<TClass extends AnyClass> =
   | `init ${string & HookClassInstancePropertyName<TClass>}`
   | `get ${string & HookClassInstancePropertyName<TClass>}`
   | `set ${string & HookClassInstancePropertyName<TClass>}`
@@ -159,10 +156,141 @@ export type LooseHookClassExpression =
   | `!static accessor ${string}`
   | `!static method ${string}`;
 
-export type HookClassExpression<TClass extends HookDecoratedClass> =
-  | StrictHookClassExpression<TClass>
-  | LooseHookClassExpression;
+export type HookClassExpression<TClass extends object> = TClass extends AnyClass
+  ? StrictHookClassExpression<TClass> | LooseHookClassExpression
+  : TClass extends { constructor: infer C }
+    ? C extends AnyClass
+      ? StrictHookClassExpression<C> | LooseHookClassExpression
+      : C
+    : never;
 
 export interface IHookClassUtilitiesState {
   instanceInitializers: Array<(instance: any) => void>;
 }
+
+export type StrictHookExpPropertyKey<N extends HookName> = N extends `get ${infer P}`
+  ? P & PropertyKey
+  : N extends `set ${infer P}`
+    ? P & PropertyKey
+    : N extends `init ${infer P}`
+      ? P & PropertyKey
+      : N extends `method ${infer P}`
+        ? P & PropertyKey
+        : N extends `static get ${infer P}`
+          ? P & PropertyKey
+          : N extends `static set ${infer P}`
+            ? P & PropertyKey
+            : N extends `static init ${infer P}`
+              ? P & PropertyKey
+              : N extends `static method ${infer P}`
+                ? P & PropertyKey
+                : N extends `static ${infer P}`
+                  ? P & PropertyKey
+                  : N extends PropertyKey
+                    ? N
+                    : never;
+
+export type LooseHookExpPropertyKey<N extends HookName> = N extends `!get ${infer P}`
+  ? P & PropertyKey
+  : N extends `!set ${infer P}`
+    ? P & PropertyKey
+    : N extends `!init ${infer P}`
+      ? P & PropertyKey
+      : N extends `!method ${infer P}`
+        ? P & PropertyKey
+        : N extends `!static get ${infer P}`
+          ? P & PropertyKey
+          : N extends `!static set ${infer P}`
+            ? P & PropertyKey
+            : N extends `!static init ${infer P}`
+              ? P & PropertyKey
+              : N extends `!static method ${infer P}`
+                ? P & PropertyKey
+                : N extends `!static ${infer P}`
+                  ? P & PropertyKey
+                  : N extends PropertyKey
+                    ? N
+                    : never;
+
+export type IsStrictHookExp<N extends HookName> =
+  StrictHookExpPropertyKey<N> extends N
+    ? false
+    : StrictHookExpPropertyKey<N> extends infer P
+      ? P extends `#${string}`
+        ? false
+        : true
+      : true;
+
+export type IsLooseHookExp<N extends HookName> = LooseHookExpPropertyKey<N> extends N ? false : true;
+
+export type HookPrototype<TObject> = TObject extends abstract new (...args: any[]) => any
+  ? TObject extends { prototype: infer TPrototype }
+    ? TPrototype
+    : never
+  : never;
+
+export type ResolveMemberValue<TObject extends object | symbol, TName extends PropertyKey> = TObject extends object
+  ? TName extends keyof TObject
+    ? TObject[TName]
+    : TObject extends AnyClass
+      ? TName extends keyof HookPrototype<TObject>
+        ? HookPrototype<TObject>[TName]
+        : never
+      : never
+  : never;
+
+export type HookExpPropertyKey<N extends HookName> = StrictHookExpPropertyKey<N> | LooseHookExpPropertyKey<N>;
+
+export type InferHookSignature<TObject extends object | symbol, TName extends HookName> = TName extends string
+  ? IsLooseHookExp<TName> extends true
+    ? [any[], any]
+    : ResolveMemberValue<TObject, HookExpPropertyKey<TName>> extends infer Member
+      ? [Member] extends [never]
+        ? IsStrictHookExp<TName> extends true
+          ? never
+          : [any[], any]
+        : Member extends { [HOOK_DATA]: infer HookData }
+          ? HookData extends { origin: infer Origin }
+            ? Origin extends (...args: infer A) => infer R
+              ? [A, R]
+              : [any[], any]
+            : [any[], any]
+          : Member extends (...args: infer A) => infer R
+            ? [A, R]
+            : TName extends `get ${string}`
+              ? [[], Member]
+              : TName extends `set ${string}`
+                ? [[Member], void]
+                : TName extends `init ${string}`
+                  ? [[Member], Member]
+                  : TName extends `method ${string}`
+                    ? "method"
+                    : TName extends `static init ${string}`
+                      ? [[Member], Member]
+                      : TName extends `static get ${string}`
+                        ? [[], Member]
+                        : TName extends `static set ${string}`
+                          ? [[Member], Member]
+                          : [any[], any]
+      : [any[], any]
+  : [any[], any];
+
+export type InferMiddlewareArgs<TObject extends object, TName extends HookName> = InferHookSignature<TObject, TName>[0];
+export type InferMiddlewareResult<TObject extends object, TName extends HookName> = InferHookSignature<
+  TObject,
+  TName
+>[1];
+export type InferMiddlewareThis<TObject extends object, TName extends HookName> =
+  ResolveMemberValue<TObject, HookExpPropertyKey<TName>> extends infer Member
+    ? [Member] extends [never]
+      ? unknown
+      : Member extends { [HOOK_DATA]: infer HookData }
+        ? HookData extends { origin: infer Origin }
+          ? Origin extends (this: infer ThisArg, ...args: any[]) => any
+            ? ThisArg
+            : unknown
+          : unknown
+        : Member extends (this: infer ThisArg, ...args: any[]) => any
+          ? ThisArg
+          : unknown
+    : unknown;

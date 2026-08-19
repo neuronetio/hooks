@@ -10,14 +10,13 @@ import {
   dhk,
 } from "./index.js";
 import type {
-  HookDecoratedClass,
-  HookDecoratorArgument,
+  AnyClass,
+  DynamicKeyOrAlternativeName,
   HookKeyDynamic,
   HookName,
   IHookClassUtilitiesState,
-  HookDecorName,
   HookClassExpression,
-  HookClassPropertyName,
+  HookPropertyName,
 } from "./shared.js";
 
 const SUB_PREFIX = "[class-utilities]";
@@ -31,7 +30,7 @@ const SUB_PREFIX = "[class-utilities]";
  * @param Class The class being prepared for utilities decoration.
  * @returns The shared runtime state for that class.
  */
-function classUtilitiesState<TClass extends HookDecoratedClass>(Class: TClass): IHookClassUtilitiesState {
+function classUtilitiesState<TClass extends AnyClass>(Class: TClass): IHookClassUtilitiesState {
   if (Object.hasOwn(Class, HOOK_CLASS_STATE)) {
     return (Class as any)[HOOK_CLASS_STATE] as IHookClassUtilitiesState;
   }
@@ -74,7 +73,7 @@ function parseStaticPrefix(propertyKey: PropertyKey): { static: boolean; key: Pr
  * @returns The matching descriptor together with its target, static flag, and stripped key.
  */
 function resolveMemberDescriptorWithStatic(
-  Class: HookDecoratedClass,
+  Class: AnyClass,
   propertyKey: PropertyKey,
   validate: (descriptor: PropertyDescriptor | undefined) => boolean,
   apiName: string,
@@ -109,7 +108,7 @@ declare module "./hook.js" {
     init: typeof hookInit;
   }
 }
-export function hookInit<HDC extends HookDecoratedClass, Instance extends InstanceType<HDC>>(
+export function hookInit<HDC extends AnyClass, Instance extends InstanceType<HDC>>(
   instance: Instance,
   ...args: any[]
 ): any {
@@ -148,48 +147,48 @@ declare module "./hook.js" {
  * @param dynamicKey_alternativeName Optional dynamic hook key or alternative hook name.
  * @returns The wrapped class constructor.
  */
-export function hookMethod<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookMethod<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
 ): TClass;
-export function hookMethod<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookMethod<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   alternativeName: string,
 ): TClass;
-export function hookMethod<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookMethod<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   dynamicKey: HookKeyDynamic,
 ): TClass;
-export function hookMethod<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookMethod<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   dynamicKeyOrName: HookKeyDynamic | string,
 ): TClass;
-export function hookMethod<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookMethod<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   dynamicKey: HookKeyDynamic,
   alternativeName: string,
 ): TClass;
-export function hookMethod<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookMethod<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   alternativeName: string,
   dynamicKey: HookKeyDynamic,
 ): TClass;
-export function hookMethod<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookMethod<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
-  arg1?: HookDecoratorArgument,
-  arg2?: HookDecoratorArgument,
+  arg1?: DynamicKeyOrAlternativeName,
+  arg2?: DynamicKeyOrAlternativeName,
 ): TClass;
-export function hookMethod<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookMethod<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
-  arg1?: HookDecoratorArgument,
-  arg2?: HookDecoratorArgument,
+  arg1?: DynamicKeyOrAlternativeName,
+  arg2?: DynamicKeyOrAlternativeName,
 ): TClass {
   classUtilitiesState(Class);
   const { descriptor, isStatic, key } = resolveMemberDescriptorWithStatic(
@@ -243,48 +242,48 @@ declare module "./hook.js" {
  * @param dynamicKey_alternativeName Optional dynamic hook key or alternative hook name.
  * @returns The wrapped class constructor.
  */
-export function hookGetter<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookGetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
 ): TClass;
-export function hookGetter<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookGetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   alternativeName: string,
 ): TClass;
-export function hookGetter<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookGetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   dynamicKey: HookKeyDynamic,
 ): TClass;
-export function hookGetter<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookGetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   dynamicKeyOrName: HookKeyDynamic | string,
 ): TClass;
-export function hookGetter<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookGetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   dynamicKey: HookKeyDynamic,
   alternativeName: string,
 ): TClass;
-export function hookGetter<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookGetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   alternativeName: string,
   dynamicKey: HookKeyDynamic,
 ): TClass;
-export function hookGetter<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookGetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
-  arg1?: HookDecoratorArgument,
-  arg2?: HookDecoratorArgument,
+  arg1?: DynamicKeyOrAlternativeName,
+  arg2?: DynamicKeyOrAlternativeName,
 ): TClass;
-export function hookGetter<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookGetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
-  arg1?: HookDecoratorArgument,
-  arg2?: HookDecoratorArgument,
+  arg1?: DynamicKeyOrAlternativeName,
+  arg2?: DynamicKeyOrAlternativeName,
 ): TClass {
   classUtilitiesState(Class);
   const { descriptor, target, isStatic, key } = resolveMemberDescriptorWithStatic(
@@ -335,48 +334,48 @@ declare module "./hook.js" {
  * @param dynamicKey_alternativeName Optional dynamic hook key or alternative hook name.
  * @returns The wrapped class constructor.
  */
-export function hookSetter<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookSetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
 ): TClass;
-export function hookSetter<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookSetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   alternativeName: string,
 ): TClass;
-export function hookSetter<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookSetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   dynamicKey: HookKeyDynamic,
 ): TClass;
-export function hookSetter<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookSetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   dynamicKeyOrName: HookKeyDynamic | string,
 ): TClass;
-export function hookSetter<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookSetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   dynamicKey: HookKeyDynamic,
   alternativeName: string,
 ): TClass;
-export function hookSetter<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookSetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   alternativeName: string,
   dynamicKey: HookKeyDynamic,
 ): TClass;
-export function hookSetter<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookSetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
-  arg1?: HookDecoratorArgument,
-  arg2?: HookDecoratorArgument,
+  arg1?: DynamicKeyOrAlternativeName,
+  arg2?: DynamicKeyOrAlternativeName,
 ): TClass;
-export function hookSetter<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookSetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
-  arg1?: HookDecoratorArgument,
-  arg2?: HookDecoratorArgument,
+  arg1?: DynamicKeyOrAlternativeName,
+  arg2?: DynamicKeyOrAlternativeName,
 ): TClass {
   classUtilitiesState(Class);
   const { descriptor, target, isStatic, key } = resolveMemberDescriptorWithStatic(
@@ -415,7 +414,7 @@ hook.setter = hookSetter;
  * @returns Information about whether the field is static.
  * @throws Error When the named member exists but is not a field.
  */
-function isStaticField(Class: HookDecoratedClass, propertyKey: PropertyKey) {
+function isStaticField(Class: AnyClass, propertyKey: PropertyKey) {
   const { static: asStatic, key } = parseStaticPrefix(propertyKey);
   if (asStatic) {
     const staticDescriptor = Object.getOwnPropertyDescriptor(Class, key);
@@ -477,48 +476,48 @@ declare module "./hook.js" {
  * @param dynamicKey_alternativeName Optional dynamic hook key or alternative hook name.
  * @returns The wrapped class constructor.
  */
-export function hookField<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookField<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
 ): TClass;
-export function hookField<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookField<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   alternativeName: string,
 ): TClass;
-export function hookField<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookField<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   dynamicKey: HookKeyDynamic,
 ): TClass;
-export function hookField<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookField<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   dynamicKeyOrName: HookKeyDynamic | string,
 ): TClass;
-export function hookField<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookField<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   dynamicKey: HookKeyDynamic,
   alternativeName: string,
 ): TClass;
-export function hookField<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookField<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
   alternativeName: string,
   dynamicKey: HookKeyDynamic,
 ): TClass;
-export function hookField<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookField<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
-  arg1?: HookDecoratorArgument,
-  arg2?: HookDecoratorArgument,
+  arg1?: DynamicKeyOrAlternativeName,
+  arg2?: DynamicKeyOrAlternativeName,
 ): TClass;
-export function hookField<TClass extends HookDecoratedClass, TName extends HookDecorName<TClass>>(
+export function hookField<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,
-  arg1?: HookDecoratorArgument,
-  arg2?: HookDecoratorArgument,
+  arg1?: DynamicKeyOrAlternativeName,
+  arg2?: DynamicKeyOrAlternativeName,
 ): TClass {
   const { isStatic, key } = isStaticField(Class, propertyKey);
   const { dynamicKey, alternativeName } = _resolveHookDecoratorOptions(arg1, arg2);
@@ -570,45 +569,45 @@ declare module "./hook.js" {
  * @param dynamicKey_alternativeName Optional dynamic hook key or alternative hook name.
  * @returns The wrapped class constructor.
  */
-export function hookAccessor<TClass extends HookDecoratedClass>(Class: TClass, propertyKey: PropertyKey): TClass;
-export function hookAccessor<TClass extends HookDecoratedClass>(
+export function hookAccessor<TClass extends AnyClass>(Class: TClass, propertyKey: PropertyKey): TClass;
+export function hookAccessor<TClass extends AnyClass>(
   Class: TClass,
   propertyKey: PropertyKey,
   alternativeName: string,
 ): TClass;
-export function hookAccessor<TClass extends HookDecoratedClass>(
+export function hookAccessor<TClass extends AnyClass>(
   Class: TClass,
   propertyKey: PropertyKey,
   dynamicKey: HookKeyDynamic,
 ): TClass;
-export function hookAccessor<TClass extends HookDecoratedClass>(
+export function hookAccessor<TClass extends AnyClass>(
   Class: TClass,
   propertyKey: PropertyKey,
   dynamicKeyOrName: HookKeyDynamic | string,
 ): TClass;
-export function hookAccessor<TClass extends HookDecoratedClass>(
+export function hookAccessor<TClass extends AnyClass>(
   Class: TClass,
   propertyKey: PropertyKey,
   dynamicKey: HookKeyDynamic,
   alternativeName: string,
 ): TClass;
-export function hookAccessor<TClass extends HookDecoratedClass>(
+export function hookAccessor<TClass extends AnyClass>(
   Class: TClass,
   propertyKey: PropertyKey,
   alternativeName: string,
   dynamicKey: HookKeyDynamic,
 ): TClass;
-export function hookAccessor<TClass extends HookDecoratedClass>(
+export function hookAccessor<TClass extends AnyClass>(
   Class: TClass,
   propertyKey: PropertyKey,
-  arg1?: HookDecoratorArgument,
-  arg2?: HookDecoratorArgument,
+  arg1?: DynamicKeyOrAlternativeName,
+  arg2?: DynamicKeyOrAlternativeName,
 ): TClass;
-export function hookAccessor<TClass extends HookDecoratedClass>(
+export function hookAccessor<TClass extends AnyClass>(
   Class: TClass,
   propertyKey: PropertyKey,
-  arg1?: HookDecoratorArgument,
-  arg2?: HookDecoratorArgument,
+  arg1?: DynamicKeyOrAlternativeName,
+  arg2?: DynamicKeyOrAlternativeName,
 ): TClass {
   const state = classUtilitiesState(Class);
   const { static: isStatic, key } = parseStaticPrefix(propertyKey);
@@ -755,7 +754,7 @@ declare module "./hook.js" {
 /** The member kinds supported by the `hookClass()` expression. */
 type HookClassExpressionType = "init" | "get" | "set" | "accessor" | "method";
 
-export function hookClass<TClass extends HookDecoratedClass>(
+export function hookClass<TClass extends AnyClass>(
   Class: TClass,
   expression?: string & HookClassExpression<TClass>,
 ): TClass {
@@ -769,14 +768,14 @@ export function hookClass<TClass extends HookDecoratedClass>(
   const parts = expression.split(" ");
   let isStatic = false;
   let type: HookClassExpressionType = "init";
-  let key: HookClassPropertyName<TClass> = "" as HookClassPropertyName<TClass>;
+  let key: HookPropertyName<TClass> = "" as HookPropertyName<TClass>;
   switch (parts.length) {
     case 2: {
       const parts0 = parts[0]!;
       if (parts0 === "method" || parts0 === "init" || parts0 === "get" || parts0 === "set" || parts0 === "accessor") {
         isStatic = false;
         type = parts0;
-        key = parts[1]! as HookClassPropertyName<TClass>;
+        key = parts[1]! as HookPropertyName<TClass>;
       } else {
         throw new Error(`${PREFIX}${SUB_PREFIX}[hookClass] Invalid expression: "${expression}".`);
       }
@@ -790,7 +789,7 @@ export function hookClass<TClass extends HookDecoratedClass>(
       const parts1 = parts[1];
       if (parts1 === "method" || parts1 === "init" || parts1 === "get" || parts1 === "set" || parts1 === "accessor") {
         type = parts1!;
-        key = parts[2]! as HookClassPropertyName<TClass>;
+        key = parts[2]! as HookPropertyName<TClass>;
       } else {
         throw new Error(`${PREFIX}${SUB_PREFIX}[hookClass] Invalid expression: "${expression}".`);
       }
@@ -802,19 +801,19 @@ export function hookClass<TClass extends HookDecoratedClass>(
   }
   switch (type) {
     case "init": {
-      return hookField(Class, ((isStatic ? "static " : "") + String(key)) as HookClassPropertyName<TClass>);
+      return hookField(Class, ((isStatic ? "static " : "") + String(key)) as HookPropertyName<TClass>);
     }
     case "get": {
-      return hookGetter(Class, ((isStatic ? "static " : "") + String(key)) as HookClassPropertyName<TClass>);
+      return hookGetter(Class, ((isStatic ? "static " : "") + String(key)) as HookPropertyName<TClass>);
     }
     case "set": {
-      return hookSetter(Class, ((isStatic ? "static " : "") + String(key)) as HookClassPropertyName<TClass>);
+      return hookSetter(Class, ((isStatic ? "static " : "") + String(key)) as HookPropertyName<TClass>);
     }
     case "accessor": {
-      return hookAccessor(Class, ((isStatic ? "static " : "") + String(key)) as HookClassPropertyName<TClass>);
+      return hookAccessor(Class, ((isStatic ? "static " : "") + String(key)) as HookPropertyName<TClass>);
     }
     case "method": {
-      return hookMethod(Class, ((isStatic ? "static " : "") + String(key)) as HookClassPropertyName<TClass>);
+      return hookMethod(Class, ((isStatic ? "static " : "") + String(key)) as HookPropertyName<TClass>);
     }
   }
   /* v8 ignore next 1 */
