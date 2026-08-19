@@ -1,38 +1,44 @@
-import { hookAccessor, hookClass, hookField, hookGetter, hookMethod, hookSetter } from "./utilities.js";
+import { hook } from "./hook.js";
+import "./index.js";
 
 //#region src/builder.ts
 var HookDecoratorBuilder = class {
 	HookedClass;
 	constructor(Class) {
-		this.HookedClass = hookClass(Class);
+		this.HookedClass = hook.class(Class);
+	}
+	run(fn) {
+		fn(this.HookedClass);
+		return this;
 	}
 	accessor(propertyKey, arg1, arg2) {
-		this.HookedClass = hookAccessor(this.HookedClass, propertyKey, arg1, arg2);
+		this.HookedClass = hook.accessor(this.HookedClass, propertyKey, arg1, arg2);
 		return this;
 	}
 	field(propertyKey, arg1, arg2) {
-		this.HookedClass = hookField(this.HookedClass, propertyKey, arg1, arg2);
+		this.HookedClass = hook.field(this.HookedClass, propertyKey, arg1, arg2);
 		return this;
 	}
 	getter(propertyKey, arg1, arg2) {
-		this.HookedClass = hookGetter(this.HookedClass, propertyKey, arg1, arg2);
+		this.HookedClass = hook.getter(this.HookedClass, propertyKey, arg1, arg2);
 		return this;
 	}
 	method(propertyKey, arg1, arg2) {
-		this.HookedClass = hookMethod(this.HookedClass, propertyKey, arg1, arg2);
+		this.HookedClass = hook.method(this.HookedClass, propertyKey, arg1, arg2);
 		return this;
 	}
 	setter(propertyKey, arg1, arg2) {
-		this.HookedClass = hookSetter(this.HookedClass, propertyKey, arg1, arg2);
+		this.HookedClass = hook.setter(this.HookedClass, propertyKey, arg1, arg2);
 		return this;
 	}
-	build() {
+	get() {
 		return this.HookedClass;
 	}
 };
 function Hooks(Class) {
 	return new HookDecoratorBuilder(Class);
 }
+hook.builder = Hooks;
 
 //#endregion
 export { HookDecoratorBuilder, Hooks };

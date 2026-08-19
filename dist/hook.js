@@ -1,57 +1,6 @@
+import { ArgumentsProvider, DEFAULT_HOOK_NAME, HOOK_DATA, HookKeyDynamic, PREFIX, _identity, noop } from "./shared.js";
+
 //#region src/hook.ts
-const PREFIX = `[@neuronet/hooks]`;
-const DEFAULT_HOOK_NAME = Symbol("DEFAULT_HOOK_NAME");
-/**
-* Hook property key used to store hook metadata on functions and classes.
-*/
-const HOOK = Symbol("HOOK");
-const noop = (..._args) => {};
-/**
-* @internal
-*/
-const _identity = (value) => value;
-/**
-* Represents a hook key that is resolved dynamically at runtime.
-* The key is resolved by calling the provided function, usually with the `this` context
-* of the hooked method.
-*/
-var HookKeyDynamic = class {
-	fn;
-	constructor(fn) {
-		this.fn = fn;
-	}
-};
-/**
-* Creates a dynamic hook key.
-*
-* @param fn A function that returns a HookKey.
-* @returns A new HookKeyDynamic instance.
-*/
-function dynamicHookKey(fn) {
-	return new HookKeyDynamic(fn);
-}
-/**
-* An alias for `dynamicHookKey` to provide a shorter and more convenient name.
-*
-* Creates a dynamic hook key.
-*
-* @param fn A function that returns a HookKey.
-* @returns A new HookKeyDynamic instance.
-*/
-const dhk = dynamicHookKey;
-/**
-* A utility class to provide the arguments passed to the middleware and hook functions.
-*/
-var ArgumentsProvider = class {
-	args;
-	constructor(args) {
-		this.args = typeof args === "function" ? args : () => args;
-	}
-};
-function argsProvider(...args) {
-	return new ArgumentsProvider(args.length === 1 && typeof args[0] === "function" ? args[0] : args);
-}
-const args = argsProvider;
 let currentHookKey = null;
 /**
 * Retrieves the hook key context for the currently executing hook.
@@ -62,7 +11,7 @@ let currentHookKey = null;
 function getCurrentHookKeyContext() {
 	return currentHookKey;
 }
-function hook(arg1, arg2, arg3, arg4) {
+function hookBase(arg1, arg2, arg3, arg4) {
 	if (arg1 === void 0) return hookDecorator();
 	if ((arg1 instanceof HookKeyDynamic || typeof arg1 === "string") && arg2 === void 0) return hookDecorator(arg1);
 	if (typeof arg1 === "string" && arg2 instanceof HookKeyDynamic && arg3 === void 0) return hookDecorator(arg2, arg1);
@@ -141,29 +90,47 @@ function hook(arg1, arg2, arg3, arg4) {
 		currentHookKey = oldHookKey;
 		return result;
 	}
-	runHook[HOOK] = _hookData;
+	runHook[HOOK_DATA] = _hookData;
 	return runHook;
 }
+const hook = hookBase;
+/**
+* Used to inherit middlewares from the base class.
+* It traverses down the prototype chain and collects all constructors.
+*
+* @param classOrInstance The class or instance whose prototype chain should be inspected.
+* @returns All constructors found on the class or instance's prototype chain, excluding native `Object`.
+*/
+function inherit(classOrInstance) {
+	const constructors = [];
+	if (!(typeof classOrInstance === "function" && classOrInstance.prototype !== void 0)) constructors.push(classOrInstance);
+	let Class = classOrInstance.prototype?.constructor ?? Object.getPrototypeOf(classOrInstance)?.constructor;
+	while (Class && Class.prototype !== void 0) {
+		constructors.push(Class);
+		Class = Object.getPrototypeOf(Class);
+	}
+	return constructors;
+}
+hook.inherit = inherit;
 /**
 * A class decorator that enables hook support for the class.
 * It initializes metadata required for `@hook()` decorated members to work correctly,
 * ensuring that middleware can be attached to both the class and its instances.
-*
-* @param _Class The class constructor.
-* @param context The class decorator context.
 */
-function Hook(_Class, context) {
-	context.addInitializer(function() {
-		const hooks = context.metadata.hooks || [];
-		for (const propertyKey of hooks) {
-			const hooked = this.prototype[propertyKey];
-			if (hooked && hooked[HOOK] === void 0) hooked[HOOK] = {
-				origin: hooked,
-				keyOrKeys: this,
-				name: propertyKey
-			};
-		}
-	});
+function Hook() {
+	return function HookClass(_Class, context) {
+		context.addInitializer(function() {
+			const hooks = context.metadata.hooks || [];
+			for (const propertyKey of hooks) {
+				const hooked = this.prototype[propertyKey];
+				if (hooked && hooked[HOOK_DATA] === void 0) hooked[HOOK_DATA] = {
+					origin: hooked,
+					keyOrKeys: this,
+					name: propertyKey
+				};
+			}
+		});
+	};
 }
 /**
 * Normalizes optional manual decorator arguments into one predictable object.
@@ -197,18 +164,19 @@ function _resolveHookDecoratorOptions(arg1, arg2) {
 * @param hookName The public hook name used by `attach()`.
 * @param value The original member implementation.
 * @param dynamicKey Optional runtime key resolver.
-* @param owner Optional owner to bind the original member to, instead of the receiver.
+* @param bindTo Optional value to bind the original member to instead of `this`.
+*               Because for class proxy, static methods `this` are pointing to the proxy (not the class).
+*               And if we are trying to access #private property from within a proxy context there will be an error.
+*               And of course we want the proxy to behave like a real transparent thing.
+* @param inheritFrom Optional value to inherit from instead of `this`.
 * @returns A function that lazily creates and reuses the wrapped hook for one receiver.
 *
 * @internal
 */
-function _createHookInvoker(propertyKey, hookName, value, dynamicKey, owner) {
-	const hookKey = Symbol(`[hook][${String(propertyKey)}]`);
+function _createHookInvoker(propertyKey, hookName, value, dynamicKey, bindTo, inheritFrom) {
+	const hookKey = Symbol(`${PREFIX}[hook][${String(propertyKey)}]`);
 	return function runHook(...args) {
-		if (!this[hookKey]) {
-			const receiver = owner ?? this;
-			this[hookKey] = hook(dynamicKey ?? [this, this.constructor], hookName, value.bind(receiver));
-		}
+		if (!this[hookKey]) this[hookKey] = hook(dynamicKey ?? inherit(inheritFrom ?? this), hookName, value.bind(bindTo ?? this));
 		return this[hookKey](...args);
 	};
 }
@@ -228,27 +196,31 @@ function _createHookInvoker(propertyKey, hookName, value, dynamicKey, owner) {
 *
 * @internal
 */
-function _createAccessorDecorator(propertyKey, hookName, get, set, dynamicKey, owner) {
-	const getHookKey = Symbol(`[hook][get ${String(propertyKey)}]`);
-	const setHookKey = Symbol(`[hook][set ${String(propertyKey)}]`);
-	const initHookKey = Symbol(`[hook][init ${String(propertyKey)}]`);
+function _createAccessorDecorator(isStatic, propertyKey, hookName, get, set, dynamicKey, owner) {
+	const getHookKey = Symbol(`${PREFIX}[get ${String(propertyKey)}]`);
+	const setHookKey = Symbol(`${PREFIX}[set ${String(propertyKey)}]`);
+	const initHookKey = Symbol(`${PREFIX}[init ${String(propertyKey)}]`);
+	const prefix = isStatic ? "static " : "";
 	return {
 		get: function runHook(...args) {
 			if (!this[getHookKey]) {
 				const receiver = owner ?? this;
-				this[getHookKey] = hook(dynamicKey ?? [this, this.constructor], "get " + String(hookName), get.bind(receiver));
+				this[getHookKey] = hook(dynamicKey ?? inherit(receiver), prefix + "get " + String(hookName), get.bind(receiver));
 			}
 			return this[getHookKey](...args);
 		},
 		set: function runHook(...args) {
 			if (!this[setHookKey]) {
 				const receiver = owner ?? this;
-				this[setHookKey] = hook(dynamicKey ?? [this, this.constructor], "set " + String(hookName), set.bind(receiver));
+				this[setHookKey] = hook(dynamicKey ?? inherit(receiver), prefix + "set " + String(hookName), set.bind(receiver));
 			}
 			return this[setHookKey](...args);
 		},
 		init: function runHook(initialValue) {
-			if (!this[initHookKey]) this[initHookKey] = hook(dynamicKey ?? [this, this.constructor], "init " + String(hookName), _identity);
+			if (!this[initHookKey]) {
+				const receiver = owner ?? this;
+				this[initHookKey] = hook(dynamicKey ?? inherit(receiver), prefix + "init " + String(hookName), _identity);
+			}
 			return this[initHookKey](initialValue);
 		}
 	};
@@ -264,14 +236,14 @@ function hookDecorator(dynamicKey, alternativeName) {
 			const metadata = context.metadata;
 			(metadata.hooks || (metadata.hooks = [])).push(propertyKey);
 			context.addInitializer(function() {
-				if (context.static) this[propertyKey] = hook(dynamicKey ?? this, hookName, value.bind(this));
-				else this[propertyKey] = hook(dynamicKey ?? [this, this.constructor], hookName, value.bind(this));
+				if (context.static) this[propertyKey] = hook(dynamicKey ?? inherit(this), "static " + String(hookName), value.bind(this));
+				else this[propertyKey] = hook(dynamicKey ?? inherit(this), hookName, value.bind(this));
 			});
 			return value;
 		}
 		if (context.kind === "accessor") {
 			const { get, set } = value;
-			return _createAccessorDecorator(propertyKey, hookName, get, set, dynamicKey);
+			return _createAccessorDecorator(context.static, propertyKey, hookName, get, set, dynamicKey);
 		}
 		if (context.kind === "field") {
 			propertyKey = "init " + String(propertyKey);
@@ -284,15 +256,51 @@ function hookDecorator(dynamicKey, alternativeName) {
 			propertyKey = "set " + String(propertyKey);
 			hookName = "set " + String(hookName);
 		}
+		if (context.static) {
+			propertyKey = "static " + String(propertyKey);
+			hookName = "static " + String(hookName);
+		}
 		return _createHookInvoker(propertyKey, hookName, value, dynamicKey);
 	};
 }
-const middlewares = /* @__PURE__ */ new WeakMap();
+const middleware = /* @__PURE__ */ new WeakMap();
+/**
+* Attaches a middleware to a named hook on a key.
+*
+* A middleware wraps the hook's original function. It receives `next` (the next function in
+* the chain) plus the call args, and can modify args, short-circuit, or alter the result.
+* Middleware run in the order they were added.
+*
+* @param keyOrKeys The hook key (symbol, object, or function) or keys (array of hook keys) to attach to.
+* @param name The hook name.
+* @param fn The middleware to attach.
+* @returns A function that detaches the middleware.
+*/
+/**
+* Attaches a middleware to a hook function or hook key.
+*
+* A middleware wraps the hook's original function. It receives `next` (the next function in
+* the chain) plus the call args, and can modify args, short-circuit, or alter the result.
+* Middleware run in the order they were added.
+*
+* Supported forms:
+* - `attach(hookFn, fn)` — attach to a hook function.
+* - `attach(key, fn)` — attach to a hook key.
+* - `attach(key, name, fn)` — attach to a named hook on a key.
+* - `attach(hookFn, name, fn)` — attach to a named hook on a hook function.
+*
+* @param arg1 The hook function or hook key.
+* @param arg2 The hook name or middleware.
+* @param arg3 Optional middleware (when a hook name is given).
+* @returns A function that detaches the middleware.
+*/
 function attach(arg1, arg2, arg3) {
 	let key;
 	let name = DEFAULT_HOOK_NAME;
 	let fn;
-	const maybeHook = arg1[HOOK];
+	if (typeof arg1 !== "function" && typeof arg1 !== "object" && typeof arg1 !== "symbol" && !Array.isArray(arg1)) return noop;
+	if (arg1 === null) return noop;
+	const maybeHook = arg1[HOOK_DATA];
 	if (maybeHook) {
 		key = maybeHook.keyOrKeys;
 		name = maybeHook.name;
@@ -301,13 +309,19 @@ function attach(arg1, arg2, arg3) {
 		name = arg2;
 		fn = arg3;
 	} else if (typeof arg2 === "function") fn = arg2;
-	else throw new Error(`${PREFIX}[attach] Invalid arguments`);
-	if (key instanceof HookKeyDynamic) throw new Error(`${PREFIX}[attach] Cannot attach middleware to dynamic hook key. Use static hook key or composite keys instead.`);
+	else throw new Error(`${PREFIX}[attach] Invalid arguments.`);
 	if (Array.isArray(key)) {
 		if (key.length === 0) return noop;
 		key = key[0];
 	}
-	const methods = middlewares.getOrInsert(key, {});
+	if (key instanceof HookKeyDynamic) throw new Error(`${PREFIX}[attach] Cannot attach middleware to dynamic hook key. Use static hook key or composite keys instead.`);
+	if (key === null) return noop;
+	if (typeof name === "string" && name.startsWith("!")) name = name.substring(1);
+	let methods = middleware.get(key);
+	if (!methods) {
+		methods = Object.create(null);
+		middleware.set(key, methods);
+	}
 	let method = methods[name];
 	if (!method) {
 		method = [];
@@ -316,6 +330,7 @@ function attach(arg1, arg2, arg3) {
 	method.push(fn);
 	return () => detach(key, name, fn);
 }
+hook.attach = attach;
 /**
 * Inspects a hook function and returns its metadata and middleware statistics.
 *
@@ -324,9 +339,9 @@ function attach(arg1, arg2, arg3) {
 * @throws Error if the provided function is not a valid hook function.
 */
 function inspectHook(hookFn) {
-	const maybeHook = hookFn[HOOK];
+	const maybeHook = hookFn[HOOK_DATA];
 	if (!maybeHook) throw new Error(`${PREFIX}[inspectHook] Hook function metadata not found.`);
-	const methods = middlewares.get(maybeHook.keyOrKeys);
+	const methods = middleware.get(maybeHook.keyOrKeys);
 	const middlewareNames = Object.keys(methods || {});
 	const middlewareCount = middlewareNames.reduce((count, methodName) => {
 		return count + (methods?.[methodName]?.length || 0);
@@ -339,7 +354,7 @@ function inspectHook(hookFn) {
 	};
 }
 function getMiddleware(key, name) {
-	const methods = middlewares.get(key);
+	const methods = middleware.get(key);
 	if (!methods) return [];
 	const method = methods[name];
 	if (!method) return [];
@@ -353,7 +368,7 @@ function getMiddleware(key, name) {
 * @param fn The middleware function to remove.
 */
 function detach(key, name, fn) {
-	const methods = middlewares.get(key);
+	const methods = middleware.get(key);
 	if (!methods) return;
 	const method = methods[name];
 	if (!method) return;
@@ -362,8 +377,26 @@ function detach(key, name, fn) {
 		method.splice(index, 1);
 		if (method.length === 0) {
 			delete methods[name];
-			if (Object.keys(methods).length === 0) middlewares.delete(key);
+			if (Object.keys(methods).length === 0) middleware.delete(key);
 		}
+	}
+}
+let middlewareEnabled = true;
+/**
+* Temporarily disables middleware execution for the duration of the provided function.
+*
+* This is useful when you want to run `super.someMethod` without triggering any attached middleware again, or want to see the original result.
+*
+* @param fn The function to execute without middleware.
+* @returns The result of the executed function.
+*/
+function bypassMiddleware(fn) {
+	const oldMiddlewareEnabled = middlewareEnabled;
+	middlewareEnabled = false;
+	try {
+		return fn();
+	} finally {
+		middlewareEnabled = oldMiddlewareEnabled;
 	}
 }
 /**
@@ -377,18 +410,13 @@ function detach(key, name, fn) {
 * @returns The result of the execution.
 */
 function runMiddleware(key, name, next, thisArg, ...args) {
+	if (!middlewareEnabled || key === null) return next?.apply(thisArg, args);
 	const actualNext = next || noop;
 	const oldHookKey = currentHookKey;
-	const methods = middlewares.get(key);
-	if (!methods) {
-		currentHookKey = oldHookKey;
-		return actualNext.apply(thisArg, args);
-	}
+	const methods = middleware.get(key);
+	if (!methods) return actualNext.apply(thisArg, args);
 	const method = methods[name];
-	if (!method) {
-		currentHookKey = oldHookKey;
-		return actualNext.apply(thisArg, args);
-	}
+	if (!method) return actualNext.apply(thisArg, args);
 	currentHookKey = key;
 	let index = 0;
 	const runner = (...runnerArgs) => {
@@ -402,5 +430,5 @@ function runMiddleware(key, name, next, thisArg, ...args) {
 }
 
 //#endregion
-export { ArgumentsProvider, DEFAULT_HOOK_NAME, HOOK, Hook, HookKeyDynamic, _createAccessorDecorator, _createHookInvoker, _identity, _resolveHookDecoratorOptions, args, argsProvider, attach, detach, dhk, dynamicHookKey, getCurrentHookKeyContext, getMiddleware, hook, hookDecorator, inspectHook, middlewares, noop };
+export { Hook, _createAccessorDecorator, _createHookInvoker, _resolveHookDecoratorOptions, attach, bypassMiddleware, detach, getCurrentHookKeyContext, getMiddleware, hook, hookDecorator, inherit, inspectHook, middleware };
 //# sourceMappingURL=hook.js.map

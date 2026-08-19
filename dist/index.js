@@ -1,5 +1,6 @@
-import { ArgumentsProvider, DEFAULT_HOOK_NAME, HOOK, Hook, HookKeyDynamic, _createAccessorDecorator, _createHookInvoker, _identity, _resolveHookDecoratorOptions, args, argsProvider, attach, detach, dhk, dynamicHookKey, getCurrentHookKeyContext, getMiddleware, hook, hookDecorator, inspectHook, middlewares, noop } from "./hook.js";
-import { hookAccessor, hookClass, hookField, hookGetter, hookMethod, hookSetter, hookUtils } from "./utilities.js";
+import { ArgumentsProvider, DEFAULT_HOOK_NAME, HOOK_CLASS_STATE, HOOK_DATA, HookKeyDynamic, PREFIX, _identity, args, argsProvider, dhk, dynamicHookKey, noop } from "./shared.js";
+import { Hook, _createAccessorDecorator, _createHookInvoker, _resolveHookDecoratorOptions, attach, bypassMiddleware, detach, getCurrentHookKeyContext, getMiddleware, hook, hookDecorator, inherit, inspectHook, middleware } from "./hook.js";
+import { hookAccessor, hookClass, hookField, hookGetter, hookInit, hookMethod, hookSetter } from "./class-utilities.js";
 import { HookDecoratorBuilder, Hooks } from "./builder.js";
 
-export { ArgumentsProvider, DEFAULT_HOOK_NAME, HOOK, Hook, HookDecoratorBuilder, HookKeyDynamic, Hooks, _createAccessorDecorator, _createHookInvoker, _identity, _resolveHookDecoratorOptions, args, argsProvider, attach, detach, dhk, dynamicHookKey, getCurrentHookKeyContext, getMiddleware, hook, hookAccessor, hookClass, hookDecorator, hookField, hookGetter, hookMethod, hookSetter, hookUtils, inspectHook, middlewares, noop };
+export { ArgumentsProvider, DEFAULT_HOOK_NAME, HOOK_CLASS_STATE, HOOK_DATA, Hook, HookDecoratorBuilder, HookKeyDynamic, Hooks, PREFIX, _createAccessorDecorator, _createHookInvoker, _identity, _resolveHookDecoratorOptions, args, argsProvider, attach, bypassMiddleware, detach, dhk, dynamicHookKey, getCurrentHookKeyContext, getMiddleware, hook, hookAccessor, hookClass, hookDecorator, hookField, hookGetter, hookInit, hookMethod, hookSetter, inherit, inspectHook, middleware, noop };
