@@ -828,18 +828,6 @@ export function attach<TObject extends object, TName extends HookName>(
   >,
 ): () => void;
 
-/*
-export function attach<TObject extends object, TName extends HookName>(
-  key: TObject,
-  name: TName,
-  fn: MiddlewareMethod<
-    InferMiddlewareArgs<TObject, TName>,
-    InferMiddlewareResult<TObject, TName>,
-    InferMiddlewareThis<TObject, TName>
-  >,
-): () => void;
-*/
-
 /**
  * Attaches a middleware to a named hook on a key.
  *

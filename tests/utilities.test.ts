@@ -1247,7 +1247,7 @@ describe("hooks: class utilities", () => {
         static field = 1;
       }
       // @ts-expect-error no such kind
-      expect(() => hook.class(MyClass as any, "static unknown field")).toThrow(
+      expect(() => hook.class(MyClass, "static unknown field")).toThrow(
         "[class-utilities][hookClass] Invalid expression",
       );
     });

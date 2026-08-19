@@ -348,6 +348,14 @@ attach(fnInstance, "static init initStatic", (next, value) => {
   return next(value);
 });
 
+attach([Symbol("test")], "name", (next, x) => {
+  return next(x);
+});
+
+attach([Symbol("test"), {}, () => {}, FnManualExample, new FnManualExample()], "name", (next, x) => {
+  return next(x);
+});
+
 // @ts-expect-error middleware should require a string argument for initStatic
 attach(FnManualExample, "static init initStatic", (next, _value: number) => {
   next("test");
