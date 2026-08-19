@@ -32,7 +32,7 @@ describe("hooks: decorators", () => {
     }
 
     const init: string[] = [];
-    const detach1 = attach(PrivateMethodsClass, "#init", (next, x) => {
+    const detach1 = attach(PrivateMethodsClass, "method #init", (next, x) => {
       init.push(x);
       return next(x + ":mid1");
     });
@@ -44,7 +44,7 @@ describe("hooks: decorators", () => {
     });
 
     const initStatic: string[] = [];
-    const detach2 = attach(PrivateMethodsClass, "static #initStatic", (next, x) => {
+    const detach2 = attach(PrivateMethodsClass, "static method #initStatic", (next, x) => {
       initStatic.push(x);
       return next(x + ":mid1");
     });
@@ -99,7 +99,7 @@ describe("hooks: decorators", () => {
       return next(x + ":sub");
     });
 
-    const detach1 = attach(StaticMethodsClass, "static testStatic", (next, x) => {
+    const detach1 = attach(StaticMethodsClass, "static method testStatic", (next, x) => {
       return next(x + ":mid1");
     });
     const detach2 = attach(StaticMethodsClass.testStatic, (next, x) => {
@@ -225,12 +225,12 @@ describe("hooks: decorators", () => {
     const instance = new MethodsClass();
     const classHookData = (MethodsClass.prototype.myMethod as any)[HOOK_DATA] as IHookData;
     expect(classHookData).toBeDefined();
-    expect(classHookData.name).toBe("myMethod");
-    expect(classHookData.keyOrKeys).toBe(MethodsClass);
+    expect(classHookData.name).toBe("method myMethod");
+    expect(classHookData.keyOrKeys).toEqual(hook.inherit(MethodsClass));
 
     const instanceHookData = (instance.myMethod as any)[HOOK_DATA];
     expect(instanceHookData).toBeDefined();
-    expect(instanceHookData.name).toBe("myMethod");
+    expect(instanceHookData.name).toBe("method myMethod");
     expect(instanceHookData.keyOrKeys).toEqual([instance, MethodsClass]);
 
     expect(instance.myMethod("a")).toBe("a:original");
@@ -250,7 +250,7 @@ describe("hooks: decorators", () => {
     instance.myMethod("b");
     expect(subInstanceCalledWith).toEqual(["b:mid1"]);
 
-    attach(instance, "myMethod", (next, x) => {
+    attach(instance, "method myMethod", (next, x) => {
       logs.push(`instance middleware #2 called with ${x}`);
       return next(x + ":mid2");
     });
@@ -261,11 +261,13 @@ describe("hooks: decorators", () => {
     subInstanceCalledWith = [];
     logs.length = 0;
 
+    expect((MethodsClass.prototype.myMethod as any)[HOOK_DATA]?.name).toEqual("method myMethod");
+
     attach(MethodsClass.prototype.myMethod, (next, x) => {
       logs.push(`class byPrototype middleware called with ${x}`);
       return next(x + ":class1");
     });
-    attach(MethodsClass, "myMethod", (next, x) => {
+    attach(MethodsClass, "method myMethod", (next, x) => {
       logs.push(`class byMethodName called with ${x}`);
       return next(x + ":class2");
     });
@@ -356,7 +358,7 @@ describe("hooks: decorators", () => {
       return next(x);
     });
 
-    attach(DynamicHookClass, "dynamicMethod", (next, x) => {
+    attach(DynamicHookClass, "method dynamicMethod", (next, x) => {
       return next(x + ":mid1");
     });
 
@@ -370,7 +372,7 @@ describe("hooks: decorators", () => {
       }),
     ).toThrow("dynamic");
 
-    attach(instance, "dynamicMethod", (next, x) => {
+    attach(instance, "method dynamicMethod", (next, x) => {
       return next(x + ":mid3");
     });
 
@@ -391,7 +393,7 @@ describe("hooks: decorators", () => {
 
     expect(anotherInstance.dynamicMethod("input")).toBe("input:mid1:mid2:original"); // mid3 is for different instance
 
-    attach(anotherInstance, "dynamicMethod", (next, x) => {
+    attach(anotherInstance, "method dynamicMethod", (next, x) => {
       return next(x + ":mid4");
     });
 
@@ -653,7 +655,7 @@ describe("hooks: decorators", () => {
     const instance = new MyClass();
     expect(instance.myMethod()).toBe("ok");
 
-    attach(instance.myKey, "myMethod", (next) => "intercepted " + next());
+    attach(instance.myKey, "method myMethod", (next) => "intercepted " + next());
 
     expect(instance.myMethod()).toBe("intercepted ok");
   });
@@ -671,7 +673,7 @@ describe("hooks: decorators", () => {
     const instance = new InnerHooksClass();
 
     const instanceHookKeys: any[] = [];
-    attach(instance, "myMethod", (next, x) => {
+    attach(instance, "method myMethod", (next, x) => {
       const innerResult = hook("innerHook", (v) => {
         instanceHookKeys.push(getCurrentHookKeyContext());
         return v;
@@ -680,7 +682,7 @@ describe("hooks: decorators", () => {
     });
 
     const classHookKeys: any[] = [];
-    attach(InnerHooksClass, "myMethod", (next, x) => {
+    attach(InnerHooksClass, "method myMethod", (next, x) => {
       const innerResult = hook("innerHook", (v) => {
         classHookKeys.push(getCurrentHookKeyContext());
         return v;
@@ -726,7 +728,7 @@ describe("hooks: decorators", () => {
     const instance = new InnerHooksClass();
 
     const instanceHookKeys: any[] = [];
-    attach(instance, "myMethodAlt", (next, x) => {
+    attach(instance, "!method myMethodAlt", (next, x) => {
       const innerResult = hook("innerHook", (v) => {
         instanceHookKeys.push(getCurrentHookKeyContext());
         return v;
@@ -735,7 +737,7 @@ describe("hooks: decorators", () => {
     });
 
     const classHookKeys: any[] = [];
-    attach(InnerHooksClass, "myMethodAlt", (next, x) => {
+    attach(InnerHooksClass, "!method myMethodAlt", (next, x) => {
       const innerResult = hook("innerHook", (v) => {
         classHookKeys.push(getCurrentHookKeyContext());
         return v;
@@ -779,7 +781,7 @@ describe("hooks: decorators", () => {
 
     const instance = new InnerHooksClass();
 
-    attach(instance, "myMethod", (next, x) => {
+    attach(instance, "method myMethod", (next, x) => {
       const innerResult = hook("innerHook", (v) => v)(x);
       return next(innerResult + ":mid1");
     });
@@ -896,9 +898,9 @@ describe("hooks: decorators", () => {
     expect(instance.myMethod("input")).toBe("input:original");
     expect(MethodsClass.staticMethod("input")).toBe("input:staticOriginal");
 
-    attach(MethodsClass, "myMethodAlt", (next, x) => next(x + ":classMid"));
-    attach(instance, "myMethodAlt", (next, x) => next(x + ":instanceMid"));
-    attach(MethodsClass, "!static staticMethodAlt", (next, x) => next(x + ":staticMid"));
+    attach(MethodsClass, "!method myMethodAlt", (next, x) => next(x + ":classMid"));
+    attach(instance, "!method myMethodAlt", (next, x) => next(x + ":instanceMid"));
+    attach(MethodsClass, "!static method staticMethodAlt", (next, x) => next(x + ":staticMid"));
 
     expect(instance.myMethod("input")).toBe("input:instanceMid:classMid:original");
     expect(MethodsClass.staticMethod("input")).toBe("input:staticMid:staticOriginal");
@@ -952,7 +954,7 @@ describe("hooks: decorators", () => {
     attach(instance, "!set prvAccAlt", (next, v) => next(v + ":setMidI"));
     attach(instance, "!get prvGetAlt", (next) => next() + ":getMidI");
     attach(instance, "!set prvSetAlt", (next, v) => next(v + ":setMidI"));
-    attach(instance, "!prvMethodAlt", (next, x) => next(x + ":methodMidI"));
+    attach(instance, "!method prvMethodAlt", (next, x) => next(x + ":methodMidI"));
 
     expect(instance.getAcc()).toBe("initialAcc:getMidI");
     instance.setAcc("newAcc");
@@ -968,7 +970,7 @@ describe("hooks: decorators", () => {
     attach(PrivateInstanceClass, "!set prvAccAlt", (next, v) => next(v + ":setMidC"));
     attach(PrivateInstanceClass, "!get prvGetAlt", (next) => next() + ":getMidC");
     attach(PrivateInstanceClass, "!set prvSetAlt", (next, v) => next(v + ":setMidC"));
-    attach(PrivateInstanceClass, "!prvMethodAlt", (next, x) => next(x + ":methodMidC"));
+    attach(PrivateInstanceClass, "!method prvMethodAlt", (next, x) => next(x + ":methodMidC"));
 
     expect(instance.getField()).toBe("initialField");
     expect(instance.getAcc()).toBe("newAcc:setMidI:getMidC:getMidI");
@@ -1055,7 +1057,7 @@ describe("hooks: decorators", () => {
     attach(PrivateStaticClass, "!static set staticPrvAccAlt", (next, v) => next(v + ":setMid"));
     attach(PrivateStaticClass, "!static get staticPrvGetAlt", (next) => next() + ":getMid");
     attach(PrivateStaticClass, "!static set staticPrvSetAlt", (next, v) => next(v + ":setMid"));
-    attach(PrivateStaticClass, "!static staticPrvMethodAlt", (next, x) => next(x + ":methodMid"));
+    attach(PrivateStaticClass, "!static method staticPrvMethodAlt", (next, x) => next(x + ":methodMid"));
 
     expect(PrivateStaticClass.getAcc()).toBe("initialAcc:getMid");
     PrivateStaticClass.setAcc("newAcc");
@@ -1080,7 +1082,7 @@ describe("hooks: decorators", () => {
 
       const instance = new AlternativeNameOnlyMethodClass();
       expect(instance.method("hello")).toBe("hello:orig");
-      attach(instance, "methodAltOnly", (next, x) => next(x + ":intercepted"));
+      attach(instance, "!method methodAltOnly", (next, x) => next(x + ":intercepted"));
       expect(instance.method("hello")).toBe("hello:intercepted:orig");
     });
 
@@ -1104,7 +1106,7 @@ describe("hooks: decorators", () => {
 
       const instance = new DynamicKeyOnlyMethodClass();
       expect(instance.method("hello")).toBe("hello:orig");
-      attach(instance, "method", (next, x) => next(x + ":intercepted"));
+      attach(instance, "method method", (next, x) => next(x + ":intercepted"));
       expect(instance.method("hello")).toBe("hello:intercepted:orig");
       expect(tracks).toContainEqual({ target: "dynamicOnlyMethod", self: instance });
     });
@@ -1129,7 +1131,7 @@ describe("hooks: decorators", () => {
 
       const instance = new AlternativeAndDynamicMethodClass();
       expect(instance.method("hello")).toBe("hello:orig");
-      attach(instance, "methodAltAndDynamic", (next, x) => next(x + ":intercepted"));
+      attach(instance, "!method methodAltAndDynamic", (next, x) => next(x + ":intercepted"));
       expect(instance.method("hello")).toBe("hello:intercepted:orig");
       expect(tracks).toContainEqual({ target: "methodAltAndDynamic", self: instance });
     });
@@ -1154,7 +1156,7 @@ describe("hooks: decorators", () => {
 
       const instance = new DynamicAndAlternativeMethodClass();
       expect(instance.method("hello")).toBe("hello:orig");
-      attach(instance, "methodDynamicAndAlternative", (next, x) => next(x + ":intercepted"));
+      attach(instance, "!method methodDynamicAndAlternative", (next, x) => next(x + ":intercepted"));
       expect(instance.method("hello")).toBe("hello:intercepted:orig");
       expect(tracks).toContainEqual({ target: "dynamicAndAlternativeMethod", self: instance });
     });
@@ -1496,7 +1498,9 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeNameOnlyStaticMethodClass.method("hello")).toBe("hello:orig");
-      attach(AlternativeNameOnlyStaticMethodClass, "!static methodAltOnly", (next, x) => next(x + ":intercepted"));
+      attach(AlternativeNameOnlyStaticMethodClass, "!static method methodAltOnly", (next, x) =>
+        next(x + ":intercepted"),
+      );
       expect(AlternativeNameOnlyStaticMethodClass.method("hello")).toBe("hello:intercepted:orig");
     });
 
@@ -1512,7 +1516,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(DynamicKeyOnlyStaticMethodClass.method("hello")).toBe("hello:orig");
-      attach(DynamicKeyOnlyStaticMethodClass, "static method", (next, x) => next(x + ":intercepted"));
+      attach(DynamicKeyOnlyStaticMethodClass, "static method method", (next, x) => next(x + ":intercepted"));
       expect(DynamicKeyOnlyStaticMethodClass.method("hello")).toBe("hello:intercepted:orig");
       expect(tracks).toContainEqual({ target: "dynamicOnlyStaticMethod", self: DynamicKeyOnlyStaticMethodClass });
     });
@@ -1529,7 +1533,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeAndDynamicStaticMethodClass.method("hello")).toBe("hello:orig");
-      attach(AlternativeAndDynamicStaticMethodClass, "!static methodAltAndDynamic", (next, x) =>
+      attach(AlternativeAndDynamicStaticMethodClass, "!static method methodAltAndDynamic", (next, x) =>
         next(x + ":intercepted"),
       );
       expect(AlternativeAndDynamicStaticMethodClass.method("hello")).toBe("hello:intercepted:orig");
@@ -1548,7 +1552,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(DynamicAndAlternativeStaticMethodClass.method("hello")).toBe("hello:orig");
-      attach(DynamicAndAlternativeStaticMethodClass, "!static methodDynamicAndAlternative", (next, x) =>
+      attach(DynamicAndAlternativeStaticMethodClass, "!static method methodDynamicAndAlternative", (next, x) =>
         next(x + ":intercepted"),
       );
       expect(DynamicAndAlternativeStaticMethodClass.method("hello")).toBe("hello:intercepted:orig");
@@ -1836,7 +1840,7 @@ describe("hooks: decorators", () => {
 
       const instance = new AlternativeNameOnlyPrivateMethodClass();
       expect(instance.callMethod("hello")).toBe("hello:orig");
-      attach(instance, "methodAltOnly", (next, x) => next(x + ":intercepted"));
+      attach(instance, "!method methodAltOnly", (next, x) => next(x + ":intercepted"));
       expect(instance.callMethod("hello")).toBe("hello:intercepted:orig");
     });
 
@@ -1857,7 +1861,7 @@ describe("hooks: decorators", () => {
 
       const instance = new DynamicKeyOnlyPrivateMethodClass();
       expect(instance.callMethod("hello")).toBe("hello:orig");
-      attach(instance, "#method", (next, x) => next(x + ":intercepted"));
+      attach(instance, "method #method", (next, x) => next(x + ":intercepted"));
       expect(instance.callMethod("hello")).toBe("hello:intercepted:orig");
       expect(tracks).toContainEqual({ target: "dynamicOnlyPrivateMethod", self: instance });
     });
@@ -1879,7 +1883,7 @@ describe("hooks: decorators", () => {
 
       const instance = new AlternativeAndDynamicPrivateMethodClass();
       expect(instance.callMethod("hello")).toBe("hello:orig");
-      attach(instance, "methodAltAndDynamic", (next, x) => next(x + ":intercepted"));
+      attach(instance, "!method methodAltAndDynamic", (next, x) => next(x + ":intercepted"));
       expect(instance.callMethod("hello")).toBe("hello:intercepted:orig");
       expect(tracks).toContainEqual({ target: "methodAltAndDynamic", self: instance });
     });
@@ -1901,7 +1905,7 @@ describe("hooks: decorators", () => {
 
       const instance = new DynamicAndAlternativePrivateMethodClass();
       expect(instance.callMethod("hello")).toBe("hello:orig");
-      attach(instance, "methodDynamicAndAlternative", (next, x) => next(x + ":intercepted"));
+      attach(instance, "!method methodDynamicAndAlternative", (next, x) => next(x + ":intercepted"));
       expect(instance.callMethod("hello")).toBe("hello:intercepted:orig");
       expect(tracks).toContainEqual({ target: "dynamicAndAlternativePrivateMethod", self: instance });
     });
@@ -2249,7 +2253,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeNameOnlyStaticPrivateMethodClass.callMethod("hello")).toBe("hello:orig");
-      attach(AlternativeNameOnlyStaticPrivateMethodClass, "!static methodAltOnly", (next, x) =>
+      attach(AlternativeNameOnlyStaticPrivateMethodClass, "!static method methodAltOnly", (next, x) =>
         next(x + ":intercepted"),
       );
       expect(AlternativeNameOnlyStaticPrivateMethodClass.callMethod("hello")).toBe("hello:intercepted:orig");
@@ -2271,7 +2275,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(DynamicKeyOnlyStaticPrivateMethodClass.callMethod("hello")).toBe("hello:orig");
-      attach(DynamicKeyOnlyStaticPrivateMethodClass, "static #method", (next, x) => next(x + ":intercepted"));
+      attach(DynamicKeyOnlyStaticPrivateMethodClass, "static method #method", (next, x) => next(x + ":intercepted"));
       expect(DynamicKeyOnlyStaticPrivateMethodClass.callMethod("hello")).toBe("hello:intercepted:orig");
       expect(tracks).toContainEqual({
         target: "dynamicOnlyStaticPrivateMethod",
@@ -2295,7 +2299,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(AlternativeAndDynamicStaticPrivateMethodClass.callMethod("hello")).toBe("hello:orig");
-      attach(AlternativeAndDynamicStaticPrivateMethodClass, "!static methodAltAndDynamic", (next, x) =>
+      attach(AlternativeAndDynamicStaticPrivateMethodClass, "!static method methodAltAndDynamic", (next, x) =>
         next(x + ":intercepted"),
       );
       expect(AlternativeAndDynamicStaticPrivateMethodClass.callMethod("hello")).toBe("hello:intercepted:orig");
@@ -2321,7 +2325,7 @@ describe("hooks: decorators", () => {
       }
 
       expect(DynamicAndAlternativeStaticPrivateMethodClass.callMethod("hello")).toBe("hello:orig");
-      attach(DynamicAndAlternativeStaticPrivateMethodClass, "!static methodDynamicAndAlternative", (next, x) =>
+      attach(DynamicAndAlternativeStaticPrivateMethodClass, "!static method methodDynamicAndAlternative", (next, x) =>
         next(x + ":intercepted"),
       );
       expect(DynamicAndAlternativeStaticPrivateMethodClass.callMethod("hello")).toBe("hello:intercepted:orig");

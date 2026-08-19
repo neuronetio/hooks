@@ -418,8 +418,8 @@ export function Hook() {
         if (hooked && (hooked as any)[HOOK_DATA] === undefined) {
           (hooked as any)[HOOK_DATA] = {
             origin: hooked,
-            keyOrKeys: this,
-            name: propertyKey,
+            keyOrKeys: inherit(this),
+            name: "method " + String(propertyKey),
           } satisfies IHookData;
         }
       }
@@ -593,12 +593,12 @@ export function hookDecorator(
   dynamicKey = resolvedOptions.dynamicKey;
   alternativeName = resolvedOptions.alternativeName;
 
-  // TODO: must align with expressions like `method myMethod` or `static method myMethod`
   return function decorate(this: any, value: any, context: HookDecoratorContext): any {
     let propertyKey = context.name;
     let hookName = (alternativeName || propertyKey) as string | symbol;
 
     if (!context.private && context.kind === "method") {
+      hookName = "method " + String(hookName);
       const metadata: DecoratorMetadataObject = context.metadata;
       const hooks: MetadataHooks = (metadata.hooks as MetadataHooks) || (metadata.hooks = []);
       hooks.push(propertyKey);
@@ -619,21 +619,31 @@ export function hookDecorator(
       return value;
     }
 
-    if (context.kind === "accessor") {
-      const { get, set } = value;
-      return _createAccessorDecorator(context.static, propertyKey, hookName, get, set, dynamicKey);
-    }
-
-    if (context.kind === "field") {
-      propertyKey = "init " + String(propertyKey);
-      hookName = "init " + String(hookName);
-      value = _identity;
-    } else if (context.kind === "getter") {
-      propertyKey = "get " + String(propertyKey);
-      hookName = "get " + String(hookName);
-    } else if (context.kind === "setter") {
-      propertyKey = "set " + String(propertyKey);
-      hookName = "set " + String(hookName);
+    switch (context.kind) {
+      case "accessor": {
+        const { get, set } = value;
+        return _createAccessorDecorator(context.static, propertyKey, hookName, get, set, dynamicKey);
+      }
+      case "field": {
+        propertyKey = "init " + String(propertyKey);
+        hookName = "init " + String(hookName);
+        value = _identity;
+        break;
+      }
+      case "getter": {
+        propertyKey = "get " + String(propertyKey);
+        hookName = "get " + String(hookName);
+        break;
+      }
+      case "setter": {
+        propertyKey = "set " + String(propertyKey);
+        hookName = "set " + String(hookName);
+        break;
+      }
+      default: {
+        propertyKey = "method " + String(propertyKey);
+        hookName = "method " + String(hookName);
+      }
     }
 
     if (context.static) {
