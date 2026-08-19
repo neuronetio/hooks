@@ -47,6 +47,9 @@
     "forceConsistentCasingInFileNames": true,
 
     "stripInternal": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "paths": {
+      "@neuronet/hooks": ["./src/index.ts"]
+    }
   }
 }

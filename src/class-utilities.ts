@@ -103,7 +103,7 @@ function resolveMemberDescriptorWithStatic(
   );
 }
 
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     init: typeof hookInit;
   }
@@ -124,7 +124,7 @@ export function hookInit<HDC extends AnyClass, Instance extends InstanceType<HDC
 }
 hook.init = hookInit;
 
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     /**
      * Applies hook behavior to a class method.
@@ -219,7 +219,7 @@ export function hookMethod<TClass extends AnyClass, TName extends HookPropertyNa
 }
 hook.method = hookMethod;
 
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     /**
      * Applies hook behavior to a getter.
@@ -311,7 +311,7 @@ export function hookGetter<TClass extends AnyClass, TName extends HookPropertyNa
 }
 hook.getter = hookGetter;
 
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     /**
      * Applies hook behavior to a setter.
@@ -447,7 +447,7 @@ function isStaticField(Class: AnyClass, propertyKey: PropertyKey) {
   return { isStatic: asStatic, key };
 }
 
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     /**
      * Applies hook behavior to a field initializer.
@@ -540,7 +540,7 @@ export function hookField<TClass extends AnyClass, TName extends HookPropertyNam
 }
 hook.field = hookField;
 
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     /**
      * Applies hook behavior to field as an accessor.
@@ -746,7 +746,7 @@ export function hookAccessor<TClass extends AnyClass>(
 }
 hook.accessor = hookAccessor;
 
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     class: typeof hookClass;
   }

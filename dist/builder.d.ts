@@ -157,7 +157,7 @@ declare class HookDecoratorBuilder<TClass extends AnyClass = AnyClass> implement
  */
 declare function Hooks<TClass extends AnyClass>(Class: TClass): IHookDecoratorBuilder<TClass>;
 declare function Hooks<TClass extends AnyClass>(Class: TClass): HookDecoratorBuilder<TClass>;
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     builder: typeof Hooks;
   }

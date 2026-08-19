@@ -409,7 +409,7 @@ export function Hooks<TClass extends AnyClass>(Class: TClass): IHookDecoratorBui
   return new HookDecoratorBuilder(Class);
 }
 
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     builder: typeof Hooks;
   }

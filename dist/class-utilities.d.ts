@@ -1,12 +1,12 @@
 import { AnyClass, DynamicKeyOrAlternativeName, HookClassExpression, HookKeyDynamic, HookPropertyName } from "./shared.js";
 //#region src/class-utilities.d.ts
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     init: typeof hookInit;
   }
 }
 declare function hookInit<HDC extends AnyClass, Instance extends InstanceType<HDC>>(instance: Instance, ...args: any[]): any;
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     /**
      * Applies hook behavior to a class method.
@@ -36,7 +36,7 @@ declare function hookMethod<TClass extends AnyClass, TName extends HookPropertyN
 declare function hookMethod<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(Class: TClass, propertyKey: TName, dynamicKey: HookKeyDynamic, alternativeName: string): TClass;
 declare function hookMethod<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(Class: TClass, propertyKey: TName, alternativeName: string, dynamicKey: HookKeyDynamic): TClass;
 declare function hookMethod<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(Class: TClass, propertyKey: TName, arg1?: DynamicKeyOrAlternativeName, arg2?: DynamicKeyOrAlternativeName): TClass;
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     /**
      * Applies hook behavior to a getter.
@@ -66,7 +66,7 @@ declare function hookGetter<TClass extends AnyClass, TName extends HookPropertyN
 declare function hookGetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(Class: TClass, propertyKey: TName, dynamicKey: HookKeyDynamic, alternativeName: string): TClass;
 declare function hookGetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(Class: TClass, propertyKey: TName, alternativeName: string, dynamicKey: HookKeyDynamic): TClass;
 declare function hookGetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(Class: TClass, propertyKey: TName, arg1?: DynamicKeyOrAlternativeName, arg2?: DynamicKeyOrAlternativeName): TClass;
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     /**
      * Applies hook behavior to a setter.
@@ -96,7 +96,7 @@ declare function hookSetter<TClass extends AnyClass, TName extends HookPropertyN
 declare function hookSetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(Class: TClass, propertyKey: TName, dynamicKey: HookKeyDynamic, alternativeName: string): TClass;
 declare function hookSetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(Class: TClass, propertyKey: TName, alternativeName: string, dynamicKey: HookKeyDynamic): TClass;
 declare function hookSetter<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(Class: TClass, propertyKey: TName, arg1?: DynamicKeyOrAlternativeName, arg2?: DynamicKeyOrAlternativeName): TClass;
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     /**
      * Applies hook behavior to a field initializer.
@@ -132,7 +132,7 @@ declare function hookField<TClass extends AnyClass, TName extends HookPropertyNa
 declare function hookField<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(Class: TClass, propertyKey: TName, dynamicKey: HookKeyDynamic, alternativeName: string): TClass;
 declare function hookField<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(Class: TClass, propertyKey: TName, alternativeName: string, dynamicKey: HookKeyDynamic): TClass;
 declare function hookField<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(Class: TClass, propertyKey: TName, arg1?: DynamicKeyOrAlternativeName, arg2?: DynamicKeyOrAlternativeName): TClass;
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     /**
      * Applies hook behavior to field as an accessor.
@@ -168,7 +168,7 @@ declare function hookAccessor<TClass extends AnyClass>(Class: TClass, propertyKe
 declare function hookAccessor<TClass extends AnyClass>(Class: TClass, propertyKey: PropertyKey, dynamicKey: HookKeyDynamic, alternativeName: string): TClass;
 declare function hookAccessor<TClass extends AnyClass>(Class: TClass, propertyKey: PropertyKey, alternativeName: string, dynamicKey: HookKeyDynamic): TClass;
 declare function hookAccessor<TClass extends AnyClass>(Class: TClass, propertyKey: PropertyKey, arg1?: DynamicKeyOrAlternativeName, arg2?: DynamicKeyOrAlternativeName): TClass;
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     class: typeof hookClass;
   }

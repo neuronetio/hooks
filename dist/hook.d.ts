@@ -158,7 +158,7 @@ interface HookApi {
   <F extends (...args: any[]) => any>(key: HookKeySingle, name: HookName, args: ArgumentsProvider<Parameters<F>>, fn: F | null): IHookFn<Parameters<F>, ReturnType<F>, []>;
 }
 declare const hook: HookApi;
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     /**
      * Used to inherit middlewares from the base class.

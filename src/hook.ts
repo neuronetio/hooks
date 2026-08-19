@@ -364,7 +364,7 @@ function hookBase<
 }
 export const hook = hookBase as HookApi;
 
-declare module "./hook.js" {
+declare module "@neuronet/hooks" {
   interface HookApi {
     /**
      * Used to inherit middlewares from the base class.

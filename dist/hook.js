@@ -25,37 +25,39 @@ function hookBase(arg1, arg2, arg3, arg4) {
 		name = arg2;
 		argsProv = arg3;
 		fn = arg4 || noop;
-	} else if (arg3 !== void 0) if (typeof arg1 === "string") {
-		if (!currentHookKey) throw new Error(`${PREFIX} Hook key must be provided or inferred from the context.`);
-		keyOrKeys = currentHookKey;
-		name = arg1;
-		argsProv = arg2;
-		fn = arg3 || noop;
-	} else {
-		keyOrKeys = arg1;
-		if (typeof arg2 === "string" || typeof arg2 === "symbol") {
-			name = arg2;
-			fn = arg3 || noop;
-		} else {
+	} else if (arg3 !== void 0) {
+		if (typeof arg1 === "string") {
+			if (!currentHookKey) throw new Error(`${PREFIX} Hook key must be provided or inferred from the context.`);
+			keyOrKeys = currentHookKey;
+			name = arg1;
 			argsProv = arg2;
 			fn = arg3 || noop;
+		} else {
+			keyOrKeys = arg1;
+			if (typeof arg2 === "string" || typeof arg2 === "symbol") {
+				name = arg2;
+				fn = arg3 || noop;
+			} else {
+				argsProv = arg2;
+				fn = arg3 || noop;
+			}
 		}
-	}
-	else if (arg2 !== void 0) if (typeof arg1 === "string") {
-		if (!currentHookKey) throw new Error(`${PREFIX} Hook key must be provided or inferred from the context.`);
-		keyOrKeys = currentHookKey;
-		name = arg1;
-		fn = arg2 || noop;
-	} else if (arg1 instanceof ArgumentsProvider) {
-		argsProv = arg1;
-		fn = arg2 || noop;
-		if (fn === noop && !currentHookKey) throw new Error(`${PREFIX} Hook key must be provided or inferred from the context.`);
-		keyOrKeys = fn;
+	} else if (arg2 !== void 0) {
+		if (typeof arg1 === "string") {
+			if (!currentHookKey) throw new Error(`${PREFIX} Hook key must be provided or inferred from the context.`);
+			keyOrKeys = currentHookKey;
+			name = arg1;
+			fn = arg2 || noop;
+		} else if (arg1 instanceof ArgumentsProvider) {
+			argsProv = arg1;
+			fn = arg2 || noop;
+			if (fn === noop && !currentHookKey) throw new Error(`${PREFIX} Hook key must be provided or inferred from the context.`);
+			keyOrKeys = fn;
+		} else {
+			keyOrKeys = arg1;
+			fn = arg2 || noop;
+		}
 	} else {
-		keyOrKeys = arg1;
-		fn = arg2 || noop;
-	}
-	else {
 		fn = arg1 || noop;
 		keyOrKeys = fn;
 	}
@@ -125,8 +127,8 @@ function Hook() {
 				const hooked = this.prototype[propertyKey];
 				if (hooked && hooked[HOOK_DATA] === void 0) hooked[HOOK_DATA] = {
 					origin: hooked,
-					keyOrKeys: this,
-					name: propertyKey
+					keyOrKeys: inherit(this),
+					name: "method " + String(propertyKey)
 				};
 			}
 		});
@@ -233,6 +235,7 @@ function hookDecorator(dynamicKey, alternativeName) {
 		let propertyKey = context.name;
 		let hookName = alternativeName || propertyKey;
 		if (!context.private && context.kind === "method") {
+			hookName = "method " + String(hookName);
 			const metadata = context.metadata;
 			(metadata.hooks || (metadata.hooks = [])).push(propertyKey);
 			context.addInitializer(function() {
@@ -241,20 +244,27 @@ function hookDecorator(dynamicKey, alternativeName) {
 			});
 			return value;
 		}
-		if (context.kind === "accessor") {
-			const { get, set } = value;
-			return _createAccessorDecorator(context.static, propertyKey, hookName, get, set, dynamicKey);
-		}
-		if (context.kind === "field") {
-			propertyKey = "init " + String(propertyKey);
-			hookName = "init " + String(hookName);
-			value = _identity;
-		} else if (context.kind === "getter") {
-			propertyKey = "get " + String(propertyKey);
-			hookName = "get " + String(hookName);
-		} else if (context.kind === "setter") {
-			propertyKey = "set " + String(propertyKey);
-			hookName = "set " + String(hookName);
+		switch (context.kind) {
+			case "accessor": {
+				const { get, set } = value;
+				return _createAccessorDecorator(context.static, propertyKey, hookName, get, set, dynamicKey);
+			}
+			case "field":
+				propertyKey = "init " + String(propertyKey);
+				hookName = "init " + String(hookName);
+				value = _identity;
+				break;
+			case "getter":
+				propertyKey = "get " + String(propertyKey);
+				hookName = "get " + String(hookName);
+				break;
+			case "setter":
+				propertyKey = "set " + String(propertyKey);
+				hookName = "set " + String(hookName);
+				break;
+			default:
+				propertyKey = "method " + String(propertyKey);
+				hookName = "method " + String(hookName);
 		}
 		if (context.static) {
 			propertyKey = "static " + String(propertyKey);
