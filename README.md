@@ -1,34 +1,42 @@
 # @neuronet/hooks
 
-WORK IN PROGRESS — NOT YET STABLE, EVERYTHING IS SUBJECT TO CHANGE
-
 `@neuronet/hooks` is a simple, unified and flexible library for adding hooks, middleware or events to JavaScript and TypeScript code.
-
-It helps you extend behavior without changing the original codebase. In practice, that means you can add dependency injection, logging, validation, retries, caching, instrumentation, or custom logic in a clean, flexible and reusable way.
 
 ## When to use this library
 
 `@neuronet/hooks` are especially useful when:
 
-- you need observable events or lifecycle hooks inside your code.
 - you need to add or change behavior without modifying the original source code (keeping it upgradable).
 - you want a plugin-style extension mechanism for libraries or applications.
 - you deliver customer-specific solutions that stay separate from, yet ship with, the core code.
 - you want to create a dynamic composition of functions that can be modified at runtime without manual recomposition.
-- you want granular control and a very flexible way of attaching middleware at different levels (also considering various dynamic conditions).
+- you need observable events or lifecycle hooks inside your code.
+- you want granular control and a very flexible way of attaching middleware at different levels (also with dynamic conditions).
 - you need middlewares that can be attached and detached at runtime.
-- you want a single, consistent API for injecting behavior into functions, methods, fields, getters, setters, and accessors — across public, static, and private members.
+- you want a single, consistent API for injecting behavior into functions, methods, fields, getters, setters, and accessors — across public, static, and private members of the class or specific instances.
 
 Basically this library can be used for cross-cutting concerns but in a more flexible manner.
-For example, it can be used for dependency injection, validation, testing, logging, caching, memoization, retries, metrics, and other common tasks.
+For example, it can be used for (dynamic) dependency injection, validation, testing, logging, caching, memoization, retries, metrics, and other common tasks.
 The most useful thing is that you can replace your strategies (or choose different ones based on configuration) for those tasks without touching the main business logic.
 
 On top of that, `@neuronet/hooks` is very lightweight, well tested, and has no external dependencies.
-It is written in TypeScript and runs in Node.js, web browsers, Deno, Bun, and other JavaScript runtimes.
+
+## Drawbacks of the library
+
+- Since middleware is usually defined in a different file than the function it decorates, debugging the code can be more difficult (we have useful tools for this, such as `inspectHook`, `getMiddleware`, or `bypassMiddleware`).
+  You can also use const variables to store the hook key and name, which makes it easier to find the middleware in the codebase.
+  Unfortunately, this does not apply to middleware defined in another project (e.g., in microservices), which means you can forget to update some middleware (although this is generally a problem of changes in the public API and microservices, and does not strictly concern hooks/middleware). This problem can be solved by using API versioning, by requiring peer dependencies in `package.json`, or even through solutions like SBOM.
+- It can be harder to understand the program flow, especially for new team members (it requires some additional learning — fortunately, it doesn't take much time).
+- Refactoring might be more difficult.
+- The order in which middleware is defined can matter.
+
+Most of these are typical problems that we often encounter as programmers in our work.
+Some of these problems can be solved through good middleware organization and with the help of strong class typing (although in some cases it is not available).
 
 ## Table of contents
 
 - [When to use this library](#when-to-use-this-library)
+- [Drawbacks of the library](#drawbacks-of-the-library)
 - [Basic concepts](#basic-concepts)
   - [The four main ways to use it](#the-four-main-ways-to-use-it)
     - [1. Quick start: wrap a function](#1-quick-start-wrap-a-function)
