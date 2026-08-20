@@ -235,110 +235,250 @@ interface HookApi {
   /**
    * Attaches a middleware to a hook function.
    *
-   * A middleware wraps the hook's original function. It receives `next` (the next function in
-   * the chain) plus the call args, and can modify args, short-circuit, or alter the result.
-   * Middleware run in the order they were added.
+   * Middleware registered this way runs before the hook's original function whenever the hook is
+   * invoked. Each middleware receives a `next` function that continues the chain (calling the next
+   * middleware or, at the end, the original function) followed by the hook's arguments. Middleware
+   * can inspect or modify the arguments before calling `next`, and can modify the returned result
+   * after `next` resolves. Multiple middlewares attached to the same hook run in the order they were
+   * attached.
    *
-   * @param hookFn The hook function to attach to.
-   * @param fn The middleware to attach.
-   * @returns A function that detaches the middleware.
+   * The hook to attach to can be identified in several ways:
+   * - **A hook function** (`attach(hookFn, fn)`): the key and name are read from the hook's internal
+   *   metadata, so the middleware is attached exactly where the hook was created.
+   * - **A hook key** (`attach(key, fn)` or `attach(key, name, fn)`): the middleware is attached to
+   *   every hook that uses the given key. The key can be a symbol, an object, a function, or an array
+   *   of keys — in which case the first key from the array is used.
+   * - **A class or instance** (`attach(obj, expression, fn)`): the middleware is attached to the hook
+   * using the given expression. The middleware's arguments, result, and `this` types are inferred from the
+   * given class or instance when an expression is used. A leading `!` at the beginning of an expression is
+   * stripped and ignored; it is used to turn off type checking when needed. For example, when you want
+   * to use an alternative name for middleware or want to use a different type.
+   *
+   * When a composite key (an array of keys) is passed, only the first key is used. This is the
+   * instance-level key, which has the highest priority and can override lower levels, so middleware
+   * attached this way behaves like a normal single-level middleware. To target a key from a lower
+   * level, pass that key explicitly.
+   *
+   * Dynamic hook keys are not supported (here) and throw an error, because a dynamic key is resolved at
+   * runtime (with proper `this` context) and cannot be used as a stable attachment target.
+   *
+   * @param hookFn The hook function to attach the middleware to.
+   * @param fn The middleware function to attach.
+   * @returns A function that detaches the middleware when called.
    */
   attach<T extends (...args: any[]) => any>(hookFn: T, fn: MiddlewareMethod<HookOriginArgs<T>, HookOriginResult<T>, HookOriginThis<T>>): () => void;
   /**
    * Attaches a middleware to a hook key.
    *
-   * A middleware wraps the hook's original function. It receives `next` (the next function in
-   * the chain) plus the call args, and can modify args, short-circuit, or alter the result.
-   * Middleware run in the order they were added.
+   * Middleware registered this way runs before the hook's original function whenever the hook is
+   * invoked. Each middleware receives a `next` function that continues the chain (calling the next
+   * middleware or, at the end, the original function) followed by the hook's arguments. Middleware
+   * can inspect or modify the arguments before calling `next`, and can modify the returned result
+   * after `next` resolves. Multiple middlewares attached to the same hook run in the order they were
+   * attached.
    *
-   * @param key The hook key (symbol, object, or function) to attach to.
-   * @param fn The middleware to attach.
-   * @returns A function that detaches the middleware.
+   * The hook to attach to can be identified in several ways:
+   * - **A hook function** (`attach(hookFn, fn)`): the key and name are read from the hook's internal
+   *   metadata, so the middleware is attached exactly where the hook was created.
+   * - **A hook key** (`attach(key, fn)` or `attach(key, name, fn)`): the middleware is attached to
+   *   every hook that uses the given key. The key can be a symbol, an object, a function, or an array
+   *   of keys — in which case the first key from the array is used.
+   * - **A class or instance** (`attach(obj, expression, fn)`): the middleware is attached to the hook
+   * using the given expression. The middleware's arguments, result, and `this` types are inferred from the
+   * given class or instance when an expression is used. A leading `!` at the beginning of an expression is
+   * stripped and ignored; it is used to turn off type checking when needed. For example, when you want
+   * to use an alternative name for middleware or want to use a different type.
+   *
+   * When a composite key (an array of keys) is passed, only the first key is used. This is the
+   * instance-level key, which has the highest priority and can override lower levels, so middleware
+   * attached this way behaves like a normal single-level middleware. To target a key from a lower
+   * level, pass that key explicitly.
+   *
+   * Dynamic hook keys are not supported (here) and throw an error, because a dynamic key is resolved at
+   * runtime (with proper `this` context) and cannot be used as a stable attachment target.
+   *
+   * @param key The hook key to attach the middleware to.
+   * @param fn The middleware function to attach.
+   * @returns A function that detaches the middleware when called.
    */
   attach<A extends any[] = any[], R = any>(key: HookKeyOrKeys, fn: MiddlewareMethod<A, R>): () => void;
   /**
-   * Attaches a middleware to a named hook on an object or class.
+   * Attaches a middleware to a symbol hook key under a specific hook name.
    *
-   * A middleware wraps the hook's original function. It receives `next` (the next function in
-   * the chain) plus the call args, and can modify args, short-circuit, or alter the result.
-   * Middleware run in the order they were added.
+   * Middleware registered this way runs before the hook's original function whenever the hook is
+   * invoked. Each middleware receives a `next` function that continues the chain (calling the next
+   * middleware or, at the end, the original function) followed by the hook's arguments. Middleware
+   * can inspect or modify the arguments before calling `next`, and can modify the returned result
+   * after `next` resolves. Multiple middlewares attached to the same hook run in the order they were
+   * attached.
    *
-   * @param key The object or class holding the hook.
-   * @param name The hook name (e.g. a method name).
-   * @param fn The middleware to attach.
-   * @returns A function that detaches the middleware.
+   * The hook to attach to can be identified in several ways:
+   * - **A hook function** (`attach(hookFn, fn)`): the key and name are read from the hook's internal
+   *   metadata, so the middleware is attached exactly where the hook was created.
+   * - **A hook key** (`attach(key, fn)` or `attach(key, name, fn)`): the middleware is attached to
+   *   every hook that uses the given key. The key can be a symbol, an object, a function, or an array
+   *   of keys — in which case the first key from the array is used.
+   * - **A class or instance** (`attach(obj, expression, fn)`): the middleware is attached to the hook
+   * using the given expression. The middleware's arguments, result, and `this` types are inferred from the
+   * given class or instance when an expression is used. A leading `!` at the beginning of an expression is
+   * stripped and ignored; it is used to turn off type checking when needed. For example, when you want
+   * to use an alternative name for middleware or want to use a different type.
+   *
+   * When a composite key (an array of keys) is passed, only the first key is used. This is the
+   * instance-level key, which has the highest priority and can override lower levels, so middleware
+   * attached this way behaves like a normal single-level middleware. To target a key from a lower
+   * level, pass that key explicitly.
+   *
+   * Dynamic hook keys are not supported (here) and throw an error, because a dynamic key is resolved at
+   * runtime (with proper `this` context) and cannot be used as a stable attachment target.
+   *
+   * @param key The symbol hook key to attach the middleware to.
+   * @param name The hook name to attach the middleware under.
+   * @param fn The middleware function to attach.
+   * @returns A function that detaches the middleware when called.
+   */
+  attach<S extends symbol, N extends HookName>(key: S, name: N, fn: MiddlewareMethod<any[], any>): () => void;
+  /**
+   * Attaches a middleware to a class or instance under a specific expression.
+   *
+   * Middleware registered this way runs before the hook's original function whenever the hook is
+   * invoked. Each middleware receives a `next` function that continues the chain (calling the next
+   * middleware or, at the end, the original function) followed by the hook's arguments. Middleware
+   * can inspect or modify the arguments before calling `next`, and can modify the returned result
+   * after `next` resolves. Multiple middlewares attached to the same hook run in the order they were
+   * attached.
+   *
+   * The hook to attach to can be identified in several ways:
+   * - **A hook function** (`attach(hookFn, fn)`): the key and name are read from the hook's internal
+   *   metadata, so the middleware is attached exactly where the hook was created.
+   * - **A hook key** (`attach(key, fn)` or `attach(key, name, fn)`): the middleware is attached to
+   *   every hook that uses the given key. The key can be a symbol, an object, a function, or an array
+   *   of keys — in which case the first key from the array is used.
+   * - **A class or instance** (`attach(obj, expression, fn)`): the middleware is attached to the hook
+   * using the given expression. The middleware's arguments, result, and `this` types are inferred from the
+   * given class or instance when an expression is used. A leading `!` at the beginning of an expression is
+   * stripped and ignored; it is used to turn off type checking when needed. For example, when you want
+   * to use an alternative name for middleware or want to use a different type.
+   *
+   * When a composite key (an array of keys) is passed, only the first key is used. This is the
+   * instance-level key, which has the highest priority and can override lower levels, so middleware
+   * attached this way behaves like a normal single-level middleware. To target a key from a lower
+   * level, pass that key explicitly.
+   *
+   * Dynamic hook keys are not supported (here) and throw an error, because a dynamic key is resolved at
+   * runtime (with proper `this` context) and cannot be used as a stable attachment target.
+   *
+   * @param key The class or instance to attach the middleware to.
+   * @param name The hook name to attach the middleware under.
+   * @param fn The middleware function to attach.
+   * @returns A function that detaches the middleware when called.
    */
   attach<TObject extends object, TName extends HookName>(key: TObject, name: TName, fn: MiddlewareMethod<InferMiddlewareArgs<TObject, TName>, InferMiddlewareResult<TObject, TName>, InferMiddlewareThis<TObject, TName>>): () => void;
-  /**
-   * Attaches a middleware to a named hook on a key.
-   *
-   * A middleware wraps the hook's original function. It receives `next` (the next function in
-   * the chain) plus the call args, and can modify args, short-circuit, or alter the result.
-   * Middleware run in the order they were added.
-   *
-   * @param keyOrKeys The hook key (symbol, object, or function) or keys (array of hook keys) to attach to.
-   * @param name The hook name.
-   * @param fn The middleware to attach.
-   * @returns A function that detaches the middleware.
-   */
-  attach(keyOrKeys: HookKeyOrKeys, name: HookName, fn: MiddlewareMethod<any[], unknown>): () => void;
-  /**
-   * Attaches a middleware to a hook function or hook key.
-   *
-   * A middleware wraps the hook's original function. It receives `next` (the next function in
-   * the chain) plus the call args, and can modify args, short-circuit, or alter the result.
-   * Middleware run in the order they were added.
-   *
-   * Supported forms:
-   * - `attach(hookFn, fn)` — attach to a hook function.
-   * - `attach(key, fn)` — attach to a hook key.
-   * - `attach(key, name, fn)` — attach to a named hook on a key.
-   * - `attach(hookFn, name, fn)` — attach to a named hook on a hook function.
-   *
-   * @param arg1 The hook function or hook key.
-   * @param arg2 The hook name or middleware.
-   * @param arg3 Optional middleware (when a hook name is given).
-   * @returns A function that detaches the middleware.
-   */
-  attach<A extends any[] = any[], R = any>(arg1: HookKeyOrKeys | IHookFn<A, R>, arg2: HookName | MiddlewareMethod<A, R>, arg3?: MiddlewareMethod<A, R>): () => void;
 }
 /**
  * Attaches a middleware to a hook function.
+ * Middleware registered this way runs before the hook's original function whenever the hook is
+ * invoked. Each middleware receives a `next` function that continues the chain (calling the next
+ * middleware or, at the end, the original function) followed by the hook's arguments. Middleware
+ * can inspect or modify the arguments before calling `next`, and can modify the returned result
+ * after `next` resolves. Multiple middlewares attached to the same hook run in the order they were
+ * attached.
  *
- * A middleware wraps the hook's original function. It receives `next` (the next function in
- * the chain) plus the call args, and can modify args, short-circuit, or alter the result.
- * Middleware run in the order they were added.
+ * The hook to attach to can be identified in several ways:
+ * - **A hook function** (`attach(hookFn, fn)`): the key and name are read from the hook's internal
+ *   metadata, so the middleware is attached exactly where the hook was created.
+ * - **A hook key** (`attach(key, fn)` or `attach(key, name, fn)`): the middleware is attached to
+ *   every hook that uses the given key. The key can be a symbol, an object, a function, or an array
+ *   of keys — in which case the first key from the array is used.
+ * - **A class or instance** (`attach(obj, expression, fn)`): the middleware is attached to the hook
+ * using the given expression. The middleware's arguments, result, and `this` types are inferred from the
+ * given class or instance when an expression is used. A leading `!` at the beginning of an expression is
+ * stripped and ignored; it is used to turn off type checking when needed. For example, when you want
+ * to use an alternative name for middleware or want to use a different type.
  *
- * @param hookFn The hook function to attach to.
- * @param fn The middleware to attach.
- * @returns A function that detaches the middleware.
+ * When a composite key (an array of keys) is passed, only the first key is used. This is the
+ * instance-level key, which has the highest priority and can override lower levels, so middleware
+ * attached this way behaves like a normal single-level middleware. To target a key from a lower
+ * level, pass that key explicitly.
+ *
+ * Dynamic hook keys are not supported (here) and throw an error, because a dynamic key is resolved at
+ * runtime (with proper `this` context) and cannot be used as a stable attachment target.
+ *
+ * @param hookFn The hook function to attach the middleware to.
+ * @param fn The middleware function to attach.
+ * @returns A function that detaches the middleware when called.
  */
 declare function attach<T extends (...args: any[]) => any>(hookFn: T, fn: MiddlewareMethod<HookOriginArgs<T>, HookOriginResult<T>, HookOriginThis<T>>): () => void;
 /**
  * Attaches a middleware to a hook key.
+ * Middleware registered this way runs before the hook's original function whenever the hook is
+ * invoked. Each middleware receives a `next` function that continues the chain (calling the next
+ * middleware or, at the end, the original function) followed by the hook's arguments. Middleware
+ * can inspect or modify the arguments before calling `next`, and can modify the returned result
+ * after `next` resolves. Multiple middlewares attached to the same hook run in the order they were
+ * attached.
  *
- * A middleware wraps the hook's original function. It receives `next` (the next function in
- * the chain) plus the call args, and can modify args, short-circuit, or alter the result.
- * Middleware run in the order they were added.
+ * The hook to attach to can be identified in several ways:
+ * - **A hook function** (`attach(hookFn, fn)`): the key and name are read from the hook's internal
+ *   metadata, so the middleware is attached exactly where the hook was created.
+ * - **A hook key** (`attach(key, fn)` or `attach(key, name, fn)`): the middleware is attached to
+ *   every hook that uses the given key. The key can be a symbol, an object, a function, or an array
+ *   of keys — in which case the first key from the array is used.
+ * - **A class or instance** (`attach(obj, expression, fn)`): the middleware is attached to the hook
+ * using the given expression. The middleware's arguments, result, and `this` types are inferred from the
+ * given class or instance when an expression is used. A leading `!` at the beginning of an expression is
+ * stripped and ignored; it is used to turn off type checking when needed. For example, when you want
+ * to use an alternative name for middleware or want to use a different type.
  *
- * @param key The hook key (symbol, object, or function) to attach to.
- * @param fn The middleware to attach.
- * @returns A function that detaches the middleware.
+ * When a composite key (an array of keys) is passed, only the first key is used. This is the
+ * instance-level key, which has the highest priority and can override lower levels, so middleware
+ * attached this way behaves like a normal single-level middleware. To target a key from a lower
+ * level, pass that key explicitly.
+ *
+ * Dynamic hook keys are not supported (here) and throw an error, because a dynamic key is resolved at
+ * runtime (with proper `this` context) and cannot be used as a stable attachment target.
+ *
+ * @param key The hook key to attach the middleware to.
+ * @param fn The middleware function to attach.
+ * @returns A function that detaches the middleware when called.
  */
 declare function attach<A extends any[] = any[], R = any>(key: HookKeyOrKeys, fn: MiddlewareMethod<A, R>): () => void;
-declare function attach<S extends symbol, N extends HookName>(key: S, name: N, fn: MiddlewareMethod<any[], any>): () => void;
 /**
- * Attaches a middleware to a named hook on an object or class.
+ * Attaches a middleware to a symbol hook key under a specific hook name.
  *
- * A middleware wraps the hook's original function. It receives `next` (the next function in
- * the chain) plus the call args, and can modify args, short-circuit, or alter the result.
- * Middleware run in the order they were added.
+ * Middleware registered this way runs before the hook's original function whenever the hook is
+ * invoked. Each middleware receives a `next` function that continues the chain (calling the next
+ * middleware or, at the end, the original function) followed by the hook's arguments. Middleware
+ * can inspect or modify the arguments before calling `next`, and can modify the returned result
+ * after `next` resolves. Multiple middlewares attached to the same hook run in the order they were
+ * attached.
  *
- * @param key The object or class holding the hook.
- * @param name The hook name (e.g. a method name).
- * @param fn The middleware to attach.
- * @returns A function that detaches the middleware.
+ * The hook to attach to can be identified in several ways:
+ * - **A hook function** (`attach(hookFn, fn)`): the key and name are read from the hook's internal
+ *   metadata, so the middleware is attached exactly where the hook was created.
+ * - **A hook key** (`attach(key, fn)` or `attach(key, name, fn)`): the middleware is attached to
+ *   every hook that uses the given key. The key can be a symbol, an object, a function, or an array
+ *   of keys — in which case the first key from the array is used.
+ * - **A class or instance** (`attach(obj, expression, fn)`): the middleware is attached to the hook
+ * using the given expression. The middleware's arguments, result, and `this` types are inferred from the
+ * given class or instance when an expression is used. A leading `!` at the beginning of an expression is
+ * stripped and ignored; it is used to turn off type checking when needed. For example, when you want
+ * to use an alternative name for middleware or want to use a different type.
+ *
+ * When a composite key (an array of keys) is passed, only the first key is used. This is the
+ * instance-level key, which has the highest priority and can override lower levels, so middleware
+ * attached this way behaves like a normal single-level middleware. To target a key from a lower
+ * level, pass that key explicitly.
+ *
+ * Dynamic hook keys are not supported (here) and throw an error, because a dynamic key is resolved at
+ * runtime (with proper `this` context) and cannot be used as a stable attachment target.
+ *
+ * @param key The symbol hook key to attach the middleware to.
+ * @param name The hook name to attach the middleware under.
+ * @param fn The middleware function to attach.
+ * @returns A function that detaches the middleware when called.
  */
+declare function attach<S extends symbol, N extends HookName>(key: S, name: N, fn: MiddlewareMethod<any[], any>): () => void;
 declare function attach<TObject extends object, TName extends HookName>(key: TObject, name: TName, fn: MiddlewareMethod<InferMiddlewareArgs<TObject, TName>, InferMiddlewareResult<TObject, TName>, InferMiddlewareThis<TObject, TName>>): () => void;
 interface IHookInspection {
   key: HookKeyOrKeys;
