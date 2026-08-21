@@ -54,7 +54,7 @@ strong class typing (although in some cases it is not available, which is the co
 ## Table of contents
 
 - [When to use this library](#when-to-use-this-library)
-- [Drawbacks of the library](#drawbacks-of-the-library)
+- [Drawbacks (rare, but they can occur)](#drawbacks-rare-but-they-can-occur)
 - [Basic concepts](#basic-concepts)
   - [The four main ways to use it](#the-four-main-ways-to-use-it)
     - [1. Quick start: wrap a function](#1-quick-start-wrap-a-function)
