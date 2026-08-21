@@ -15,7 +15,8 @@ TypeScript code.
 - you want granular control and a very flexible way of attaching middleware at different levels (also with dynamic
   conditions).
 - you need middlewares that can be attached and detached at runtime.
-- you want more `O` from `SOLID` principles (Open/Closed principle).
+- you want more `O` from `SOLID` principles
+  ([Open/Closed principle](https://en.wikipedia.org/wiki/Open%E2%80%93closed_principle)).
 - you need middleware on classes that works with inheritance.
 - you want a single, consistent API for injecting behavior into functions, methods, fields, getters, setters, and
   accessors — across public, static, and private members of the class or specific instances.
@@ -117,12 +118,13 @@ strong class typing (although in some cases it is not available, which is the co
 
 ### The four main ways to use it
 
-You can use this library in four simple ways:
+You can use this library in five simple ways:
 
-1. Wrap a function
-2. Wrap a class member
-3. Decorate an existing class manually
-4. Use ECMA decorators
+1. [Directly with functions (wrapping them)](#1-quick-start-wrap-a-function)
+2. [By using `hook.class` expressions](#2-quick-start-hook-class-expressions)
+3. [By using builder for class methods, getters, setters, fields, accessors](#3-quick-start-builder-style)
+4. [By manually wrapping class members](#4-quick-start-wrap-a-class-member)
+5. [Using ECMA decorators (with TypeScript or Babel as ECMA decorators are not yet ready ¯\_(ツ)_/¯)](#5-quick-start-ecma-decorators)
 
 #### 1. Quick start: wrap a function
 
@@ -146,22 +148,84 @@ greet("Ada"); // Hello, ADA 👋
 detach();
 ```
 
-#### 2. Quick start: wrap a class member
+#### 2. Quick start: Hook class expressions
 
-This style is useful when you want to decorate an existing class without using decorator syntax. For `composeHookKeys`
-see: [Middleware execution order / composite keys](#middleware-execution-order--composite-keys)
+```ts
+import { hook, attach } from "@neuronet/hooks";
+
+class MyService {
+  greet(name: string) {
+    return `Hello, ${name}`;
+  }
+
+  static getId() {
+    return "MyService";
+  }
+}
+
+// use hook for methods
+hook.class(MyService, "method greet");
+hook.class(MyService, "static method getId");
+
+// attach a middleware to the hook
+const detachGreet = attach(MyService, "method greet", (next, name) => {
+  return next(name.toUpperCase());
+});
+
+const service = new MyService();
+
+// you can define middlewares whenever you want
+const detachGetId = attach(MyService, "static method getId", (next) => {
+  // next() result is a string
+  return next().toUpperCase();
+});
+
+service.greet("Ada"); // Hello, ADA
+```
+
+#### 3. Quick start: builder style
+
+```ts
+import { Hooks, attach, hookMethod } from "@neuronet/hooks";
+
+class MyService {
+  greet(name: string) {
+    return `Hello, ${name}`;
+  }
+
+  static getId() {
+    return "MyService";
+  }
+}
+
+// use builder to enable hooks for the greet method
+Hooks(MyService).method("greet").method("static getId");
+
+// attach a middleware to the hook
+const detach = attach(UserService, "method greet", (next, name) => {
+  return next(name.toUpperCase());
+});
+
+const service = new UserService();
+service.greet("Ada"); // Hello, ADA
+
+// detach the middleware if you need to remove it later
+detach();
+```
+
+#### 4. Quick start: wrap a class member
 
 ```ts
 import { hook, inherit, attach } from "@neuronet/hooks";
 
 class UserService {
-  greet = hook(inherit(this), (name: string) => {
+  greet = hook(inherit(this), "method greet", (name: string) => {
     return `Hello, ${name}`;
   });
 }
 
 // attach a middleware to the hook
-const detach = attach(UserService, "greet", (next, name) => {
+const detach = attach(UserService, "method greet", (next, name) => {
   return next(name.toUpperCase());
 });
 
@@ -172,37 +236,7 @@ service.greet("Ada"); // Hello, ADA
 detach();
 ```
 
-#### 3. Quick start: builder style
-
-This style is useful when you want to decorate an existing class without using decorator syntax.
-
-```ts
-import { Hooks, attach, hookMethod } from "@neuronet/hooks";
-
-// wrap original class with Hooks
-const UserService = Hooks(
-  class {
-    greet(name: string) {
-      return `Hello, ${name}`;
-    }
-  },
-)
-  .method("greet")
-  .build();
-
-// attach a middleware to the hook
-const detach = attach(UserService, "greet", (next, name) => {
-  return next(name.toUpperCase());
-});
-
-const service = new UserService();
-service.greet("Ada"); // Hello, ADA
-
-// detach the middleware if you need to remove it later
-detach();
-```
-
-#### 4. Quick start: ECMA decorators
+#### 5. Quick start: ECMA decorators
 
 This style is very convenient when you work with classes directly. For ECMA decorators, you usually need TypeScript or
 Babel, and the [babel-plugin-proposal-decorators](https://babeljs.io/docs/babel-plugin-proposal-decorators) (it depends
