@@ -15,6 +15,7 @@ TypeScript code.
 - you want granular control and a very flexible way of attaching middleware at different levels (also with dynamic
   conditions).
 - you need middlewares that can be attached and detached at runtime.
+- you want more `O` from `SOLID` principles (Open/Closed principle).
 - you need middleware on classes that works with inheritance.
 - you want a single, consistent API for injecting behavior into functions, methods, fields, getters, setters, and
   accessors — across public, static, and private members of the class or specific instances.
