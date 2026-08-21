@@ -1122,6 +1122,7 @@ export function attach<A extends any[] = any[], R = any>(
   }
 
   method.push(fn);
+  // TODO: enable/disable middleware without unregistering it (without losing its position)
   return () => detach(key, name, fn);
 }
 hook.attach = attach;
