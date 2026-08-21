@@ -1,4 +1,10 @@
-import type { AnyClass, HookPropertyName, HookKeyDynamic, DynamicKeyOrAlternativeName } from "./index.js";
+import type {
+  AnyClass,
+  HookPropertyName,
+  HookKeyDynamic,
+  DynamicKeyOrAlternativeName,
+  HookClassExpression,
+} from "./index.js";
 import { hook } from "./index.js";
 
 /**
@@ -202,6 +208,18 @@ export interface IHookDecoratorBuilder<TClass extends AnyClass = AnyClass> {
    * @returns The final decorated class.
    */
   get(): TClass;
+
+  /**
+   * Applies a hook expression to the class.
+   *
+   * @param hookExpression The hook expression to apply.
+   * @returns The same builder so you can keep chaining calls.
+   */
+  for(
+    hookExpression: HookClassExpression<TClass>,
+    alternativeNameOrDynamicKey1?: string | HookKeyDynamic,
+    alternativeNameOrDynamicKey2?: string | HookKeyDynamic,
+  ): this;
 }
 
 export class HookDecoratorBuilder<TClass extends AnyClass = AnyClass> implements IHookDecoratorBuilder<TClass> {
@@ -378,6 +396,15 @@ export class HookDecoratorBuilder<TClass extends AnyClass = AnyClass> implements
 
   get(): TClass {
     return this.HookedClass;
+  }
+
+  for(
+    hookExpression: HookClassExpression<TClass>,
+    alternativeNameOrDynamicKey1?: string | HookKeyDynamic,
+    alternativeNameOrDynamicKey2?: string | HookKeyDynamic,
+  ): this {
+    hook.class(this.HookedClass, hookExpression, alternativeNameOrDynamicKey1, alternativeNameOrDynamicKey2);
+    return this;
   }
 }
 

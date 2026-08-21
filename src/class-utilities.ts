@@ -757,6 +757,8 @@ type HookClassExpressionType = "init" | "get" | "set" | "accessor" | "method";
 export function hookClass<TClass extends AnyClass>(
   Class: TClass,
   expression?: string & HookClassExpression<TClass>,
+  alternativeNameOrDynamicKey1?: string | HookKeyDynamic,
+  alternativeNameOrDynamicKey2?: string | HookKeyDynamic,
 ): TClass {
   if (typeof expression !== "string") {
     classUtilitiesState(Class);
@@ -768,14 +770,14 @@ export function hookClass<TClass extends AnyClass>(
   const parts = expression.split(" ");
   let isStatic = false;
   let type: HookClassExpressionType = "init";
-  let key: HookPropertyName<TClass> = "" as HookPropertyName<TClass>;
+  let name: HookPropertyName<TClass> = "" as HookPropertyName<TClass>;
   switch (parts.length) {
     case 2: {
       const parts0 = parts[0]!;
       if (parts0 === "method" || parts0 === "init" || parts0 === "get" || parts0 === "set" || parts0 === "accessor") {
         isStatic = false;
         type = parts0;
-        key = parts[1]! as HookPropertyName<TClass>;
+        name = parts[1]! as HookPropertyName<TClass>;
       } else {
         throw new Error(`${PREFIX}${SUB_PREFIX}[hookClass] Invalid expression: "${expression}".`);
       }
@@ -789,7 +791,7 @@ export function hookClass<TClass extends AnyClass>(
       const parts1 = parts[1];
       if (parts1 === "method" || parts1 === "init" || parts1 === "get" || parts1 === "set" || parts1 === "accessor") {
         type = parts1!;
-        key = parts[2]! as HookPropertyName<TClass>;
+        name = parts[2]! as HookPropertyName<TClass>;
       } else {
         throw new Error(`${PREFIX}${SUB_PREFIX}[hookClass] Invalid expression: "${expression}".`);
       }
@@ -799,21 +801,47 @@ export function hookClass<TClass extends AnyClass>(
       throw new Error(`${PREFIX}${SUB_PREFIX}[hookClass] Invalid expression: "${expression}".`);
     }
   }
+
   switch (type) {
     case "init": {
-      return hookField(Class, ((isStatic ? "static " : "") + String(key)) as HookPropertyName<TClass>);
+      return hookField(
+        Class,
+        ((isStatic ? "static " : "") + String(name)) as HookPropertyName<TClass>,
+        alternativeNameOrDynamicKey1,
+        alternativeNameOrDynamicKey2,
+      );
     }
     case "get": {
-      return hookGetter(Class, ((isStatic ? "static " : "") + String(key)) as HookPropertyName<TClass>);
+      return hookGetter(
+        Class,
+        ((isStatic ? "static " : "") + String(name)) as HookPropertyName<TClass>,
+        alternativeNameOrDynamicKey1,
+        alternativeNameOrDynamicKey2,
+      );
     }
     case "set": {
-      return hookSetter(Class, ((isStatic ? "static " : "") + String(key)) as HookPropertyName<TClass>);
+      return hookSetter(
+        Class,
+        ((isStatic ? "static " : "") + String(name)) as HookPropertyName<TClass>,
+        alternativeNameOrDynamicKey1,
+        alternativeNameOrDynamicKey2,
+      );
     }
     case "accessor": {
-      return hookAccessor(Class, ((isStatic ? "static " : "") + String(key)) as HookPropertyName<TClass>);
+      return hookAccessor(
+        Class,
+        ((isStatic ? "static " : "") + String(name)) as HookPropertyName<TClass>,
+        alternativeNameOrDynamicKey1,
+        alternativeNameOrDynamicKey2,
+      );
     }
     case "method": {
-      return hookMethod(Class, ((isStatic ? "static " : "") + String(key)) as HookPropertyName<TClass>);
+      return hookMethod(
+        Class,
+        ((isStatic ? "static " : "") + String(name)) as HookPropertyName<TClass>,
+        alternativeNameOrDynamicKey1,
+        alternativeNameOrDynamicKey2,
+      );
     }
   }
   /* v8 ignore next 1 */

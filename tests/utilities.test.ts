@@ -262,35 +262,35 @@ describe("hooks: class utilities", () => {
       class Origin {
         static myValue: string = "initial";
       }
-      const DynamicHookClass = hook.class(Origin);
+      hook.class(Origin);
 
-      attach(DynamicHookClass, "static init myValue", (next, value) => {
+      attach(Origin, "static init myValue", (next, value) => {
         return next(value + ":ERROR");
       });
 
-      attach(DynamicHookClass, "!static init myValueAlt", (next, value) => {
+      attach(Origin, "!static init myValueAlt", (next, value) => {
         return next(value + ":initAcc");
       });
 
       expect(Origin.myValue).toBe("initial");
 
       hook.field(
-        DynamicHookClass,
+        Origin,
         "static myValue",
         "myValueAlt",
-        dynamicHookKey(function (this: typeof DynamicHookClass) {
+        dynamicHookKey(function (this: typeof Origin) {
           dynamicThis.push(this);
           return hook.inherit(this);
         }),
       );
 
-      expect(DynamicHookClass.myValue).toBe("initial:initAcc");
-      expect(dynamicThis).toEqual([DynamicHookClass]);
+      expect(Origin.myValue).toBe("initial:initAcc");
+      expect(dynamicThis).toEqual([Origin]);
 
-      DynamicHookClass.myValue = "next";
+      Origin.myValue = "next";
 
-      expect(DynamicHookClass.myValue).toBe("next");
-      expect(dynamicThis).toEqual([DynamicHookClass]);
+      expect(Origin.myValue).toBe("next");
+      expect(dynamicThis).toEqual([Origin]);
     });
 
     it("should throw if field is called on getter, setter, method or constructor", () => {
