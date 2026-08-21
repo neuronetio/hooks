@@ -1,4 +1,4 @@
-import { AnyClass, DynamicKeyOrAlternativeName, HookKeyDynamic, HookPropertyName } from "./shared.js";
+import { AnyClass, DynamicKeyOrAlternativeName, HookClassExpression, HookKeyDynamic, HookPropertyName } from "./shared.js";
 import "./index.js";
 //#region src/builder.d.ts
 /**
@@ -96,6 +96,13 @@ interface IHookDecoratorBuilder<TClass extends AnyClass = AnyClass> {
    * @returns The final decorated class.
    */
   get(): TClass;
+  /**
+   * Applies a hook expression to the class.
+   *
+   * @param hookExpression The hook expression to apply.
+   * @returns The same builder so you can keep chaining calls.
+   */
+  for(hookExpression: HookClassExpression<TClass>, alternativeNameOrDynamicKey1?: string | HookKeyDynamic, alternativeNameOrDynamicKey2?: string | HookKeyDynamic): this;
 }
 declare class HookDecoratorBuilder<TClass extends AnyClass = AnyClass> implements IHookDecoratorBuilder<TClass> {
   private HookedClass;
@@ -132,6 +139,7 @@ declare class HookDecoratorBuilder<TClass extends AnyClass = AnyClass> implement
   setter<TName extends HookPropertyName<TClass>>(propertyKey: TName, dynamicKey: HookKeyDynamic, alternativeName: string): HookDecoratorBuilder<TClass>;
   setter<TName extends HookPropertyName<TClass>>(propertyKey: TName, alternativeName: string, dynamicKey: HookKeyDynamic): HookDecoratorBuilder<TClass>;
   get(): TClass;
+  for(hookExpression: HookClassExpression<TClass>, alternativeNameOrDynamicKey1?: string | HookKeyDynamic, alternativeNameOrDynamicKey2?: string | HookKeyDynamic): this;
 }
 /**
  * Creates a fluent builder for decorating an existing class without decorator syntax.

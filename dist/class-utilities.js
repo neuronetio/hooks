@@ -73,6 +73,20 @@ function resolveMemberDescriptorWithStatic(Class, propertyKey, validate, apiName
 	};
 	throw new Error(`${PREFIX}${SUB_PREFIX}[${apiName}] Could not find a compatible member named "${String(key)}" on the class or its prototype.`);
 }
+/**
+* Initializes hook-decorated instance properties and runs the constructor hook.
+*
+* Call this at the end of the constructor to trigger all `init` middlewares
+* registered on the class via {@link hookField} or {@link hookAccessor}.
+*
+* If you `return hook.init(this, ...)` from the constructor, a `constructor` middleware
+* can replace the instance entirely by returning a different object — useful when you
+* need to swap the instance for a proxy or a subclass.
+*
+* @param instance The newly created instance — pass `this` from inside the constructor.
+* @param args Arguments forwarded to the constructor hook.
+* @returns The instance after all initializers and the constructor hook have run.
+*/
 function hookInit(instance, ...args) {
 	const state = instance.constructor[HOOK_CLASS_STATE];
 	const ctrHook = hook(inherit(instance), "constructor", function(..._args) {
@@ -269,7 +283,49 @@ function hookAccessor(Class, propertyKey, arg1, arg2) {
 	return Class;
 }
 hook.accessor = hookAccessor;
-function hookClass(Class, expression) {
+/**
+* Applies hook behavior to a class member using a string expression.
+*
+* The expression is a space-separated string describing the member kind and name:
+*
+* - `"method myMethod"` — hooks the prototype method `myMethod`.
+* - `"static method myMethod"` — hooks the static method `myMethod`.
+* - `"init myField"` — hooks the field initializer for `myField`.
+*   Requires `return hook.init(this, ...)` at the end of the constructor.
+* - `"static init myField"` — hooks the static field initializer. Because the class
+*   being defined cannot yet be used as a hook key, this variant is rarely practical.
+*   A more common approach is to use a separately defined key and call {@link hookField}
+*   directly.
+* - `"get myProp"` / `"static get myProp"` — hooks the getter.
+* - `"set myProp"` / `"static set myProp"` — hooks the setter.
+* - `"accessor myProp"` / `"static accessor myProp"` — hooks the initializer, getter,
+*   and setter all at once (equivalent to calling {@link hookAccessor}). It is a shorthand
+*   for `init ...`, `get ...`, and `set ...` combined. Works both on existing getter/setter
+*   pairs and on plain fields — in the latter case it creates the getter and setter itself.
+*
+*
+* Prefix the expression with `!` (e.g. `"!init myField"`) to opt out of strict
+* TypeScript checking for the member name.
+*
+* The third and fourth arguments accept an alternative name and/or a dynamic hook key
+* in any order:
+*
+* - **Alternative name** replaces the original member name in the hook key. Useful
+*   when building `Parent → Child` class hierarchies dynamically — for example,
+*   `hook.class(Child, "method myMethod", "Child_myMethod")` lets you call
+*   `attach(Parent, "Child_myMethod", ...)` to target exactly that middleware.
+*
+* - **Dynamic hook key** lets you decide at call time which set of middlewares runs.
+*   Instead of attaching and detaching middlewares you change the key, keeping all
+*   middlewares permanently attached while controlling which ones are active.
+*
+* @param Class The class to apply hook behavior to.
+* @param expression The member expression describing the kind and name of the member.
+* @param alternativeNameOrDynamicKey1 Optional alternative hook name or dynamic hook key.
+* @param alternativeNameOrDynamicKey2 Optional dynamic hook key or alternative hook name.
+* @returns The same class constructor, modified in place.
+*/
+function hookClass(Class, expression, alternativeNameOrDynamicKey1, alternativeNameOrDynamicKey2) {
 	if (typeof expression !== "string") {
 		classUtilitiesState(Class);
 		return Class;
@@ -278,14 +334,14 @@ function hookClass(Class, expression) {
 	const parts = expression.split(" ");
 	let isStatic = false;
 	let type = "init";
-	let key = "";
+	let name = "";
 	switch (parts.length) {
 		case 2: {
 			const parts0 = parts[0];
 			if (parts0 === "method" || parts0 === "init" || parts0 === "get" || parts0 === "set" || parts0 === "accessor") {
 				isStatic = false;
 				type = parts0;
-				key = parts[1];
+				name = parts[1];
 			} else throw new Error(`${PREFIX}${SUB_PREFIX}[hookClass] Invalid expression: "${expression}".`);
 			break;
 		}
@@ -295,18 +351,18 @@ function hookClass(Class, expression) {
 			const parts1 = parts[1];
 			if (parts1 === "method" || parts1 === "init" || parts1 === "get" || parts1 === "set" || parts1 === "accessor") {
 				type = parts1;
-				key = parts[2];
+				name = parts[2];
 			} else throw new Error(`${PREFIX}${SUB_PREFIX}[hookClass] Invalid expression: "${expression}".`);
 			break;
 		}
 		default: throw new Error(`${PREFIX}${SUB_PREFIX}[hookClass] Invalid expression: "${expression}".`);
 	}
 	switch (type) {
-		case "init": return hookField(Class, (isStatic ? "static " : "") + String(key));
-		case "get": return hookGetter(Class, (isStatic ? "static " : "") + String(key));
-		case "set": return hookSetter(Class, (isStatic ? "static " : "") + String(key));
-		case "accessor": return hookAccessor(Class, (isStatic ? "static " : "") + String(key));
-		case "method": return hookMethod(Class, (isStatic ? "static " : "") + String(key));
+		case "init": return hookField(Class, (isStatic ? "static " : "") + String(name), alternativeNameOrDynamicKey1, alternativeNameOrDynamicKey2);
+		case "get": return hookGetter(Class, (isStatic ? "static " : "") + String(name), alternativeNameOrDynamicKey1, alternativeNameOrDynamicKey2);
+		case "set": return hookSetter(Class, (isStatic ? "static " : "") + String(name), alternativeNameOrDynamicKey1, alternativeNameOrDynamicKey2);
+		case "accessor": return hookAccessor(Class, (isStatic ? "static " : "") + String(name), alternativeNameOrDynamicKey1, alternativeNameOrDynamicKey2);
+		case "method": return hookMethod(Class, (isStatic ? "static " : "") + String(name), alternativeNameOrDynamicKey1, alternativeNameOrDynamicKey2);
 	}
 	/* v8 ignore next 1 */
 	return Class;

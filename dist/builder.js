@@ -34,6 +34,10 @@ var HookDecoratorBuilder = class {
 	get() {
 		return this.HookedClass;
 	}
+	for(hookExpression, alternativeNameOrDynamicKey1, alternativeNameOrDynamicKey2) {
+		hook.class(this.HookedClass, hookExpression, alternativeNameOrDynamicKey1, alternativeNameOrDynamicKey2);
+		return this;
+	}
 };
 function Hooks(Class) {
 	return new HookDecoratorBuilder(Class);
