@@ -105,9 +105,37 @@ function resolveMemberDescriptorWithStatic(
 
 declare module "@neuronet/hooks" {
   interface HookApi {
+    /**
+     * Initializes hook-decorated instance properties and runs the constructor hook.
+     *
+     * Call this at the end of the constructor to trigger all `init` middlewares
+     * registered on the class via {@link hookField} or {@link hookAccessor}.
+     *
+     * If you `return hook.init(this, ...)` from the constructor, a `constructor` middleware
+     * can replace the instance entirely by returning a different object — useful when you
+     * need to swap the instance for a proxy or a subclass.
+     *
+     * @param instance The newly created instance — pass `this` from inside the constructor.
+     * @param args Arguments forwarded to the constructor hook.
+     * @returns The instance after all initializers and the constructor hook have run.
+     */
     init: typeof hookInit;
   }
 }
+/**
+ * Initializes hook-decorated instance properties and runs the constructor hook.
+ *
+ * Call this at the end of the constructor to trigger all `init` middlewares
+ * registered on the class via {@link hookField} or {@link hookAccessor}.
+ *
+ * If you `return hook.init(this, ...)` from the constructor, a `constructor` middleware
+ * can replace the instance entirely by returning a different object — useful when you
+ * need to swap the instance for a proxy or a subclass.
+ *
+ * @param instance The newly created instance — pass `this` from inside the constructor.
+ * @param args Arguments forwarded to the constructor hook.
+ * @returns The instance after all initializers and the constructor hook have run.
+ */
 export function hookInit<HDC extends AnyClass, Instance extends InstanceType<HDC>>(
   instance: Instance,
   ...args: any[]
@@ -138,15 +166,7 @@ declare module "@neuronet/hooks" {
     method: typeof hookMethod;
   }
 }
-/**
- * Applies hook behavior to a class method.
- *
- * @param Class The class that owns the method.
- * @param propertyKey The method name. The function looks for both static and prototype methods.
- * @param alternativeName_dynamicKey Optional alternative hook name or dynamic hook key.
- * @param dynamicKey_alternativeName Optional dynamic hook key or alternative hook name.
- * @returns The wrapped class constructor.
- */
+
 export function hookMethod<TClass extends AnyClass, TName extends HookPropertyName<TClass>>(
   Class: TClass,
   propertyKey: TName,

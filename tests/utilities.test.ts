@@ -1149,6 +1149,24 @@ describe("hooks: class utilities", () => {
       const _instance = new Origin("original");
       expect(constructorCalled).toEqual(["original mid", "original"]);
     });
+
+    it("should return different instance when used with `constructor` middleware", () => {
+      class Origin {
+        constructor(x: string) {
+          return hook.init(this, x);
+        }
+      }
+
+      class Other {}
+
+      attach(Origin, "constructor", () => {
+        return new Other();
+      });
+
+      const instance = new Origin("original");
+      expect(instance).not.toBeInstanceOf(Origin);
+      expect(instance).toEqual(new Other());
+    });
   });
 
   describe("static prefix", () => {
