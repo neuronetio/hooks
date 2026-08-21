@@ -768,12 +768,96 @@ hook.accessor = hookAccessor;
 
 declare module "@neuronet/hooks" {
   interface HookApi {
+    /**
+     * Applies hook behavior to a class member using a string expression.
+     *
+     * The expression is a space-separated string describing the member kind and name:
+     *
+     * - `"method myMethod"` — hooks the prototype method `myMethod`.
+     * - `"static method myMethod"` — hooks the static method `myMethod`.
+     * - `"init myField"` — hooks the field initializer for `myField`.
+     *   Requires `return hook.init(this, ...)` at the end of the constructor.
+     * - `"static init myField"` — hooks the static field initializer. Because the class
+     *   being defined cannot yet be used as a hook key, this variant is rarely practical.
+     *   A more common approach is to use a separately defined key and call {@link hookField}
+     *   directly.
+     * - `"get myProp"` / `"static get myProp"` — hooks the getter.
+     * - `"set myProp"` / `"static set myProp"` — hooks the setter.
+     * - `"accessor myProp"` / `"static accessor myProp"` — hooks the initializer, getter,
+     *   and setter all at once (equivalent to calling {@link hookAccessor}). It is a shorthand
+     *   for `init ...`, `get ...`, and `set ...` combined. Works both on existing getter/setter
+     *   pairs and on plain fields — in the latter case it creates the getter and setter itself.
+     *
+     *
+     * Prefix the expression with `!` (e.g. `"!init myField"`) to opt out of strict
+     * TypeScript checking for the member name.
+     *
+     * The third and fourth arguments accept an alternative name and/or a dynamic hook key
+     * in any order:
+     *
+     * - **Alternative name** replaces the original member name in the hook key. Useful
+     *   when building `Parent → Child` class hierarchies dynamically — for example,
+     *   `hook.class(Child, "method myMethod", "Child_myMethod")` lets you call
+     *   `attach(Parent, "Child_myMethod", ...)` to target exactly that middleware.
+     *
+     * - **Dynamic hook key** lets you decide at call time which set of middlewares runs.
+     *   Instead of attaching and detaching middlewares you change the key, keeping all
+     *   middlewares permanently attached while controlling which ones are active.
+     *
+     * @param Class The class to apply hook behavior to.
+     * @param expression The member expression describing the kind and name of the member.
+     * @param alternativeNameOrDynamicKey1 Optional alternative hook name or dynamic hook key.
+     * @param alternativeNameOrDynamicKey2 Optional dynamic hook key or alternative hook name.
+     * @returns The same class constructor, modified in place.
+     */
     class: typeof hookClass;
   }
 }
 /** The member kinds supported by the `hookClass()` expression. */
 type HookClassExpressionType = "init" | "get" | "set" | "accessor" | "method";
 
+/**
+ * Applies hook behavior to a class member using a string expression.
+ *
+ * The expression is a space-separated string describing the member kind and name:
+ *
+ * - `"method myMethod"` — hooks the prototype method `myMethod`.
+ * - `"static method myMethod"` — hooks the static method `myMethod`.
+ * - `"init myField"` — hooks the field initializer for `myField`.
+ *   Requires `return hook.init(this, ...)` at the end of the constructor.
+ * - `"static init myField"` — hooks the static field initializer. Because the class
+ *   being defined cannot yet be used as a hook key, this variant is rarely practical.
+ *   A more common approach is to use a separately defined key and call {@link hookField}
+ *   directly.
+ * - `"get myProp"` / `"static get myProp"` — hooks the getter.
+ * - `"set myProp"` / `"static set myProp"` — hooks the setter.
+ * - `"accessor myProp"` / `"static accessor myProp"` — hooks the initializer, getter,
+ *   and setter all at once (equivalent to calling {@link hookAccessor}). It is a shorthand
+ *   for `init ...`, `get ...`, and `set ...` combined. Works both on existing getter/setter
+ *   pairs and on plain fields — in the latter case it creates the getter and setter itself.
+ *
+ *
+ * Prefix the expression with `!` (e.g. `"!init myField"`) to opt out of strict
+ * TypeScript checking for the member name.
+ *
+ * The third and fourth arguments accept an alternative name and/or a dynamic hook key
+ * in any order:
+ *
+ * - **Alternative name** replaces the original member name in the hook key. Useful
+ *   when building `Parent → Child` class hierarchies dynamically — for example,
+ *   `hook.class(Child, "method myMethod", "Child_myMethod")` lets you call
+ *   `attach(Parent, "Child_myMethod", ...)` to target exactly that middleware.
+ *
+ * - **Dynamic hook key** lets you decide at call time which set of middlewares runs.
+ *   Instead of attaching and detaching middlewares you change the key, keeping all
+ *   middlewares permanently attached while controlling which ones are active.
+ *
+ * @param Class The class to apply hook behavior to.
+ * @param expression The member expression describing the kind and name of the member.
+ * @param alternativeNameOrDynamicKey1 Optional alternative hook name or dynamic hook key.
+ * @param alternativeNameOrDynamicKey2 Optional dynamic hook key or alternative hook name.
+ * @returns The same class constructor, modified in place.
+ */
 export function hookClass<TClass extends AnyClass>(
   Class: TClass,
   expression?: string & HookClassExpression<TClass>,
