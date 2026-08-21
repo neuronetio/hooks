@@ -211,7 +211,8 @@ declare module "@neuronet/hooks" {
      *
      *
      * Prefix the expression with `!` (e.g. `"!init myField"`) to opt out of strict
-     * TypeScript checking for the member name.
+     * TypeScript checking for the member name. This is useful when you want to change the type
+     * or when using an alternative name that does not exist on the class.
      *
      * The third and fourth arguments accept an alternative name and/or a dynamic hook key
      * in any order:
@@ -256,7 +257,8 @@ declare module "@neuronet/hooks" {
  *
  *
  * Prefix the expression with `!` (e.g. `"!init myField"`) to opt out of strict
- * TypeScript checking for the member name.
+ * TypeScript checking for the member name. This is useful when you want to change the type
+ * or when using an alternative name that does not exist on the class.
  *
  * The third and fourth arguments accept an alternative name and/or a dynamic hook key
  * in any order:
