@@ -61,7 +61,7 @@ strong class typing (although in some cases it is not available, which is the co
 - [Basic concepts](#basic-concepts)
   - [The four main ways to use it](#the-four-main-ways-to-use-it)
     - [1. Quick start: wrap a function](#1-quick-start-wrap-a-function)
-    - [2. Quick start: builder-style expressions](#2-quick-start-builder-style-expressions)
+    - [2. Quick start: builder-style expressions for classes](#2-quick-start-builder-style-expressions)
     - [3. Quick start: manual decorators](#3-quick-start-manual-decorators)
     - [4. Quick start: ECMA decorators](#4-quick-start-ecma-decorators)
   - [Short-circuiting and the `next` function](#short-circuiting-and-the-next-function)
