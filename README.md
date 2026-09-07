@@ -724,7 +724,8 @@ greet(); // Hello, ADA
 
 #### `hook(key, name, args, fn)`
 
-The most explicit form: custom key, custom name, and hardcoded arguments.
+The most explicit form: custom key, custom name, and hardcoded arguments (injected into the middleware — see
+`hook(args, fn)`).
 
 ```ts
 import { hook, attach } from "@neuronet/hooks";
