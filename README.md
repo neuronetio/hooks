@@ -18,8 +18,8 @@ TypeScript code.
 - you want more `O` from `SOLID` principles
   ([Open/Closed principle](https://en.wikipedia.org/wiki/Open%E2%80%93closed_principle)).
 - you need middleware on classes that works with inheritance.
-- you want a single, consistent API for injecting behavior into functions, methods, fields, getters, setters, and
-  accessors — across public, static, and private members of the class or specific instances.
+- you want a single, consistent and complete API for injecting behavior into functions, methods, fields, getters,
+  setters, and accessors — across public, static, and private members of the class or specific instances.
 
 Basically this library can be used for cross-cutting concerns but in a more flexible manner. For example, it can be used
 for (dynamic) dependency injection, validation, testing, logging, caching, memoization, retries, metrics, and other
@@ -43,7 +43,8 @@ Like any library, `@neuronet/hooks` also has its drawbacks and compromises. Here
   — fortunately, it doesn't take much time).
 - Because dynamic keys are functions (which gives them great flexibility), we must be careful when using them and take
   them into account in tests, since they may sometimes skip some middleware and other times not (which can be both an
-  advantage and a disadvantage in some cases).
+  advantage and a disadvantage in some cases). It is best to keep these functions simple and extract complex logic into
+  separate functions that can be tested on their own.
 - Refactoring might be more difficult.
 - The order in which middleware is defined can matter.
 
@@ -51,7 +52,7 @@ Most of these are typical problems that we often encounter as programmers in our
 hooks or not. Some of these problems can be solved through good middleware organization, testing and with the help of
 strong class typing (although in some cases it is not available, which is the cost of flexibility).
 
-### If you like it, you can leave a star ⭐ on GitHub. It helps a lot, thanks!
+### If you like it, you can leave a star ⭐ on GitHub. It helps a lot, thanks.
 
 ## Table of contents
 
@@ -118,13 +119,12 @@ strong class typing (although in some cases it is not available, which is the co
 
 ### The four main ways to use it
 
-You can use this library in five simple ways:
+You can use this library in four simple ways:
 
 1. [Directly with functions (wrapping them)](#1-quick-start-wrap-a-function)
-2. [By using `hook.class` expressions](#2-quick-start-hook-class-expressions)
-3. [By using builder for class methods, getters, setters, fields, accessors](#3-quick-start-builder-style)
-4. [By manually wrapping class members](#4-quick-start-wrap-a-class-member)
-5. [Using ECMA decorators (with TypeScript or Babel as ECMA decorators are not yet ready ¯\_(ツ)_/¯)](#5-quick-start-ecma-decorators)
+2. [With classes, by using builder style expressions](#2-quick-start-builder-style-expressions)
+3. [By manually wrapping class members](#3-quick-start-wrap-a-class-member)
+4. [Using ECMA decorators (with TypeScript or Babel as ECMA decorators are not yet ready ¯\_(ツ)_/¯)](#4-quick-start-ecma-decorators)
 
 #### 1. Quick start: wrap a function
 
@@ -148,7 +148,7 @@ greet("Ada"); // Hello, ADA 👋
 detach();
 ```
 
-#### 2. Quick start: Hook class expressions
+#### 2. Quick start: Builder style expressions
 
 ```ts
 import { hook, attach } from "@neuronet/hooks";
@@ -164,8 +164,7 @@ class MyService {
 }
 
 // use hook for methods
-hook.class(MyService, "method greet");
-hook.class(MyService, "static method getId");
+Hooks(MyService).for("method greet").for("static method getId");
 
 // attach a middleware to the hook
 const detachGreet = attach(MyService, "method greet", (next, name) => {
@@ -183,41 +182,14 @@ const detachGetId = attach(MyService, "static method getId", (next) => {
 service.greet("Ada"); // Hello, ADA
 ```
 
-#### 3. Quick start: builder style
-
-```ts
-import { Hooks, attach, hookMethod } from "@neuronet/hooks";
-
-class MyService {
-  greet(name: string) {
-    return `Hello, ${name}`;
-  }
-
-  static getId() {
-    return "MyService";
-  }
-}
-
-// use builder to enable hooks for the greet method
-Hooks(MyService).method("greet").method("static getId");
-
-// attach a middleware to the hook
-const detach = attach(UserService, "method greet", (next, name) => {
-  return next(name.toUpperCase());
-});
-
-const service = new UserService();
-service.greet("Ada"); // Hello, ADA
-
-// detach the middleware if you need to remove it later
-detach();
-```
-
-#### 4. Quick start: wrap a class member
+#### 3. Quick start: wrap a class member
 
 ```ts
 import { hook, inherit, attach } from "@neuronet/hooks";
 
+// inherit(this) is needed so that hooks use middleware for classes as well as for specific instances.
+// When a class inherits from another, inherit(this) also ensures that middleware from parent classes will be executed.
+// It will simply traverse the prototype chain to find any hooks defined in parent classes.
 class UserService {
   greet = hook(inherit(this), "method greet", (name: string) => {
     return `Hello, ${name}`;
@@ -236,7 +208,7 @@ service.greet("Ada"); // Hello, ADA
 detach();
 ```
 
-#### 5. Quick start: ECMA decorators
+#### 4. Quick start: ECMA decorators
 
 This style is very convenient when you work with classes directly. For ECMA decorators, you usually need TypeScript or
 Babel, and the [babel-plugin-proposal-decorators](https://babeljs.io/docs/babel-plugin-proposal-decorators) (it depends
@@ -266,6 +238,40 @@ service.greet("Ada"); // Hello, ADA
 
 // detach the middleware if you need to remove it later
 detach();
+```
+
+### Short-circuiting and the `next` function
+
+Short-circuiting occurs when a middleware function does not call the `next` function. This prevents the subsequent
+middleware in the chain from being executed. It is useful when you want to conditionally stop the execution of the
+middleware chain based on certain criteria.
+
+```ts
+import { hook, attach } from "@neuronet/hooks";
+
+const sayHello = hook((name: string) => `Hello, ${name}`);
+
+sayHello("test"); // Hello, test
+
+attach(sayHello, (next, name) => {
+  return next(name.toUpperCase());
+});
+
+sayHello("test"); // Hello, TEST
+
+attach(sayHello, (next, name) => {
+  // short-circuit by not calling next()
+  return name + " short-circuited";
+});
+
+sayHello("test"); // test short-circuited
+
+attach(sayHello, (next, name) => {
+  // this middleware will not be executed because the previous one short-circuited
+  return next(name + " should not appear");
+});
+
+sayHello("test"); // test short-circuited
 ```
 
 ---
@@ -344,16 +350,17 @@ import { hook, attach } from "@neuronet/hooks";
 
 class Service {
   // by using two entry levels we can attach middleware to the class (which affects all instances) or to a specific instance
+  // PS: This is only demonstration, in your actual code you should use `inherit(this)` instead of `[this, this.constructor]`
   greet = hook([this, this.constructor], "greet", (name: string) => name);
 }
 
-attach(Service, "greet", (next, name) => next(name + " class")); // affects all instances
+attach(Service, "greet", (next, name) => next(name + " class")); // affects all instances (class-level)
 
 const service1 = new Service();
 service1.greet("test"); // test class
 
 const service2 = new Service();
-attach(service2, "greet", (next, name) => next(name + " instance")); // affects only service2 instance
+attach(service2, "greet", (next, name) => next(name + " instance")); // affects only service2 instance (attached to instance)
 
 service2.greet("test"); // test instance class
 
@@ -361,7 +368,26 @@ service2.greet("test"); // test instance class
 service1.greet("test"); // test class
 ```
 
-**Example 5**: class / instance middleware short-circuiting
+**Example 5**: composition short-circuiting
+
+```ts
+import { hook, attach } from "@neuronet/hooks";
+
+const key1 = Symbol("key1");
+const key2 = Symbol("key2");
+const composite = hook([key1, key2], (name: string) => name);
+
+attach(key1, (next, name) => next(name + " key1"));
+attach(key2, (next, name) => next(name + " key2"));
+
+composite("test"); // test key1 key2
+
+attach(key1, (next, name) => `${name} short-circuited`);
+composite("test"); // test key1 short-circuited
+// (without key2 middleware because the next function was not called)
+```
+
+**Example 6**: class / instance composition short-circuiting
 
 ```ts
 import { hook, attach } from "@neuronet/hooks";
