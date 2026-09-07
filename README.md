@@ -64,6 +64,7 @@ strong class typing (although in some cases it is not available, which is the co
     - [2. Quick start: wrap a class member](#2-quick-start-wrap-a-class-member)
     - [3. Quick start: manual decorators](#3-quick-start-manual-decorators)
     - [4. Quick start: ECMA decorators](#4-quick-start-ecma-decorators)
+  - [Short-circuiting and the `next` function](#short-circuiting-and-the-next-function)
   - [Middleware execution order / key composition](#middleware-execution-order--key-composition)
   - [Dynamic keys](#dynamic-keys)
 - [API](#api)
@@ -240,6 +241,8 @@ service.greet("Ada"); // Hello, ADA
 detach();
 ```
 
+---
+
 ### Short-circuiting and the `next` function
 
 Short-circuiting occurs when a middleware function does not call the `next` function. This prevents the subsequent
@@ -249,29 +252,29 @@ middleware chain based on certain criteria.
 ```ts
 import { hook, attach } from "@neuronet/hooks";
 
-const sayHello = hook((name: string) => `Hello, ${name}`);
+const greet = hook((name: string) => `Hello, ${name}`);
 
-sayHello("test"); // Hello, test
+greet("test"); // Hello, test
 
-attach(sayHello, (next, name) => {
+attach(greet, (next, name) => {
   return next(name.toUpperCase());
 });
 
-sayHello("test"); // Hello, TEST
+greet("test"); // Hello, TEST
 
-attach(sayHello, (next, name) => {
+attach(greet, (next, name) => {
   // short-circuit by not calling next()
   return name + " short-circuited";
 });
 
-sayHello("test"); // test short-circuited
+greet("test"); // test short-circuited
 
-attach(sayHello, (next, name) => {
+attach(greet, (next, name) => {
   // this middleware will not be executed because the previous one short-circuited
   return next(name + " should not appear");
 });
 
-sayHello("test"); // test short-circuited
+greet("test"); // test short-circuited
 ```
 
 ---
@@ -429,10 +432,6 @@ because you can dynamically decide which middleware to use based on certain cond
 they remain registered, and you decide when and which ones to use. Basically, dynamic keys allow you to choose which
 middleware to run at runtime. This gives you control from both sides — from within a hook or from the middleware itself.
 
-<img width="400" height="272" alt="flexibility-everywhere" src="https://github.com/user-attachments/assets/7f225777-69f6-4902-9166-7faef15c3c8a" />
-
-&nbsp;
-
 **Example**: dynamic pipeline selection
 
 ```ts
@@ -471,6 +470,8 @@ greet("Ada"); // Hello, Ada:pipeline2
 ```ts
 import { hook, attach, dhk } from "@neuronet/hooks";
 
+// dhk = dynamicHookKey alias
+
 class Child {
   #parent: Parent | null = null;
 
@@ -485,12 +486,14 @@ class Child {
         // `this.#parent.constructor` to use parent middleware for all Parent instances
         // `this` to use child instance-specific middleware
         // `this.constructor` to use child middleware for all Child instances
+        // PS this is only example in real world you should use `[...inherit(this.#parent), ...inherit(this)]`
         return [this.#parent, this.#parent.constructor, this, this.constructor];
       }
+      // PS this is only example in real world you should use `return inherit(this)`
       return [this, this.constructor];
     }),
 
-    // use custom name for the hook
+    // use custom name for the hook (optionally — you can omit this line or provide a different name)
     "child_greet",
 
     // method body
@@ -539,7 +542,7 @@ child.greet("Alice");
 // [LOG] parent_instance middleware returned: Hello, Alice
 ```
 
-**Example**: dynamic key with key on parent class (using `dhk` alias)
+**Example**: dynamic key with key on parent class (direct)
 
 ```ts
 import { hook, attach, dhk } from "@neuronet/hooks";
@@ -550,8 +553,10 @@ class Child {
   greet = hook(
     dhk(() => {
       if (this.parent) {
+        // or `[...inherit(this.parent), ...inherit(this)]` which is the recommended approach in real world scenarios
         return [this.parent, this.parent.constructor, this, this.constructor];
       }
+      // or `return inherit(this)` which is the recommended approach in real world scenarios
       return [this, Child];
     }),
     "greet",
