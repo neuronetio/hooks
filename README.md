@@ -634,12 +634,13 @@ greet("Ada"); // Hello, ADA
 
 #### `hook(key, name, fn)`
 
-Uses an explicit key and a custom hook name.
+Uses an explicit key and a custom hook name. Thanks to the additional name, a single key can be used for many different
+hooks. This is used, among other things, in classes.
 
 ```ts
 import { hook, attach } from "@neuronet/hooks";
 
-const key = Symbol("greet");
+const key = Symbol("anyKey");
 const greet = hook(key, "customName", (name: string) => `Hello, ${name}`);
 
 attach(key, "customName", (next, name) => next(name.toUpperCase()));
@@ -665,13 +666,45 @@ greet2("John"); // Hi, JOHN
 
 #### `hook(args, fn)`
 
-Provides hardcoded arguments for the wrapped function. This is an override, not a fallback. The wrapped function will no
-longer accept arbitrary arguments at call time. In TypeScript, passing other arguments will be reported as an error.
+Provides hardcoded arguments for the wrapped function. The wrapped function will no longer accept arbitrary arguments at
+call time. This allows us to inject arguments into the middleware (from the very top), rather than only before the
+original function is called (from the bottom). You can simply think of it as injecting arguments into the middleware.
+This is useful for composition and for creating predefined functions.
 
 ```ts
 import { hook } from "@neuronet/hooks";
 
-const greet = hook(["Ada"], (name: string) => `Hello, ${name}`);
+function originalGreet(name: string) {
+  return `Hello, ${name}`;
+}
+
+const greet = hook(["Ada"], originalGreet);
+
+// name is declared inside the middleware
+attach(greet, (next, name) => next(name.toUpperCase()));
+
+greet(); // Hello, ADA
+```
+
+Without injected arguments, the middleware would not have access to the `name` value in this case.
+
+```ts
+import { hook } from "@neuronet/hooks";
+
+function originalGreet(name: string) {
+  return `Hello, ${name}`;
+}
+
+const greetAda = () => greet("Ada");
+
+const greet = hook(greetAda);
+
+// name isn't declared inside the middleware
+attach(greet, (next) => {
+  // there is no "name" here because of `greetAda` having no arguments, so we can't do anything with it
+  return next();
+});
+
 greet(); // Hello, Ada
 ```
 
