@@ -72,11 +72,11 @@ strong class typing (although in some cases it is not available, which is the co
     - [`hook(fn)`](#hookfn)
     - [`hook(key, fn)`](#hookkey-fn)
     - [`hook(key, name, fn)`](#hookkey-name-fn)
-    - [`hook(args, fn)`](#hookargs-fn)
-    - [`hook(key, args, fn)`](#hookkey-args-fn)
-    - [`hook(key, name, args, fn)`](#hookkey-name-args-fn)
+    - [`hook(argsProvider, fn)`](#hookargsprovider-fn)
+    - [`hook(key, argsProvider, fn)`](#hookkey-argsprovider-fn)
+    - [`hook(key, name, argsProvider, fn)`](#hookkey-name-argsprovider-fn)
     - [`hook(name, fn)`](#hookname-fn)
-    - [`hook(name, args, fn)`](#hookname-args-fn)
+    - [`hook(name, argsProvider, fn)`](#hookname-argsprovider-fn)
   - [Hooks builder](#hooks-builder)
     - [`Hooks(Class)`](#using-hooksclass-builder)
     - [`method`](#method)
@@ -664,21 +664,21 @@ greet1("John"); // Hello, JOHN
 greet2("John"); // Hi, JOHN
 ```
 
-#### `hook(args, fn)`
+#### `hook(argsProvider, fn)`
 
-Provides hardcoded arguments for the wrapped function. The wrapped function will no longer accept arbitrary arguments at
-call time. This allows us to inject arguments into the middleware (from the very top), rather than only before the
-original function is called (from the bottom). You can simply think of it as injecting arguments into the middleware.
-This is useful for composition and for creating predefined functions.
+Provides hardcoded arguments for the wrapped function via an `argsProvider`. The wrapped function will no longer accept
+arbitrary arguments at call time. This allows us to inject arguments into the middleware (from the very top), rather
+than only before the original function is called (from the bottom). You can simply think of it as injecting arguments
+into the middleware. This is useful for composition and for creating predefined functions.
 
 ```ts
-import { hook } from "@neuronet/hooks";
+import { hook, argsProvider } from "@neuronet/hooks";
 
 function originalGreet(name: string) {
   return `Hello, ${name}`;
 }
 
-const greet = hook(["Ada"], originalGreet);
+const greet = hook(argsProvider(["Ada"]), originalGreet);
 
 // name is declared inside the middleware
 attach(greet, (next, name) => next(name.toUpperCase()));
@@ -708,30 +708,65 @@ attach(greet, (next) => {
 greet(); // Hello, Ada
 ```
 
-#### `hook(key, args, fn)`
+`argsProvider` can also accept a function that returns an array of arguments. For example:
+
+```ts
+import { hook, argsProvider } from "@neuronet/hooks";
+
+function originalGreet(name: string) {
+  return `Hello, ${name}`;
+}
+
+const greet = hook(
+  argsProvider(() => ["Ada"]), // arguments can be dynamically generated at runtime
+  originalGreet,
+);
+
+attach(greet, (next, name) => next(name.toUpperCase()));
+
+greet(); // Hello, ADA
+```
+
+There is also a shorter alias for `argsProvider` which is called `args`.
+
+```ts
+import { hook, args } from "@neuronet/hooks";
+
+function originalGreet(name: string) {
+  return `Hello, ${name}`;
+}
+
+const greet = hook(args(["Ada"]), originalGreet);
+
+attach(greet, (next, name) => next(name.toUpperCase()));
+
+greet(); // Hello, ADA
+```
+
+#### `hook(key, argsProvider, fn)`
 
 Uses a custom key and hardcoded arguments (injected into the middleware — look above).
 
 ```ts
-import { hook, attach } from "@neuronet/hooks";
+import { hook, attach, argsProvider } from "@neuronet/hooks";
 
 const key = Symbol("greet");
-const greet = hook(key, ["Ada"], (name: string) => `Hello, ${name}`);
+const greet = hook(key, argsProvider(["Ada"]), (name: string) => `Hello, ${name}`);
 
 attach(key, (next, name) => next(name.toUpperCase()));
 greet(); // Hello, ADA
 ```
 
-#### `hook(key, name, args, fn)`
+#### `hook(key, name, argsProvider, fn)`
 
 The most explicit form: custom key, custom name, and hardcoded arguments (injected into the middleware — see
-`hook(args, fn)`).
+[See `hook(argsProvider, fn)`](#hookargsprovider-fn)).
 
 ```ts
-import { hook, attach } from "@neuronet/hooks";
+import { hook, attach, argsProvider } from "@neuronet/hooks";
 
 const key = Symbol("greet");
-const greet = hook(key, "custom", ["Ada"], (name: string) => `Hello, ${name}`);
+const greet = hook(key, "custom", argsProvider(["Ada"]), (name: string) => `Hello, ${name}`);
 
 attach(key, "custom", (next, name) => next(name.toUpperCase()));
 greet(); // Hello, ADA
@@ -739,8 +774,8 @@ greet(); // Hello, ADA
 
 #### `hook(name, fn)`
 
-This overload can only be used inside another hook. In that case it creates a sub-hook and inherits the hook key from
-the parent hook context. If there is no parent hook context, it throws an error.
+This overload can only be used inside another hook (hook inside hook). In that case it creates a sub-hook and inherits
+the hook key from the parent hook context. If there is no parent hook context, it throws an error.
 
 ```ts
 import { hook, attach } from "@neuronet/hooks";
@@ -757,16 +792,16 @@ attach(parentKey, "child", (next, value) => next(value.toUpperCase()));
 parent(); // Child: OK
 ```
 
-#### `hook(name, args, fn)`
+#### `hook(name, argsProvider, fn)`
 
 Same situation as the previous overload, but with hardcoded arguments.
 
 ```ts
-import { hook, attach } from "@neuronet/hooks";
+import { hook, attach, argsProvider } from "@neuronet/hooks";
 
 const parentKey = Symbol("parent");
 const parent = hook(parentKey, "parent", () => {
-  const child = hook("child", ["ok"], (value: string) => `Child: ${value}`);
+  const child = hook("child", argsProvider(["ok"]), (value: string) => `Child: ${value}`);
   return child();
 });
 
