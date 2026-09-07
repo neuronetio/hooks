@@ -710,7 +710,7 @@ greet(); // Hello, Ada
 
 #### `hook(key, args, fn)`
 
-Uses a custom key and hardcoded arguments.
+Uses a custom key and hardcoded arguments (injected into the middleware — look above).
 
 ```ts
 import { hook, attach } from "@neuronet/hooks";
