@@ -859,6 +859,7 @@ class MyService {
 // enable hooks for the method `myMethod` and `myStaticMethod`
 Hooks(MyService).for("method myMethod").for("static method myStaticMethod");
 
+// attach middleware to the hook
 attach(MyService, "method myMethod", (next, x) => next(x + ":mid"));
 attach(MyService, "static method myStaticMethod", (next, x) => next(x + ":static_mid"));
 
