@@ -822,18 +822,14 @@ parent(); // Child: OK
 ### Hooks for classes (builder-style)
 
 Hooks builder is useful when you want to decorate an already defined class without using the standard decorator syntax.
-
-#### Using `Hooks(Class)` builder
-
-The `Hooks(Class)` builder exposes a fluent API for enabling hooks on several members at once. Each builder method
-supports multiple overloads — below we list the overloads explicitly and provide a short example for each.
+The `Hooks(Class)` builder exposes a fluent API for enabling hooks on several members at once.
 
 Note: builder methods accept a property name, an optional alternative hook name (string), or a dynamic key resolver
 created with `dynamicHookKey(...)`. You can also pass both a dynamic key and an alternative name when needed.
 
 ##### method
 
-- `for("method <property>")` — enable hooks for a method where `<property>` is the method name.
+- `for("method <property>")` — enable hooks for a class method where `<property>` is the method name.
 - `for("method <property>", alternativeName)` — use `alternativeName` as the hook name.
 - `for("method <property>", dynamicKey)` — resolve hook key at runtime using `dynamicHookKey`.
 - `for("method <property>", alternativeName, dynamicKey)` — combine alternative name and dynamic key.
