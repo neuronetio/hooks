@@ -77,7 +77,7 @@ strong class typing (although in some cases it is not available, which is the co
     - [`hook(key, name, argsProvider, fn)`](#hookkey-name-argsprovider-fn)
     - [`hook(name, fn)`](#hookname-fn)
     - [`hook(name, argsProvider, fn)`](#hookname-argsprovider-fn)
-  - [Hooks builder](#hooks-builder)
+  - [Hooks builder](#hooks-for-classes-builder-style)
     - [`Hooks(Class)`](#using-hooksclass-builder)
     - [`method`](#method)
     - [`getter`](#getter)
@@ -760,7 +760,7 @@ greet(); // Hello, ADA
 #### `hook(key, name, argsProvider, fn)`
 
 The most explicit form: custom key, custom name, and hardcoded arguments (injected into the middleware — see
-[See `hook(argsProvider, fn)`](#hookargsprovider-fn)).
+[`hook(argsProvider, fn)`](#hookargsprovider-fn)).
 
 ```ts
 import { hook, attach, argsProvider } from "@neuronet/hooks";
@@ -813,7 +813,7 @@ parent(); // Child: OK
 
 ---
 
-### Hooks builder
+### Hooks for classes (builder-style)
 
 Hooks builder is useful when you want to decorate an already defined class without using the standard decorator syntax.
 
@@ -827,54 +827,87 @@ created with `dynamicHookKey(...)`. You can also pass both a dynamic key and an 
 
 ##### method
 
-- `method(property)` — enable hooks for a method where `property` is the method name.
-- `method(property, alternativeName)` — use `alternativeName` as the hook name.
-- `method(property, dynamicKey)` — resolve hook key at runtime using `dynamicHookKey`.
-- `method(property, alternativeName, dynamicKey)` — combine alternative name and dynamic key.
+- `for("method <property>")` — enable hooks for a method where `<property>` is the method name.
+- `for("method <property>", alternativeName)` — use `alternativeName` as the hook name.
+- `for("method <property>", dynamicKey)` — resolve hook key at runtime using `dynamicHookKey`.
+- `for("method <property>", alternativeName, dynamicKey)` — combine alternative name and dynamic key.
+
+##### static method
+
+- `for("static method <property>")` — enable hooks for a static method where `<property>` is the method name.
+- `for("static method <property>", alternativeName)` — use `alternativeName` as the hook name.
+- `for("static method <property>", dynamicKey)` — resolve hook key at runtime using `dynamicHookKey`.
+- `for("static method <property>", alternativeName, dynamicKey)` — combine alternative name and dynamic key.
 
 ###### Simple method
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-const Service = Hooks(
-  class {
-    myMethod(x: string) {
-      return x + ":orig";
-    }
-  },
-)
-  .method("myMethod")
-  .build();
+class MyService {
+  myMethod(x: string) {
+    return x + ":orig";
+  }
 
-attach(Service, "myMethod", (next, x) => next(x + ":mid"));
+  static myStaticMethod(x: string) {
+    return x + ":orig_static";
+  }
+}
 
-const service = new Service();
+// enable hooks for the method `myMethod` and `myStaticMethod`
+Hooks(MyService).for("method myMethod").for("static method myStaticMethod");
+
+attach(MyService, "method myMethod", (next, x) => next(x + ":mid"));
+attach(MyService, "static method myStaticMethod", (next, x) => next(x + ":mid"));
+
+const service = new MyService();
 service.myMethod("test"); // "test:mid:orig"
+MyService.myStaticMethod("test"); // "test:mid:orig_static"
 ```
 
 ###### Alternative name
 
+If you don't want to use the original method name, or if for some reason a different, more descriptive hook name would
+be better (e.g., when you have a hierarchy of dynamically attached classes), you can use your own hook name. In this
+case, the original method name will not be used to invoke the hook; instead, the provided alternative name will be used.
+
+When using TypeScript and you want to use an alternative name, you must disable type checking for these methods, because
+TypeScript will try to find a method with that name in the class. To do this, use an exclamation mark `!` before the
+method name in the `attach` function.
+
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-const Service = Hooks(
-  class {
-    myMethod(x: string) {
-      return x + ":orig";
-    }
-  },
-)
-  .method("myMethod", "myMethodAlt")
-  .build();
+class MyService {
+  myMethod(x: string) {
+    return x + ":orig";
+  }
 
-attach(Service, "myMethodAlt", (next, x) => next(x + ":alt"));
+  static myStaticMethod(x: string) {
+    return x + ":orig_static";
+  }
+}
 
-const service = new Service();
+// enable hooks for the method `myMethod` and use `myMethodAlt` as the hook name
+Hooks(MyService).for("method myMethod", "myMethodAlt").for("static method myStaticMethod", "myStaticMethodAlt");
+
+// attach middleware to the alternative hook name
+// because typescript will try to find method `myMethodAlt` and `myStaticMethodAlt` on the class,
+// we need to use exclamation mark to turn off type checking for this statements
+attach(MyService, "!method myMethodAlt", (next, x) => next(x + ":alt"));
+attach(MyService, "!static method myStaticMethodAlt", (next, x) => next(x + ":alt_static"));
+
+const service = new MyService();
+
+// the original method name is still used to call the method,
+// but the middleware is attached to the alternative name
 service.myMethod("test"); // "test:alt:orig"
+MyService.myStaticMethod("test"); // "test:alt_static:orig_static"
 ```
 
 ###### Dynamic key
+
+See [Dynamic keys](#dynamic-keys) for more information.
 
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
