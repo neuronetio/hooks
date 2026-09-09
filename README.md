@@ -447,16 +447,15 @@ attach(pipeline2, (next, name) => next(name + ":pipeline2"));
 
 let usePipeline = 1;
 
-const greet = hook(
-  dynamicHookKey(() => {
-    // resolve the key at runtime
-    if (usePipeline === 1) {
-      return pipeline1;
-    }
-    return pipeline2;
-  }),
-  (name: string) => `Hello, ${name}`,
-);
+// resolve the key at runtime
+const myDynamicKey = dynamicHookKey(() => {
+  if (usePipeline === 1) {
+    return pipeline1;
+  }
+  return pipeline2;
+});
+
+const greet = hook(myDynamicKey, (name: string) => `Hello, ${name}`);
 
 greet("Ada"); // Hello, Ada:pipeline1
 
@@ -477,10 +476,14 @@ class Child {
 
   greet = hook(
     // use dynamic hook key
+    // because declaring a function in a class using the equals sign `=` causes
+    // the function to be created in the context of the instance (like inside a constructor),
+    // we can use `this` to refer to the current instance of the Child class
+    // also because we are inside a class, we can use `this.#parent` to access the private property
     dhk(() => {
       // if we have a parent...
       if (this.#parent) {
-        // we will use parent middleware
+        // we will use parent middleware also
 
         // `this.#parent` to use parent instance-specific middleware
         // `this.#parent.constructor` to use parent middleware for all Parent instances
@@ -551,6 +554,9 @@ class Child {
   parent: Parent | null = null;
 
   greet = hook(
+    // because declaring a function in a class using the equals sign `=` causes
+    // the function to be created in the context of the instance (like inside a constructor),
+    // we can use `this` to refer to the current instance of the Child class
     dhk(() => {
       if (this.parent) {
         // or `[...inherit(this.parent), ...inherit(this)]` which is the recommended approach in real world scenarios
@@ -858,11 +864,11 @@ class MyService {
 Hooks(MyService).for("method myMethod").for("static method myStaticMethod");
 
 attach(MyService, "method myMethod", (next, x) => next(x + ":mid"));
-attach(MyService, "static method myStaticMethod", (next, x) => next(x + ":mid"));
+attach(MyService, "static method myStaticMethod", (next, x) => next(x + ":static_mid"));
 
 const service = new MyService();
 service.myMethod("test"); // "test:mid:orig"
-MyService.myStaticMethod("test"); // "test:mid:orig_static"
+MyService.myStaticMethod("test"); // "test:static_mid:orig_static"
 ```
 
 ###### Alternative name
@@ -893,7 +899,7 @@ Hooks(MyService).for("method myMethod", "myMethodAlt").for("static method myStat
 
 // attach middleware to the alternative hook name
 // because typescript will try to find method `myMethodAlt` and `myStaticMethodAlt` on the class,
-// we need to use exclamation mark to turn off type checking for this statements
+// we need to use exclamation mark to turn off type checking here
 attach(MyService, "!method myMethodAlt", (next, x) => next(x + ":alt"));
 attach(MyService, "!static method myStaticMethodAlt", (next, x) => next(x + ":alt_static"));
 
@@ -912,25 +918,51 @@ See [Dynamic keys](#dynamic-keys) for more information.
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
 
-const key = Symbol("k");
+const key1 = Symbol("myKey1");
+const key2 = Symbol("myKey2");
 
-const Service = Hooks(
-  class {
-    myMethod(x: string) {
-      return x + ":orig";
-    }
-  },
-)
-  .method(
-    "myMethod",
-    dynamicHookKey(() => key),
-  )
-  .build();
+class MyService {
+  myMethod(x: string) {
+    return x + ":orig";
+  }
 
-attach(key, "myMethod", (next, x) => next(x + ":dyn"));
+  static myStaticMethod(x: string) {
+    return x + ":orig_static";
+  }
+}
 
-const service = new Service();
-service.myMethod("test"); // "test:dyn:orig"
+let useMiddleware = 1;
+
+const myDynamicKey = dynamicHookKey(() => {
+  if (useMiddleware === 1) {
+    return key1;
+  } else {
+    return key2;
+  }
+});
+
+Hooks(MyService).for("method myMethod", myDynamicKey).for("static method myStaticMethod", myDynamicKey);
+
+// middleware for key1
+attach(key1, "method myMethod", (next, x) => next(x + ":mid_1"));
+attach(key1, "static method myStaticMethod", (next, x) => next(x + ":mid_static_1"));
+
+// middleware for key2
+attach(key2, "method myMethod", (next, x) => next(x + ":mid_2"));
+attach(key2, "static method myStaticMethod", (next, x) => next(x + ":mid_static_2"));
+
+const service = new MyService();
+
+// useMiddleware is set to 1, so the middleware attached to key1 will be executed
+
+service.myMethod("test"); // "test:mid_1:orig"
+MyService.myStaticMethod("test"); // "test:mid_static_1:orig_static"
+
+useMiddleware = 2;
+// now dynamic hook key will resolve to key2, so the middleware attached to key2 will be executed
+
+service.myMethod("test"); // "test:mid_2:orig"
+MyService.myStaticMethod("test"); // "test:mid_static_2:orig_static"
 ```
 
 ###### Dynamic key + alternative name
@@ -938,26 +970,56 @@ service.myMethod("test"); // "test:dyn:orig"
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
 
-const key = Symbol("k");
+class MyService {
+  myMethod(x: string) {
+    return x + ":orig";
+  }
 
-const Service = Hooks(
-  class {
-    myMethod(x: string) {
-      return x + ":orig";
-    }
-  },
-)
-  .method(
-    "myMethod",
-    "myMethodAlt",
-    dynamicHookKey(() => key),
-  )
-  .build();
+  static myStaticMethod(x: string) {
+    return x + ":orig_static";
+  }
+}
 
-attach(Service, "myMethodAlt", (next, x) => next(x + ":combined"));
+const key1 = Symbol("k1");
+const key2 = Symbol("k2");
+
+let useMiddleware = 1;
+
+const myDynamicKey = dynamicHookKey(function () {
+  if (useMiddleware === 1) {
+    return key1;
+  } else {
+    return key2;
+  }
+});
+
+Hooks(MyService)
+  .for("method myMethod", "myMethodAlt", myDynamicKey)
+  .for("static method myStaticMethod", "myStaticMethodAlt", myDynamicKey);
+
+// or
+// Hooks(MyService)
+//   .for("method myMethod", myDynamicKey, "myMethodAlt")
+//   .for("static method myStaticMethod", myDynamicKey, "myStaticMethodAlt");
+
+attach(key1, "!method myMethodAlt", (next, x) => next(x + ":mid_1"));
+attach(key1, "!static method myStaticMethodAlt", (next, x) => next(x + ":mid_static_1"));
+
+attach(key2, "!method myMethodAlt", (next, x) => next(x + ":mid_2"));
+attach(key2, "!static method myStaticMethodAlt", (next, x) => next(x + ":mid_static_2"));
 
 const service = new Service();
-service.myMethod("test"); // "test:combined:orig"
+
+// useMiddleware is set to 1, so the middleware attached to key1 will be executed
+
+service.myMethod("test"); // "test:mid_1:orig"
+MyService.myStaticMethod("test"); // "test:mid_static_1:orig_static"
+
+useMiddleware = 2;
+// now dynamic hook key will resolve to key2, so the middleware attached to key2 will be executed
+
+service.myMethod("test"); // "test:mid_2:orig"
+MyService.myStaticMethod("test"); // "test:mid_static_2:orig_static"
 ```
 
 ##### getter
