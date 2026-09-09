@@ -140,7 +140,103 @@ describe("builder", () => {
     expect(new API().myMethod("input")).toBe("input mid orig");
   });
 
-  it("should work with 'for' method for multiple hooks", () => {
+  it("should work with 'for' method for multiple hooks (without dynamic keys and alternative names)", () => {
+    class MixedClass {
+      static staticValueStore = "staticInitial";
+      #value = "initial";
+
+      field = "field";
+      acc: string = "initialAcc";
+
+      constructor() {
+        hook.init(this);
+      }
+
+      myMethod(x: string) {
+        return x + ":orig";
+      }
+
+      static staticMethod(x: string) {
+        return x + ":staticOrig";
+      }
+
+      get value() {
+        return this.#value;
+      }
+
+      set value(v: string) {
+        this.#value = v;
+      }
+
+      static get staticVal() {
+        return this.staticValueStore;
+      }
+
+      static set staticVal(v: string) {
+        this.staticValueStore = v;
+      }
+    }
+
+    attach(MixedClass, "static init staticValueStore", (next, x) => next(x + ":init"));
+
+    Hooks(MixedClass)
+      .for("method myMethod")
+      .for("static method staticMethod")
+      .for("static init staticValueStore")
+      .for("init field")
+      .for("accessor acc")
+      .for("get value")
+      .for("set value")
+      .for("static get staticVal")
+      .for("static set staticVal");
+
+    expect(MixedClass.staticValueStore).toBe("staticInitial:init");
+
+    const instance = new MixedClass();
+
+    expect(instance instanceof MixedClass).toBe(true);
+
+    attach(MixedClass, "method myMethod", (next, x) => next(x + ":classMid"));
+    attach(instance, "method myMethod", (next, x) => next(x + ":instanceMid"));
+    attach(MixedClass, "static method staticMethod", (next, x) => next(x + ":staticMid"));
+    attach(MixedClass, "init field", (next, value) => next(value + ":fieldInit"));
+    attach(MixedClass, "init acc", (next, value) => next(value + ":accInit"));
+    attach(instance, "get acc", (next) => next() + ":getAcc");
+    attach(instance, "set acc", (next, value) => next(value + ":setAcc"));
+    attach(instance, "get value", (next) => next() + ":getValue");
+    attach(instance, "set value", (next, value) => next(value + ":setValue"));
+    attach(MixedClass, "static get staticVal", (next) => next() + ":staticGet");
+    attach(MixedClass, "static set staticVal", (next, value) => next(value + ":staticSet"));
+
+    expect(instance.myMethod("input")).toBe("input:instanceMid:classMid:orig");
+
+    expect(MixedClass.staticMethod("input")).toBe("input:staticMid:staticOrig");
+
+    const initialized = new MixedClass();
+
+    expect(initialized.field).toBe("field:fieldInit");
+    expect(initialized.acc).toBe("initialAcc:accInit");
+
+    expect(instance.acc).toBe("initialAcc:getAcc");
+
+    instance.acc = "updatedAcc";
+
+    expect(instance.acc).toBe("updatedAcc:setAcc:getAcc");
+
+    expect(instance.value).toBe("initial:getValue");
+
+    instance.value = "updatedValue";
+
+    expect(instance.value).toBe("updatedValue:setValue:getValue");
+
+    expect(MixedClass.staticVal).toBe("staticInitial:init:staticGet");
+
+    MixedClass.staticVal = "updatedStatic";
+
+    expect(MixedClass.staticVal).toBe("updatedStatic:staticSet:staticGet");
+  });
+
+  it("should work with 'for' method for multiple hooks (with dynamic keys and alternative names)", () => {
     class MixedClass {
       static staticValueStore = "staticInitial";
       #value = "initial";
