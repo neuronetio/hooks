@@ -213,6 +213,8 @@ export interface IHookDecoratorBuilder<TClass extends AnyClass = AnyClass> {
    * Applies a hook expression to the class.
    *
    * @param hookExpression The hook expression to apply.
+   * @param alternativeNameOrDynamicKey1 Optional alternative hook name or dynamic hook key.
+   * @param alternativeNameOrDynamicKey2 Optional dynamic hook key or alternative hook name.
    * @returns The same builder so you can keep chaining calls.
    */
   for(
@@ -398,6 +400,14 @@ export class HookDecoratorBuilder<TClass extends AnyClass = AnyClass> implements
     return this.HookedClass;
   }
 
+  /**
+   * Applies a hook expression to the class.
+   *
+   * @param hookExpression The hook expression to apply.
+   * @param alternativeNameOrDynamicKey1 Optional alternative hook name or dynamic hook key.
+   * @param alternativeNameOrDynamicKey2 Optional dynamic hook key or alternative hook name.
+   * @returns The same builder so you can keep chaining calls.
+   */
   for(
     hookExpression: HookClassExpression<TClass>,
     alternativeNameOrDynamicKey1?: string | HookKeyDynamic,

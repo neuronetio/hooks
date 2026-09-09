@@ -100,6 +100,8 @@ interface IHookDecoratorBuilder<TClass extends AnyClass = AnyClass> {
    * Applies a hook expression to the class.
    *
    * @param hookExpression The hook expression to apply.
+   * @param alternativeNameOrDynamicKey1 Optional alternative hook name or dynamic hook key.
+   * @param alternativeNameOrDynamicKey2 Optional dynamic hook key or alternative hook name.
    * @returns The same builder so you can keep chaining calls.
    */
   for(hookExpression: HookClassExpression<TClass>, alternativeNameOrDynamicKey1?: string | HookKeyDynamic, alternativeNameOrDynamicKey2?: string | HookKeyDynamic): this;
@@ -139,6 +141,14 @@ declare class HookDecoratorBuilder<TClass extends AnyClass = AnyClass> implement
   setter<TName extends HookPropertyName<TClass>>(propertyKey: TName, dynamicKey: HookKeyDynamic, alternativeName: string): HookDecoratorBuilder<TClass>;
   setter<TName extends HookPropertyName<TClass>>(propertyKey: TName, alternativeName: string, dynamicKey: HookKeyDynamic): HookDecoratorBuilder<TClass>;
   get(): TClass;
+  /**
+   * Applies a hook expression to the class.
+   *
+   * @param hookExpression The hook expression to apply.
+   * @param alternativeNameOrDynamicKey1 Optional alternative hook name or dynamic hook key.
+   * @param alternativeNameOrDynamicKey2 Optional dynamic hook key or alternative hook name.
+   * @returns The same builder so you can keep chaining calls.
+   */
   for(hookExpression: HookClassExpression<TClass>, alternativeNameOrDynamicKey1?: string | HookKeyDynamic, alternativeNameOrDynamicKey2?: string | HookKeyDynamic): this;
 }
 /**
