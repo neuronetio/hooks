@@ -990,6 +990,8 @@ const myDynamicKey = dynamicHookKey(function () {
   }
 });
 
+// enable hooks for the methods and use alternative names for the hooks,
+// while also resolving the key dynamically
 Hooks(MyService)
   .for("method myMethod", "myMethodAlt", myDynamicKey)
   .for("static method myStaticMethod", "myStaticMethodAlt", myDynamicKey);
@@ -999,6 +1001,7 @@ Hooks(MyService)
 //   .for("method myMethod", myDynamicKey, "myMethodAlt")
 //   .for("static method myStaticMethod", myDynamicKey, "myStaticMethodAlt");
 
+// attach middleware
 attach(key1, "!method myMethodAlt", (next, x) => next(x + ":mid_1"));
 attach(key1, "!static method myStaticMethodAlt", (next, x) => next(x + ":mid_static_1"));
 
@@ -1021,7 +1024,7 @@ MyService.myStaticMethod("test"); // "test:mid_static_2:orig_static"
 
 ##### getter
 
-In `neuronet/hooks` you can also add middleware to getters. The syntax is similar to methods, but you use `get` instead
+In `@neuronet/hooks` you can also add middleware to getters. The syntax is similar to methods, but you use `get` instead
 of `method`.
 
 - `for("get <property>")` — enable `get <property>` hook for getters using the member name.
@@ -1051,8 +1054,10 @@ class MyService {
   }
 }
 
+// enable hooks for the getter `value` and `staticValue`
 Hooks(MyService).for("get value").for("static get staticValue");
 
+// attach middleware to the hooks
 attach(MyService, "get value", (next) => next() + 1);
 attach(MyService, "static get staticValue", (next) => next() + 1);
 
