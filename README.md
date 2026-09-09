@@ -871,7 +871,7 @@ service.myMethod("test"); // "test:mid:orig"
 MyService.myStaticMethod("test"); // "test:static_mid:orig_static"
 ```
 
-###### Alternative name
+###### Alternative name for methods
 
 If you don't want to use the original method name, or if for some reason a different, more descriptive hook name would
 be better (e.g., when you have a hierarchy of dynamically attached classes), you can use your own hook name. In this
@@ -1024,51 +1024,71 @@ MyService.myStaticMethod("test"); // "test:mid_static_2:orig_static"
 
 ##### getter
 
-- `getter(property)` — enable `get <property>` hook using the member name.
-- `getter(property, alternativeName: string)` — use `alternativeName` as the public `get` hook name.
-- `getter(property, dynamicKey)` — resolve key dynamically.
-- `getter(property, alternativeName, dynamicKey)` — combine alternative name and dynamic key.
+- `for("get <property>")` — enable `get <property>` hook for getters using the member name.
+- `for("get <property>", alternativeName)` — use `alternativeName` as the public `get` hook name.
+- `for("get <property>", dynamicKey)` — resolve key dynamically.
+- `for("get <property>", alternativeName, dynamicKey)` — combine alternative name and dynamic key.
+
+##### static getter
+
+- `for("static get <property>")` — enable `static get <property>` hook for getters using the member name.
+- `for("static get <property>", alternativeName)` — use `alternativeName` as the public `get` hook name.
+- `for("static get <property>", dynamicKey)` — resolve key dynamically.
+- `for("static get <property>", alternativeName, dynamicKey)` — combine alternative name and dynamic key.
 
 ###### Simple getter
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-const Service = Hooks(
-  class {
-    get value() {
-      return 1;
-    }
-  },
-)
-  .getter("value")
-  .build();
+class MyService {
+  get value() {
+    return 1;
+  }
 
-attach(Service, "get value", (next) => next() + 1);
+  static get staticValue() {
+    return 1;
+  }
+}
 
-const service = new Service();
+Hooks(MyService).for("get value").for("static get staticValue");
+
+attach(MyService, "get value", (next) => next() + 1);
+attach(MyService, "static get staticValue", (next) => next() + 1);
+
+const service = new MyService();
+
 service.value; // 2
+MyService.staticValue; // 2
 ```
 
-###### Alternative name
+###### Alternative name for getters
+
+Same as [Alternative name for methods](#alternative-name-for-methods) but for getters.
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-const Service = Hooks(
-  class {
-    get value() {
-      return 1;
-    }
-  },
-)
-  .getter("value", "valueAlt")
-  .build();
+class MyService {
+  get value() {
+    return 1;
+  }
 
-attach(Service, "get valueAlt", (next) => next() + 2);
+  static get staticValue() {
+    return 1;
+  }
+}
 
-const service = new Service();
-service.value; // 3
+Hooks(MyService).for("get value", "valueAlt").for("static get staticValue", "staticValueAlt");
+
+// because typescript will try to find getter `valueAlt` and `staticValueAlt` on the class,
+// we need to use exclamation mark to turn off type checking here
+attach(MyService, "!get valueAlt", (next) => next() + 1);
+attach(MyService, "!static get staticValueAlt", (next) => next() + 1);
+
+const service = new MyService();
+service.value; // 2
+MyService.staticValue; // 2
 ```
 
 ###### Dynamic key
