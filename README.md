@@ -1021,6 +1021,9 @@ MyService.myStaticMethod("test"); // "test:mid_static_2:orig_static"
 
 ##### getter
 
+In `neuronet/hooks` you can also add middleware to getters. The syntax is similar to methods, but you use `get` instead
+of `method`.
+
 - `for("get <property>")` — enable `get <property>` hook for getters using the member name.
 - `for("get <property>", alternativeName)` — use `alternativeName` as the public `get` hook name.
 - `for("get <property>", dynamicKey)` — resolve key dynamically.
