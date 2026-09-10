@@ -1064,7 +1064,12 @@ attach(MyService, "static get staticValue", (next) => next() + 1);
 const service = new MyService();
 
 service.value; // 2
+service.value = 5;
+service.value; // 6
+
 MyService.staticValue; // 2
+MyService.staticValue = 5;
+MyService.staticValue; // 6
 ```
 
 ###### Alternative name for getters
@@ -1092,8 +1097,14 @@ attach(MyService, "!get valueAlt", (next) => next() + 1);
 attach(MyService, "!static get staticValueAlt", (next) => next() + 1);
 
 const service = new MyService();
+
 service.value; // 2
+service.value = 5;
+service.value; // 6
+
 MyService.staticValue; // 2
+MyService.staticValue = 5;
+MyService.staticValue; // 6
 ```
 
 ###### Dynamic key
@@ -1103,23 +1114,60 @@ import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
 
 const key = Symbol("gk");
 
-const Service = Hooks(
-  class {
-    get value() {
-      return 1;
-    }
-  },
-)
-  .getter(
-    "value",
-    dynamicHookKey(() => key),
-  )
-  .build();
+class MyService {
+  get value() {
+    return 1;
+  }
+  static get staticValue() {
+    return 1;
+  }
+}
 
-attach(key, "get value", (next) => next() + 2);
+const key1 = Symbol("key1");
+const key2 = Symbol("key2");
 
-const service = new Service();
+let useMiddleware = 1;
+
+const myDynamicKey = dynamicHookKey(() => {
+  if (useMiddleware === 1) {
+    return key1;
+  } else {
+    return key2;
+  }
+});
+
+// enable hooks for the getter `value` and `staticValue` with dynamic key
+Hooks(MyService).for("get value", myDynamicKey).for("static get staticValue", myDynamicKey);
+
+// attach middleware to the hooks
+attach(key1, "get value", (next) => next() + 1);
+attach(key1, "static get staticValue", (next) => next() + 1);
+
+attach(key2, "get value", (next) => next() + 2);
+attach(key2, "static get staticValue", (next) => next() + 2);
+
+const service = new MyService();
+
+// useMiddleware is set to 1, so the middleware attached to key1 will be executed
+
+service.value; // 2
+service.value = 5;
+service.value; // 6
+
+MyService.staticValue; // 2
+MyService.staticValue = 5;
+MyService.staticValue; // 6
+
+useMiddleware = 2;
+// now dynamic hook key will resolve to key2, so the middleware attached to key2 will be executed
+
 service.value; // 3
+service.value = 5;
+service.value; // 7
+
+MyService.staticValue; // 3
+MyService.staticValue = 5;
+MyService.staticValue; // 7
 ```
 
 ###### Dynamic key + alternative name
@@ -1127,85 +1175,179 @@ service.value; // 3
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
 
-const key = Symbol("gk");
+class MyService {
+  get value() {
+    return 1;
+  }
 
-const Service = Hooks(
-  class {
-    get value() {
-      return 1;
-    }
-  },
-)
-  .getter(
-    "value",
-    "valueAlt",
-    dynamicHookKey(() => key),
-  )
-  .build();
+  static get staticValue() {
+    return 1;
+  }
+}
 
-attach(Service, "get valueAlt", (next) => next() + 3);
+const key1 = Symbol("key1");
+const key2 = Symbol("key2");
 
-const service = new Service();
-service.value; // 4
+let useMiddleware = 1;
+
+const myDynamicKey = dynamicHookKey(() => {
+  if (useMiddleware === 1) {
+    return key1;
+  } else {
+    return key2;
+  }
+});
+
+// enable hooks for the getter `value` and use `valueAlt` as the hook name, while also resolving the key dynamically
+Hooks(MyService)
+  .for("get value", "valueAlt", myDynamicKey)
+  .for("static get staticValue", "staticValueAlt", myDynamicKey);
+
+// or
+// Hooks(MyService)
+//   .for("get value", myDynamicKey, "valueAlt")
+//   .for("static get staticValue", myDynamicKey, "staticValueAlt");
+
+// attach middleware
+// because typescript will try to find getter `valueAlt` and `staticValueAlt` on the class,
+// we need to use exclamation mark to turn off type checking here
+attach(key1, "!get valueAlt", (next) => next() + 1);
+attach(key1, "!static get staticValueAlt", (next) => next() + 1);
+
+attach(key2, "!get valueAlt", (next) => next() + 2);
+attach(key2, "!static get staticValueAlt", (next) => next() + 2);
+
+const service = new MyService();
+
+// useMiddleware is set to 1, so the middleware attached to key1 will be executed
+
+service.value; // 2
+service.value = 5;
+service.value; // 6
+
+MyService.staticValue; // 2
+MyService.staticValue = 5;
+MyService.staticValue; // 6
+
+useMiddleware = 2;
+// now dynamic hook key will resolve to key2, so the middleware attached to key2 will be executed
+
+service.value; // 3
+service.value = 5;
+service.value; // 7
+
+MyService.staticValue; // 3
+MyService.staticValue = 5;
+MyService.staticValue; // 7
 ```
 
 ##### setter
 
-- `setter(property)` — enable `set <property>` hook using the member name.
-- `setter(property, alternativeName)` — use `alternativeName` as the public `set` hook name.
-- `setter(property, dynamicKey)` — resolve key dynamically.
-- `setter(property, alternativeName, dynamicKey)` — combine dynamic key and alternative name.
+In `@neuronet/hooks` you can also add middleware to setters. The syntax is similar to methods, but you use `set` instead
+of `method`.
+
+- `for("set <property>")` — enable `set <property>` hook for setters using the member name.
+- `for("set <property>", alternativeName)` — use `alternativeName` as the public `set` hook name.
+- `for("set <property>", dynamicKey)` — resolve key dynamically.
+- `for("set <property>", alternativeName, dynamicKey)` — combine alternative name and dynamic key.
+
+##### static setter
+
+- `for("static set <property>")` — enable `static set <property>` hook for setters using the member name.
+- `for("static set <property>", alternativeName)` — use `alternativeName` as the public `set` hook name.
+- `for("static set <property>", dynamicKey)` — resolve key dynamically.
+- `for("static set <property>", alternativeName, dynamicKey)` — combine alternative name and dynamic key.
 
 ###### Simple setter
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-const Service = Hooks(
-  class {
-    #val = 0;
-    set value(v: number) {
-      this.#val = v;
-    }
-    get value() {
-      return this.#val;
-    }
-  },
-)
-  .setter("value")
-  .build();
+class MyService {
+  #val = 1;
 
-attach(Service, "set value", (next, v) => next(v + 1));
+  get value() {
+    return this.#val;
+  }
 
-const service = new Service();
-service.value = 2;
-console.log(service.value); // 3
+  set value(v: number) {
+    this.#val = v;
+  }
+
+  static #valStatic = 1;
+
+  static get staticValue() {
+    return this.#valStatic;
+  }
+
+  static set staticValue(v: number) {
+    this.#valStatic = v;
+  }
+}
+
+// enable hooks for the setter `value` and `staticValue`
+Hooks(MyService).for("set value").for("static set staticValue");
+
+// attach middleware to the hooks
+attach(MyService, "set value", (next, v) => next(v + 1));
+attach(MyService, "static set staticValue", (next, v) => next(v + 1));
+
+const service = new MyService();
+
+service.value; // 1
+service.value = 2; // middleware adds 1, so value becomes 3
+service.value; // 3
+
+MyService.staticValue; // 1
+MyService.staticValue = 2; // middleware adds 1, so staticValue becomes 3
+MyService.staticValue; // 3
 ```
 
-###### Alternative name
+###### Alternative name for setters
+
+Same as [Alternative name for methods](#alternative-name-for-methods) but for setters.
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-const Service = Hooks(
-  class {
-    #val = 0;
-    set value(v: number) {
-      this.#val = v;
-    }
-    get value() {
-      return this.#val;
-    }
-  },
-)
-  .setter("value", "valueAlt")
-  .build();
+class MyService {
+  #val = 1;
 
-attach(Service, "set valueAlt", (next, v) => next(v + 2));
+  get value() {
+    return this.#val;
+  }
 
-const service = new Service();
-service.value = 2;
-console.log(service.value); // 4
+  set value(v: number) {
+    this.#val = v;
+  }
+
+  static #valStatic = 1;
+
+  static get staticValue() {
+    return this.#valStatic;
+  }
+
+  static set staticValue(v: number) {
+    this.#valStatic = v;
+  }
+}
+
+Hooks(MyService).for("set value", "valueAlt").for("static set staticValue", "staticValueAlt");
+
+// because typescript will try to find setter `valueAlt` and `staticValueAlt` on the class,
+// we need to use exclamation mark to turn off type checking here
+attach(MyService, "!set valueAlt", (next, v) => next(v + 1));
+attach(MyService, "!static set staticValueAlt", (next, v) => next(v + 1));
+
+const service = new MyService();
+
+service.value; // 1
+service.value = 2; // middleware adds 1, so value becomes 3
+service.value; // 3
+
+MyService.staticValue; // 1
+MyService.staticValue = 2; // middleware adds 1, so staticValue becomes 3
+MyService.staticValue; // 3
 ```
 
 ###### Dynamic key
@@ -1213,30 +1355,73 @@ console.log(service.value); // 4
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
 
-const key = Symbol("sk");
+class MyService {
+  #val = 1;
 
-const Service = Hooks(
-  class {
-    #val = 0;
-    set value(v: number) {
-      this.#val = v;
-    }
-    get value() {
-      return this.#val;
-    }
-  },
-)
-  .setter(
-    "value",
-    dynamicHookKey(() => key),
-  )
-  .build();
+  get value() {
+    return this.#val;
+  }
 
-attach(key, "set value", (next, v) => next(v + 2));
+  set value(v: number) {
+    this.#val = v;
+  }
 
-const service = new Service();
-service.value = 2;
-console.log(service.value); // 4
+  static #valStatic = 1;
+
+  static get staticValue() {
+    return this.#valStatic;
+  }
+
+  static set staticValue(v: number) {
+    this.#valStatic = v;
+  }
+}
+
+const key1 = Symbol("key1");
+const key2 = Symbol("key2");
+
+let useMiddleware = 1;
+
+const myDynamicKey = dynamicHookKey(() => {
+  if (useMiddleware === 1) {
+    return key1;
+  } else {
+    return key2;
+  }
+});
+
+// enable hooks for the setter `value` and `staticValue` with dynamic key
+Hooks(MyService).for("set value", myDynamicKey).for("static set staticValue", myDynamicKey);
+
+// attach middleware to the hooks
+attach(key1, "set value", (next, v) => next(v + 1));
+attach(key1, "static set staticValue", (next, v) => next(v + 1));
+
+attach(key2, "set value", (next, v) => next(v + 2));
+attach(key2, "static set staticValue", (next, v) => next(v + 2));
+
+const service = new MyService();
+
+// useMiddleware is set to 1, so the middleware attached to key1 will be executed
+
+service.value; // 1
+service.value = 2; // middleware adds 1, so value becomes 3
+service.value; // 3
+
+MyService.staticValue; // 1
+MyService.staticValue = 2; // middleware adds 1, so staticValue becomes 3
+MyService.staticValue; // 3
+
+useMiddleware = 2;
+// now dynamic hook key will resolve to key2, so the middleware attached to key2 will be executed
+
+service.value; // 1
+service.value = 2; // middleware adds 2, so value becomes 4
+service.value; // 4
+
+MyService.staticValue; // 1
+MyService.staticValue = 2; // middleware adds 2, so staticValue becomes 4
+MyService.staticValue; // 4
 ```
 
 ###### Dynamic key + alternative name
@@ -1244,56 +1429,193 @@ console.log(service.value); // 4
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
 
-const key = Symbol("sk");
+class MyService {
+  #val = 1;
 
-const Service = Hooks(
-  class {
-    #val = 0;
-    set value(v: number) {
-      this.#val = v;
-    }
-    get value() {
-      return this.#val;
-    }
-  },
-)
-  .setter(
-    "value",
-    "valueAlt",
-    dynamicHookKey(() => key),
-  )
-  .build();
+  get value() {
+    return this.#val;
+  }
 
-attach(Service, "set valueAlt", (next, v) => next(v + 3));
+  set value(v: number) {
+    this.#val = v;
+  }
 
-const service = new Service();
-service.value = 2;
-console.log(service.value); // 5
+  static #valStatic = 1;
+
+  static get staticValue() {
+    return this.#valStatic;
+  }
+
+  static set staticValue(v: number) {
+    this.#valStatic = v;
+  }
+}
+
+const key1 = Symbol("key1");
+const key2 = Symbol("key2");
+
+let useMiddleware = 1;
+
+const myDynamicKey = dynamicHookKey(() => {
+  if (useMiddleware === 1) {
+    return key1;
+  } else {
+    return key2;
+  }
+});
+
+// enable hooks for the setter `value` and use `valueAlt` as the hook name, while also resolving the key dynamically
+Hooks(MyService)
+  .for("set value", "valueAlt", myDynamicKey)
+  .for("static set staticValue", "staticValueAlt", myDynamicKey);
+
+// or
+// Hooks(MyService)
+//   .for("set value", myDynamicKey, "valueAlt")
+//   .for("static set staticValue", myDynamicKey, "staticValueAlt");
+
+// attach middleware
+// because typescript will try to find setter `valueAlt` and `staticValueAlt` on the class,
+// we need to use exclamation mark to turn off type checking here
+attach(key1, "!set valueAlt", (next, v) => next(v + 1));
+attach(key1, "!static set staticValueAlt", (next, v) => next(v + 1));
+
+attach(key2, "!set valueAlt", (next, v) => next(v + 2));
+attach(key2, "!static set staticValueAlt", (next, v) => next(v + 2));
+
+const service = new MyService();
+
+// useMiddleware is set to 1, so the middleware attached to key1 will be executed
+
+service.value; // 1
+service.value = 2; // middleware adds 1, so value becomes 3
+service.value; // 3
+
+MyService.staticValue; // 1
+MyService.staticValue = 2; // middleware adds 1, so staticValue becomes 3
+MyService.staticValue; // 3
+
+useMiddleware = 2;
+// now dynamic hook key will resolve to key2, so the middleware attached to key2 will be executed
+
+service.value; // 1
+service.value = 2; // middleware adds 2, so value becomes 4
+service.value; // 4
+
+MyService.staticValue; // 1
+MyService.staticValue = 2; // middleware adds 2, so staticValue becomes 4
+MyService.staticValue; // 4
 ```
 
-##### field
+##### init
 
-- `field(property)` — enable `init <property>` hook using the member name.
-- `field(property, alternativeName: string)` — use `alternativeName` as the public `init` hook name.
-- `field(property, dynamicKey: dynamicHookKey)` — resolve key dynamically.
-- `field(property, dynamicKey, alternativeName)` — combine dynamic key and alternative name.
+`init` is used to initialize class fields and allows you to attach middleware that can modify the field's value during
+its initialization (inside the constructor).
 
-###### Simple field
+- `for("init <property>")` — enable `init <property>` hook using the member name.
+- `for("init <property>", alternativeName: string)` — use `alternativeName` as the public `init` hook name.
+- `for("init <property>", dynamicKey: dynamicHookKey)` — resolve key dynamically.
+- `for("init <property>", dynamicKey, alternativeName)` — combine dynamic key and alternative name.
+
+Unfortunately, ECMA decorators are not ready yet (at the time of writing this documentation), so to use middleware for
+initialization, you need to call `hook.init(this)` in the class constructor to initialize all fields that have `init`
+hooks enabled. The `hook.init(this)` function can also serve another purpose: if you do `return hook.init(this)` in the
+constructor, you can use the returned object instead of the default class instance. In other words, you can replace the
+entire instance.
+
+```ts
+// file: MyService.js
+import { hook } from "@neuronet/hooks";
+
+class MyService {
+  constructor() {
+    return hook.init(this);
+  }
+}
+
+// file: MyService.my-middleware.js
+import { attach } from "@neuronet/hooks";
+import { MyService } from "./MyService.js";
+
+class MyServiceReplacement extends MyService {
+  value = "different_value";
+}
+
+attach(MyService, "constructor", (next) => {
+  return new MyServiceReplacement();
+});
+
+// usage
+import { MyService } from "./MyService.js";
+import "./MyService.my-middleware.js";
+
+const service = new MyService();
+service.value; // "different_value"
+```
+
+##### static init
+
+Using middleware for static initialization is, in a sense, impossible, because static fields are initialized only once,
+when the class is loaded (for example, when you import the file containing the class). The key for the middleware is the
+class itself. For this reason, you cannot attach middleware to something that has not been defined yet, and once it has
+been defined (and you could retrieve the "key"), it is already too late, because the field has already been initialized.
+So, in a sense, we want to "have our cake and eat it too".
+
+Nevertheless, if you need to use middleware for the initial value of a static field, you can do so by using a different
+key defined in another file and taking care of the import order, so that the middleware is attached before the static
+field is initialized.
+
+```ts
+// file: MyService.init-key.ts
+export const MY_SERVICE_INIT_KEY = Symbol("MY_SERVICE_INIT_KEY");
+
+// file: MyService.my-middleware.ts
+import { attach } from "@neuronet/hooks";
+import { MY_SERVICE_INIT_KEY } from "./MyService.init-key.js";
+
+attach(MY_SERVICE_INIT_KEY, "!static init staticValue", (next, v) => next(v + 1));
+attach(MY_SERVICE_INIT_KEY, "!static init otherStaticValue", (next, v) => next(v + 2));
+
+// file: MyService.ts
+import { Hooks, attach } from "@neuronet/hooks";
+import { MY_SERVICE_INIT_KEY } from "./MyService.init-key.js";
+
+class MyService {
+  // `(v) => v` function returns the value as is, so we can assign a result to the static field
+  // `(1)` at the end is executing a hook right in place with the default initial value set to 1
+  static staticValue = hook(MY_SERVICE_INIT_KEY, "static init staticValue", (v) => v)(1);
+  static otherStaticValue = hook(MY_SERVICE_INIT_KEY, "static init otherStaticValue", (v) => v)(2);
+}
+
+// static field is already initialized, so we can retrieve its value
+MyService.staticValue; // 2
+MyService.otherStaticValue; // 4
+```
+
+WARNING: You cannot use `Symbol.for("...")` for the key here, because middleware registry uses `WeakMap` to store
+middleware, and `WeakMap` does not support global (`Symbol.for`) symbols.
+
+###### Simple init
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-const Service = Hooks(
-  class {
-    value = "x";
-  },
-)
-  .field("value")
-  .build();
+class MyService {
+  value = "x";
 
-attach(Service, "init value", (next, v) => next(v + ":init"));
+  constructor() {
+    hook.init(this);
+  }
+}
 
-const service = new Service();
+// enable hooks for the instance field `value`
+Hooks(MyService).for("init value");
+
+// attach middleware to the hook
+attach(MyService, "init value", (next, v) => next(v + ":init"));
+
+const service = new MyService();
+
 service.value; // "x:init"
 ```
 
@@ -1302,17 +1624,19 @@ service.value; // "x:init"
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-const Service = Hooks(
-  class {
-    value = "x";
-  },
-)
-  .field("value", "valueInit")
-  .build();
+class MyService {
+  value = "x";
+}
 
-attach(Service, "init valueInit", (next, v) => next(v + ":altInit"));
+// enable hooks for the instance field `value` and use `valueAlt` as the hook name
+Hooks(MyService).for("init value", "valueAlt");
 
-const service = new Service();
+// attach middleware to the alternative hook name
+// because typescript will try to find hook `valueAlt` on the class,
+// we need to use exclamation mark to turn off type checking here
+attach(MyService, "!init valueAlt", (next, v) => next(v + ":altInit"));
+
+const service = new MyService();
 service.value; // "x:altInit"
 ```
 
@@ -1321,48 +1645,89 @@ service.value; // "x:altInit"
 ```ts
 import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
 
-const key = Symbol("fk");
+class MyService {
+  value = "x";
+}
 
-const Service = Hooks(
-  class {
-    value = "x";
-  },
-)
-  .field(
-    "value",
-    dynamicHookKey(() => key),
-  )
-  .build();
+const key1 = Symbol("key1");
+const key2 = Symbol("key2");
 
-attach(key, "init value", (next, v) => next(v + ":dynInit"));
+let useMiddleware = 1;
 
-const service = new Service();
-service.value; // "x:dynInit"
+const myDynamicKey = dynamicHookKey(() => {
+  if (useMiddleware === 1) {
+    return key1;
+  } else {
+    return key2;
+  }
+});
+
+// enable hooks for the instance field `value` with dynamic key
+Hooks(MyService).for("init value", myDynamicKey);
+
+// attach middleware to the hooks
+attach(key1, "init value", (next, v) => next(v + ":dynInit1"));
+attach(key2, "init value", (next, v) => next(v + ":dynInit2"));
+
+// useMiddleware is set to 1, so the middleware attached to key1 will be executed
+const service1 = new Service();
+service1.value; // "x:dynInit1"
+
+useMiddleware = 2;
+// now dynamic hook key will resolve to key2, so the middleware attached to key2 will be executed
+
+const service2 = new Service();
+service2.value; // "x:dynInit2"
 ```
 
 ###### Dynamic key + alternative name
 
 ```ts
-import { Hooks, attach, dynamicHookKey } from "@neuronet/hooks";
+import { Hooks, hook, attach, dynamicHookKey } from "@neuronet/hooks";
 
-const key = Symbol("fk");
+class MyService {
+  value = "x";
 
-const Service = Hooks(
-  class {
-    value = "x";
-  },
-)
-  .field(
-    "value",
-    "valueInit",
-    dynamicHookKey(() => key),
-  )
-  .build();
+  constructor() {
+    // required so that the `init` middleware runs when the instance is created
+    hook.init(this);
+  }
+}
 
-attach(Service, "init valueInit", (next, v) => next(v + ":combinedInit"));
+const key1 = Symbol("key1");
+const key2 = Symbol("key2");
 
-const service = new Service();
-service.value; // "x:combinedInit"
+let useMiddleware = 1;
+
+const myDynamicKey = dynamicHookKey(() => {
+  if (useMiddleware === 1) {
+    return key1;
+  } else {
+    return key2;
+  }
+});
+
+// enable hooks for the field `value` and use `valueAlt` as the hook name, while also resolving the key dynamically
+Hooks(MyService).for("init value", "valueAlt", myDynamicKey);
+
+// or
+// Hooks(MyService).for("init value", myDynamicKey, "valueAlt");
+
+// attach middleware
+// because typescript will try to find field `valueAlt` on the class,
+// we need to use exclamation mark to turn off type checking here
+attach(key1, "!init valueAlt", (next, v) => next(v + ":dynInit1"));
+attach(key2, "!init valueAlt", (next, v) => next(v + ":dynInit2"));
+
+// useMiddleware is set to 1, so the middleware attached to key1 will be executed
+const service1 = new MyService();
+service1.value; // "x:dynInit1"
+
+useMiddleware = 2;
+// now dynamic hook key will resolve to key2, so the middleware attached to key2 will be executed
+
+const service2 = new MyService();
+service2.value; // "x:dynInit2"
 ```
 
 ##### accessor
