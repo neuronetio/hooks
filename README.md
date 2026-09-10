@@ -82,16 +82,9 @@ strong class typing (although in some cases it is not available, which is the co
     - [`method`](#method)
     - [`getter`](#getter)
     - [`setter`](#setter)
-    - [`field`](#field)
+    - [`init`](#init)
     - [`accessor`](#accessor)
-    - [`build`](#build)
     - [Sub-hooks in the builder](#sub-hooks-in-the-builder)
-  - [Using direct hook utilities](#using-direct-hook-utilities)
-    - [`hookMethod(Class, property)`](#hookmethodclass-property)
-    - [`hookGetter(Class, property)`](#hookgetterclass-property)
-    - [`hookSetter(Class, property)`](#hooksetterclass-property)
-    - [`hookField(Class, property)`](#hookfieldclass-property)
-    - [`hookAccessor(Class, property)`](#hookaccessorclass-property)
   - [ECMA decorators](#ecma-decorators)
     - [`@Hook`](#hook)
     - [`@hook()` on methods](#hook-on-methods)
@@ -1824,43 +1817,6 @@ const service = new Service();
 console.log(service.x); // "a:getAlt"
 ```
 
-##### build
-
-- `build()` — finalizes the chain and returns the wrapped class constructor that will run initializers for instance
-  members. Use the returned class in place of the original binding.
-
-Example — chaining multiple operations
-
-```ts
-import { Hooks, attach } from "@neuronet/hooks";
-
-const Product = Hooks(
-  class {
-    price = 10;
-    get total() {
-      return this.price;
-    }
-    set total(v: number) {
-      this.price = v;
-    }
-  },
-)
-  .field("price")
-  .getter("total")
-  .setter("total")
-  .build();
-
-attach(Product, "init price", (next, v) => next(v + 1));
-attach(Product, "get total", (next) => next() + 10);
-attach(Product, "set total", (next, v) => next(v + 5));
-
-const p = new Product();
-console.log(p.total); // 10 + 1 + 10 = 21
-
-p.total = 20; // sets price to 20 + 5 = 25
-console.log(p.total); // 25 + 10 = 35
-```
-
 #### Sub-hooks in the builder
 
 You can create sub-hooks inside hooked methods using the `hook(name, fn)` syntax. These sub-hooks inherit the parent
@@ -1928,244 +1884,6 @@ attach(subKey, (next, name) => next(name + "!!!"));
 new UserService().greet("Ada"); // Hello, ADA!!!
 ```
 
-#### Using direct hook utilities
-
-##### Multiple utilities at once
-
-You can use multiple utilities at once to wrap a class and create hooks for its members. The following example shows how
-to wrap a class with `hookMethod`, `hookGetter`, `hookSetter`, `hookField`, and `hookAccessor` utilities.
-
-```ts
-import { hookMethod, hookGetter, hookSetter, hookField, hookAccessor, attach } from "@neuronet/hooks";
-
-let Service = class {
-  #value = 1;
-
-  get value() {
-    return this.#value;
-  }
-
-  set value(next: number) {
-    this.#value = next;
-  }
-
-  greet(name: string) {
-    return `Hello, ${name}`;
-  }
-
-  status = "new";
-
-  acc = "accessor";
-};
-
-// you should not use original Service class - only the wrapped class will work correctly with hooks
-
-// apply hooks
-Service = hookMethod(Service, "greet");
-Service = hookGetter(Service, "value");
-Service = hookSetter(Service, "value");
-Service = hookField(Service, "status");
-Service = hookAccessor(Service, "acc");
-
-// now you can use Service
-
-// attach middleware to the hooks
-attach(Service, "greet", (next, name) => next(name.toUpperCase()));
-attach(Service, "get value", (next) => next() + 1);
-attach(Service, "set value", (next, value) => next(value + 1));
-attach(Service, "init status", (next, value) => next(value.toUpperCase()));
-attach(Service, "init acc", (next) => next() + "_init");
-attach(Service, "get acc", (next) => next() + "_get");
-attach(Service, "set acc", (next, value) => next(value + "_set"));
-```
-
-##### `hookMethod(Class, property)`
-
-Wraps class method and creates a hook under the name `<property>`.
-
-```ts
-import { hookMethod, attach } from "@neuronet/hooks";
-
-let Service = class {
-  myMethod(x: string) {
-    return x + " orig";
-  }
-};
-
-// create a hook for the method
-Service = hookMethod(Service, "myMethod");
-
-// attach a middleware to all instances of the class
-attach(Service, "myMethod", (next, x) => next(x + " middleware"));
-
-// call the method with middleware attached
-const service = new Service();
-service.myMethod("test"); // "test middleware orig"
-
-// ...
-
-// you can also attach middleware to specific instances of the class
-const service2 = new Service();
-attach(service2, "myMethod", (next, x) => next(x + " instanceMiddleware"));
-
-service2.myMethod("test"); // "test instanceMiddleware middleware orig"
-// not affected by specific instance middleware
-service.myMethod("test"); // "test middleware orig"
-
-// ...
-
-// do not run class-level middleware - use specific instance middleware only
-const service3 = new Service();
-attach(service3, "myMethod", (next, x) => {
-  return "short-circuit"; // do not call next() to short-circuit the chain
-});
-service3.myMethod("test"); // "short-circuit"
-```
-
-##### `hookGetter(Class, property)`
-
-Wraps a getter and creates a hook under the name `get <property>`.
-
-```ts
-import { hookGetter, attach } from "@neuronet/hooks";
-
-let Counter = class {
-  get value() {
-    return 1;
-  }
-};
-
-Counter = hookGetter(Counter, "value");
-attach(Counter, "get value", (next) => next() + 1);
-new Counter().value; // 2
-```
-
-Static
-
-```ts
-import { hookGetter, attach } from "@neuronet/hooks";
-
-let Counter = class {
-  static get value() {
-    return 1;
-  }
-};
-
-Counter = hookGetter(Counter, "value");
-attach(Counter, "get value", (next) => next() + 1);
-console.log(Counter.value); // 2
-```
-
-##### `hookSetter(Class, property)`
-
-Wraps a setter and creates a hook under the name `set <property>`.
-
-```ts
-import { hookSetter, attach } from "@neuronet/hooks";
-
-let Counter = class {
-  #value = 0;
-
-  set value(next: number) {
-    this.#value = next;
-  }
-};
-
-Counter = hookSetter(Counter, "value");
-attach(Counter, "set value", (next, value) => next(value + 1));
-
-const counter = new Counter();
-counter.value = 2;
-console.log(counter.value); // 3
-```
-
-Static
-
-```ts
-import { hookSetter, attach } from "@neuronet/hooks";
-
-let Counter = class {
-  static #value = 0;
-
-  static set value(next: number) {
-    this.#value = next;
-  }
-
-  static get value() {
-    return this.#value;
-  }
-};
-
-Counter = hookSetter(Counter, "value");
-attach(Counter, "set value", (next, value) => next(value + 1));
-
-Counter.value = 2;
-console.log(Counter.value); // 3
-```
-
-##### `hookField(Class, property)`
-
-Wraps a public field initializer and creates a hook under the name `init <property>`.
-
-```ts
-import { hookField, attach } from "@neuronet/hooks";
-
-let User = class {
-  status = "new";
-};
-
-User = hookField(User, "status");
-attach(User, "init status", (next, value) => next(value.toUpperCase()));
-
-new User().status; // NEW
-```
-
-##### `hookAccessor(Class, property)`
-
-Wraps an accessor and enables `init`, `get`, and `set` hooks for it.
-
-```ts
-import { hookAccessor, attach } from "@neuronet/hooks";
-
-let Product = class {
-  price: number = 0;
-};
-
-Product = hookAccessor(Product, "price");
-attach(Product, "init price", (next, value) => next(value + 1));
-attach(Product, "get price", (next) => next() + 10);
-attach(Product, "set price", (next, value) => next(value + 20));
-
-const product = new Product();
-console.log(product.price); // 1 + 10 = 11
-product.price = 2;
-console.log(product.price); // 2 + 20 + 10 = 32
-```
-
-Static
-
-```ts
-import { hookAccessor, attach, hook } from "@neuronet/hooks";
-
-// different hook key for static members
-// because static properties are assigned when the class is defined,
-// not when an instance is created
-const initPrice = Symbol("initPrice");
-attach(initPrice, "init price", (next, value) => next(value + 1));
-
-let Product = class {
-  static price: number = hook(initPrice, "init price", (v: number) => v)(0);
-};
-
-Product = hookAccessor(Product, "price");
-attach(Product, "get price", (next) => next() + 10);
-attach(Product, "set price", (next, value) => next(value + 20));
-
-console.log(Product.price); // 0 + 1 + 10 = 11
-Product.price = 2;
-console.log(Product.price); // 2 + 20 + 10 = 32
-```
-
 ## ECMA decorators
 
 ECMA decorators are the most convenient option when you work directly with classes. To use hooks with ECMA decorators,
@@ -2178,7 +1896,7 @@ Enables ECMA decorator syntax for methods, getters, setters, fields, and accesso
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class UserService {
   @hook()
   greet(name: string) {
@@ -2203,7 +1921,7 @@ Wraps a method and enables hooks for that method. Works with both public and pri
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class UserService {
   @hook()
   greet(name: string) {
@@ -2235,7 +1953,7 @@ Wraps a getter and creates a hook under the name `get <property>`.
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class Counter {
   #value = 1;
 
@@ -2262,7 +1980,7 @@ Wraps a setter and creates a hook under the name `set <property>`.
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class Counter {
   #value = 0;
 
@@ -2296,7 +2014,7 @@ Wraps a field initializer and creates a hook under the name `init <property>`.
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class User {
   @hook()
   status = "new";
@@ -2319,7 +2037,7 @@ hooks for it.
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class Product {
   @hook()
   accessor price: number = 0;
@@ -2352,7 +2070,7 @@ You can give a hooked member a custom hook name with `@hook("name")`.
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class UserService {
   @hook("greetCustom")
   greet(name: string) {
@@ -2378,7 +2096,7 @@ per-instance hook isolation or composition.
 ```ts
 import { Hook, hook, attach, dynamicHookKey, composeHookKeys } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class UserService {
   myKey = Symbol("user");
 
@@ -2413,7 +2131,7 @@ You can combine both a custom name and a dynamic key.
 ```ts
 import { Hook, hook, attach, dynamicHookKey, composeHookKeys } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class UserService {
   myKey = Symbol("user");
 
@@ -2450,7 +2168,7 @@ ECMA decorators work with static methods in a similar way as instance methods.
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class MathService {
   @hook()
   static add(a: number, b: number) {
@@ -2490,7 +2208,7 @@ const detach = attach(initKey, "init version", (next, value) => {
   return next(value + "-beta");
 });
 
-@Hook
+@Hook()
 class Config {
   @hook(dynamicHookKey(() => initKey))
   static version = "1.0.0";
@@ -2509,7 +2227,7 @@ ECMA decorators work with static accessors the same way as instance accessors, e
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class Settings {
   @hook()
   static accessor theme: string = "light";
@@ -2543,7 +2261,7 @@ Private methods are hooked using the `@hook()` decorator and accessed via their 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class UserService {
   @hook()
   #processName(name: string) {
@@ -2575,7 +2293,7 @@ Private getters are hooked using the `@hook()` decorator and create a hook under
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class Counter {
   #count = 0;
 
@@ -2606,7 +2324,7 @@ Private setters are hooked using the `@hook()` decorator and create a hook under
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class Counter {
   #count = 0;
 
@@ -2644,7 +2362,7 @@ Private field initializers are hooked using the `@hook()` decorator and create a
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class User {
   @hook()
   #status = "new";
@@ -2674,7 +2392,7 @@ Private accessors are hooked using the `@hook()` decorator and enable `init`, `g
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class Config {
   @hook()
   accessor #theme: string = "light";
@@ -2711,7 +2429,7 @@ Private static members (methods, getters, setters, fields, and accessors) work t
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class Logger {
   @hook()
   static #formatMessage(msg: string) {
@@ -2748,7 +2466,7 @@ private.
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class BankAccount {
   @hook()
   #balance: number = 1000;
@@ -2794,7 +2512,7 @@ hook key and can be attached separately.
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
 
-@Hook
+@Hook()
 class UserService {
   @hook()
   greet(name: string) {
