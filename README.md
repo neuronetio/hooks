@@ -834,7 +834,7 @@ created with `dynamicHookKey(...)`. You can also pass both a dynamic key and an 
 - `for("static method <property>", dynamicKey)` — resolve hook key at runtime using `dynamicHookKey`.
 - `for("static method <property>", alternativeName, dynamicKey)` — combine alternative name and dynamic key.
 
-###### Simple method
+###### Method example
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -1032,7 +1032,7 @@ of `method`.
 - `for("static get <property>", dynamicKey)` — resolve key dynamically.
 - `for("static get <property>", alternativeName, dynamicKey)` — combine alternative name and dynamic key.
 
-###### Simple getter
+###### Getter example
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -1251,7 +1251,7 @@ of `method`.
 - `for("static set <property>", dynamicKey)` — resolve key dynamically.
 - `for("static set <property>", alternativeName, dynamicKey)` — combine alternative name and dynamic key.
 
-###### Simple setter
+###### Setter example
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -1510,11 +1510,34 @@ its initialization (inside the constructor).
 - `for("init <property>", dynamicKey: dynamicHookKey)` — resolve key dynamically.
 - `for("init <property>", dynamicKey, alternativeName)` — combine dynamic key and alternative name.
 
-Unfortunately, ECMA decorators are not ready yet (at the time of writing this documentation), so to use middleware for
-initialization, you need to call `hook.init(this)` in the class constructor to initialize all fields that have `init`
-hooks enabled. The `hook.init(this)` function can also serve another purpose: if you do `return hook.init(this)` in the
-constructor, you can use the returned object instead of the default class instance. In other words, you can replace the
-entire instance.
+To use middleware for initialization with builder-style class pattern, you need to call `hook.init(this)` in the class
+constructor to initialize all fields that have `init` hooks enabled.
+
+```ts
+import { Hooks, attach } from "@neuronet/hooks";
+
+class MyService {
+  value = "x";
+
+  constructor() {
+    hook.init(this);
+  }
+}
+
+// enable hooks for the instance field `value`
+Hooks(MyService).for("init value");
+
+// attach middleware to the hook
+attach(MyService, "init value", (next, v) => next(v + ":init_middleware"));
+
+const service = new MyService();
+
+service.value; // "x:init_middleware"
+```
+
+The `hook.init(this)` function can also serve another purpose: if you do `return hook.init(this)` in the constructor,
+you can use the returned object instead of the default class instance. In other words, you can replace the entire
+instance.
 
 ```ts
 // file: MyService.js
@@ -1549,10 +1572,10 @@ service.value; // "different_value"
 ##### static init
 
 Using middleware for static initialization is, in a sense, impossible, because static fields are initialized only once,
-when the class is loaded (for example, when you import the file containing the class). The key for the middleware is the
-class itself. For this reason, you cannot attach middleware to something that has not been defined yet, and once it has
-been defined (and you could retrieve the "key"), it is already too late, because the field has already been initialized.
-So, in a sense, we want to "have our cake and eat it too".
+when the class is loaded (for example, when you import the file containing the class) and the key for the middleware is
+the class itself. For this reason, you cannot attach middleware to something that has not been defined yet, and once it
+has been defined (and you could retrieve the "key"), it is already too late (because the field has already been
+initialized). So, in a sense, we want to "have our cake and eat it too".
 
 Nevertheless, if you need to use middleware for the initial value of a static field, you can do so by using a different
 key defined in another file and taking care of the import order, so that the middleware is attached before the static
@@ -1566,6 +1589,8 @@ export const MY_SERVICE_INIT_KEY = Symbol("MY_SERVICE_INIT_KEY");
 import { attach } from "@neuronet/hooks";
 import { MY_SERVICE_INIT_KEY } from "./MyService.init-key.js";
 
+// We don't know what the MyService class looks like and we're working with a key,
+// so we must use the exclamation mark to disable TypeScript type checking.
 attach(MY_SERVICE_INIT_KEY, "!static init staticValue", (next, v) => next(v + 1));
 attach(MY_SERVICE_INIT_KEY, "!static init otherStaticValue", (next, v) => next(v + 2));
 
@@ -1588,28 +1613,63 @@ MyService.otherStaticValue; // 4
 WARNING: You cannot use `Symbol.for("...")` for the key here, because middleware registry uses `WeakMap` to store
 middleware, and `WeakMap` does not support global (`Symbol.for`) symbols.
 
-###### Simple init
+Another way is to use a hook to register middleware for a given class.
 
 ```ts
-import { Hooks, attach } from "@neuronet/hooks";
+// file HookKeys.ts
+// general purpose initialization hook key
+export const INIT_HOOK_KEY = Symbol("INIT_HOOK_KEY");
 
-class MyService {
-  value = "x";
+// file: MyService.my-middleware.ts
+import { attach } from "@neuronet/hooks";
+import { INIT_HOOK_KEY } from "./HookKeys.js";
+import type { MyServiceCtr } from "MyService.js"; // import only ts types (omitted after compilation)
 
-  constructor() {
-    hook.init(this);
+// MyService will run this middleware once the class has already been created.
+// It acts like an event that other modules can hook into to add their own middleware
+// for the static fields of the MyService class.
+// Additionally, we specify the MyService class type here so that TypeScript can
+// validate the types used in the middleware.
+attach(INIT_HOOK_KEY, "MyService", (next, MyService: MyServiceCtr) => {
+  // We have a key which is MyService class
+  attach(MyService, "static init staticValue", (next, v) => next(v + 1));
+  return next(MyService);
+});
+
+// file: MyService.ts
+import { Hooks, hook } from "@neuronet/hooks";
+
+export interface IMyService {
+  greet: (name: string) => string;
+}
+
+export interface MyServiceCtr {
+  new (): IMyService;
+  readonly prototype: IMyService;
+  staticValue: number;
+}
+
+export class MyService implements IMyService {
+  static staticValue = 1;
+
+  greet(name: string) {
+    return `Hello, ${name}!`;
   }
 }
 
-// enable hooks for the instance field `value`
-Hooks(MyService).for("init value");
+// Run middleware that will register another middleware inside (for static field in our case)
+// In other words, emit an event indicating that MyService has already been created,
+// so that middleware can now be attached for its static fields.
+const attachInitMiddleware = hook(INIT_HOOK_KEY, "MyService", (MyService: MyServiceCtr) => MyService);
+attachInitMiddleware(MyService);
 
-// attach middleware to the hook
-attach(MyService, "init value", (next, v) => next(v + ":init"));
+// `static init staticValue` middleware has not been run yet (we just registered them, so the value is still 1
+MyService.staticValue; // 1
 
-const service = new MyService();
+// Run the middleware for the static fields of the MyService class
+Hooks(MyService).for("static init staticValue");
 
-service.value; // "x:init"
+MyService.staticValue; // 2
 ```
 
 ###### Alternative name
@@ -1725,29 +1785,49 @@ service2.value; // "x:dynInit2"
 
 ##### accessor
 
-- `accessor(property)` — enable `init <property>`, `get <property>`, and `set <property>` hooks using the member name.
-- `accessor(property, alternativeName: string)` — change the public base name used for the three hooks.
-- `accessor(property, dynamicKey: dynamicHookKey)` — resolve key dynamically for accessor hooks.
-- `accessor(property, dynamicKey, alternativeName)` — combine dynamic key and alternative name.
+`accessor` is a convenient way to enable `init`, `get`, and `set` hooks for a property in one go. It is equivalent to
+calling `for("init <property>")`, `for("get <property>")`, and `for("set <property>")` separately. You can also provide
+an alternative name and/or a dynamic key for the hooks. An accessor can be set up in two ways: on a class instance field
+(without a getter and setter) or on a field together with its getter and setter (both must be defined in the class
+together).
 
-###### Simple accessor
+- `for("accessor <property>")` — enable `init <property>`, `get <property>`, and `set <property>` hooks using the member
+  name.
+- `for("accessor <property>", alternativeName: string)` — change the public base name used for the three hooks.
+- `for("accessor <property>", dynamicKey: dynamicHookKey)` — resolve key dynamically for accessor hooks.
+- `for("accessor <property>", dynamicKey, alternativeName)` — combine dynamic key and alternative name.
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-const Service = Hooks(
-  class {
-    x: string = "a";
-  },
-)
-  .accessor("x")
-  .build();
+class MyService {
+  x = "a";
+  constructor() {
+    // required so that the `init` middleware runs when the instance is created
+    hook.init(this);
+  }
+}
 
-attach(Service, "get x", (next) => next() + ":getMid");
+// enable hooks for the instance field `x` (init, get, set)
+Hooks(MyService).for("accessor x");
 
-const service = new Service();
-console.log(service.x); // "a:getMid"
+attach(MyService, "init x", (next, v) => next(v + ":initMiddleware"));
+attach(MyService, "get x", (next) => next() + ":getMiddleware"));
+attach(MyService, "set x", (next, v) => next(v + ":setMiddleware"));
+
+const service = new MyService();
+
+service.x; // "a:initMiddleware:getMiddleware"
+service.x = "b"; // "b:setMiddleware"
+service.x; // "b:setMiddleware:getMiddleware"
 ```
+
+##### static accessor
+
+Static accessors are problematic because of `init` (see [static init](#static-init) for more information). You can still
+use `get` and `set` hooks for static accessors, but `init` will not work as expected. If you need to use `init` for a
+static accessor, you can use a different key defined in another file and take care of the import order, so that the
+middleware is attached before the static field is initialized (see [static init](#static-init) for more information).
 
 ###### Alternative name
 
