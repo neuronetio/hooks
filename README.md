@@ -1,56 +1,72 @@
 # @neuronet/hooks
 
-`@neuronet/hooks` is a simple, unified and flexible library for adding hooks, middleware or events to JavaScript and
-TypeScript code.
+`@neuronet/hooks` is a simple, unified and flexible library for adding hooks,
+middleware or events to JavaScript and TypeScript code.
 
 ## When to use this library
 
 `@neuronet/hooks` are especially useful when:
 
-- you need to add or change behavior without modifying the original source code (keeping it upgradable).
+- you need to add or change behavior without modifying the original source code
+  (keeping it upgradable).
 - you want a plugin-style extension mechanism for libraries or applications.
-- you deliver customer-specific solutions that stay separate from, yet ship with, the core code.
-- you want to create a dynamic composition of functions that can be modified at runtime without manual recomposition.
+- you deliver customer-specific solutions that stay separate from, yet ship
+  with, the core code.
+- you want to create a dynamic composition of functions that can be modified at
+  runtime without manual recomposition.
 - you need observable events or lifecycle hooks inside your code.
-- you want granular control and a very flexible way of attaching middleware at different levels (also with dynamic
-  conditions).
+- you want granular control and a very flexible way of attaching middleware at
+  different levels (also with dynamic conditions).
 - you need middlewares that can be attached and detached at runtime.
 - you want more `O` from `SOLID` principles
   ([Open/Closed principle](https://en.wikipedia.org/wiki/Open%E2%80%93closed_principle)).
 - you need middleware on classes that works with inheritance.
-- you want a single, consistent and complete API for injecting behavior into functions, methods, fields, getters,
-  setters, and accessors — across public, static, and private members of the class or specific instances.
+- you want a single, consistent and complete API for injecting behavior into
+  functions, methods, fields, getters, setters, and accessors — across public,
+  static, and private members of the class or specific instances.
 
-Basically this library can be used for cross-cutting concerns but in a more flexible manner. For example, it can be used
-for (dynamic) dependency injection, validation, testing, logging, caching, memoization, retries, metrics, and other
-common tasks. The most useful thing is that you can replace your strategies (or choose different ones based on
-configuration) for those tasks without touching the main business logic.
+Basically this library can be used for cross-cutting concerns but in a more
+flexible manner. For example, it can be used for (dynamic) dependency injection,
+validation, testing, logging, caching, memoization, retries, metrics, and other
+common tasks. The most useful thing is that you can replace your strategies (or
+choose different ones based on configuration) for those tasks without touching
+the main business logic.
 
-On top of that, `@neuronet/hooks` is very lightweight, well tested, and has no external dependencies.
+On top of that, `@neuronet/hooks` is very lightweight, well tested, and has no
+external dependencies.
 
 ## Drawbacks (rare, but they can occur)
 
-Like any library, `@neuronet/hooks` also has its drawbacks and compromises. Here are some of them:
+Like any library, `@neuronet/hooks` also has its drawbacks and compromises. Here
+are some of them:
 
-- Since middleware is usually defined in a different file than the function it decorates, debugging the code can be more
-  difficult (we have useful tools for this, such as `inspectHook`, `getMiddleware`, or `bypassMiddleware`). You can also
-  use const variables to store the hook key and name, which makes it easier to find the middleware in the codebase.
-  Unfortunately, this does not apply to middleware defined in another project (e.g., in microservices), which means you
-  can forget to update some middleware (although this is generally a problem of changes in the public API, and does not
-  strictly concern hooks/middleware). This problem can be solved by using API versioning, by requiring peer dependencies
-  in `package.json`, or even through solutions like SBOM.
-- It can be harder to understand the program flow, especially for new team members (it requires some additional learning
-  — fortunately, it doesn't take much time).
-- Because dynamic keys are functions (which gives them great flexibility), we must be careful when using them and take
-  them into account in tests, since they may sometimes skip some middleware and other times not (which can be both an
-  advantage and a disadvantage in some cases). It is best to keep these functions simple and extract complex logic into
-  separate functions that can be tested on their own.
+- Since middleware is usually defined in a different file than the function it
+  decorates, debugging the code can be more difficult (we have useful tools for
+  this, such as `inspectHook`, `getMiddleware`, or `bypassMiddleware`). You can
+  also use const variables to store the hook key and name, which makes it easier
+  to find the middleware in the codebase. Unfortunately, this does not apply to
+  middleware defined in another project (e.g., in microservices), which means
+  you can forget to update some middleware (although this is generally a problem
+  of changes in the public API, and does not strictly concern hooks/middleware).
+  This problem can be solved by using API versioning, by requiring peer
+  dependencies in `package.json`, or even through solutions like SBOM.
+- It can be harder to understand the program flow, especially for new team
+  members (it requires some additional learning — fortunately, it doesn't take
+  much time).
+- Because dynamic keys are functions (which gives them great flexibility), we
+  must be careful when using them and take them into account in tests, since
+  they may sometimes skip some middleware and other times not (which can be both
+  an advantage and a disadvantage in some cases). It is best to keep these
+  functions simple and extract complex logic into separate functions that can be
+  tested on their own.
 - Refactoring might be more difficult.
 - The order in which middleware is defined can matter.
 
-Most of these are typical problems that we often encounter as programmers in our work, regardless of whether we use
-hooks or not. Some of these problems can be solved through good middleware organization, testing and with the help of
-strong class typing (although in some cases it is not available, which is the cost of flexibility).
+Most of these are typical problems that we often encounter as programmers in our
+work, regardless of whether we use hooks or not. Some of these problems can be
+solved through good middleware organization, testing and with the help of strong
+class typing (although in some cases it is not available, which is the cost of
+flexibility).
 
 ### If you like it, you can leave a star ⭐ on GitHub. It helps a lot, thanks.
 
@@ -204,9 +220,10 @@ detach();
 
 #### 4. Quick start: ECMA decorators
 
-This style is very convenient when you work with classes directly. For ECMA decorators, you usually need TypeScript or
-Babel, and the [babel-plugin-proposal-decorators](https://babeljs.io/docs/babel-plugin-proposal-decorators) (it depends
-on your environment).
+This style is very convenient when you work with classes directly. For ECMA
+decorators, you usually need TypeScript or Babel, and the
+[babel-plugin-proposal-decorators](https://babeljs.io/docs/babel-plugin-proposal-decorators)
+(it depends on your environment).
 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
@@ -238,8 +255,9 @@ detach();
 
 ### Short-circuiting and the `next` function
 
-Short-circuiting occurs when a middleware function does not call the `next` function. This prevents the subsequent
-middleware in the chain from being executed. It is useful when you want to conditionally stop the execution of the
+Short-circuiting occurs when a middleware function does not call the `next`
+function. This prevents the subsequent middleware in the chain from being
+executed. It is useful when you want to conditionally stop the execution of the
 middleware chain based on certain criteria.
 
 ```ts
@@ -274,23 +292,27 @@ greet("test"); // test short-circuited
 
 ### Middleware execution order / key composition
 
-By default, middleware runs in the order it was registered (the most recently added middleware runs at the end of the
-chain).
+By default, middleware runs in the order it was registered (the most recently
+added middleware runs at the end of the chain).
 
-You can also use multiple keys in a hook (by using an array). This allows you to trigger middleware from multiple entry
-points simultaneously and combine them into a single chain. This is particularly useful in classes where you sometimes
-need to run middleware across all instances, and other times only need to attach to a specific instance. Using the
-`[instance, Class]` composition, the algorithm first executes all middleware registered on the instance, followed by all
+You can also use multiple keys in a hook (by using an array). This allows you to
+trigger middleware from multiple entry points simultaneously and combine them
+into a single chain. This is particularly useful in classes where you sometimes
+need to run middleware across all instances, and other times only need to attach
+to a specific instance. Using the `[instance, Class]` composition, the algorithm
+first executes all middleware registered on the instance, followed by all
 middleware registered on the class — merging them into a single chain.
 
-Composed keys are evaluated in cascade (waterfall) manner: for a composition made of two keys, all middleware registered
-on the first key runs first (in their registration order), and then all middleware registered on the second key runs.
-Everything is concatenated, so if you modify the argument in a middleware for the first key, it will be passed as input
-to the middleware for the second key, or if any middleware for the first key does not call `next()`, the middleware for
-the second key will not be executed.
+Composed keys are evaluated in cascade (waterfall) manner: for a composition
+made of two keys, all middleware registered on the first key runs first (in
+their registration order), and then all middleware registered on the second key
+runs. Everything is concatenated, so if you modify the argument in a middleware
+for the first key, it will be passed as input to the middleware for the second
+key, or if any middleware for the first key does not call `next()`, the
+middleware for the second key will not be executed.
 
-In other words, middleware functions are ordered first by key, and then by registration order within each key, and they
-are executed as one big chain.
+In other words, middleware functions are ordered first by key, and then by
+registration order within each key, and they are executed as one big chain.
 
 **Example 1**: single key order
 
@@ -417,13 +439,17 @@ service2.greet("test"); // test class
 
 ### Dynamic keys
 
-Dynamic keys (`dynamicHookKey` or the shorter `dhk` alias) are a powerful feature that allows you to resolve the hook
-key at runtime. Dynamic keys are more flexible and can be used in places where your code is more dynamic. For example,
-you can use dynamic keys if your class is injected dynamically into a parent class and you want to attach middleware at
-a higher level, or when you want to use different pipeline behavior based on runtime conditions. This is also useful
-because you can dynamically decide which middleware to use based on certain conditions **without unregistering them**;
-they remain registered, and you decide when and which ones to use. Basically, dynamic keys allow you to choose which
-middleware to run at runtime. This gives you control from both sides — from within a hook or from the middleware itself.
+Dynamic keys (`dynamicHookKey` or the shorter `dhk` alias) are a powerful
+feature that allows you to resolve the hook key at runtime. Dynamic keys are
+more flexible and can be used in places where your code is more dynamic. For
+example, you can use dynamic keys if your class is injected dynamically into a
+parent class and you want to attach middleware at a higher level, or when you
+want to use different pipeline behavior based on runtime conditions. This is
+also useful because you can dynamically decide which middleware to use based on
+certain conditions **without unregistering them**; they remain registered, and
+you decide when and which ones to use. Basically, dynamic keys allow you to
+choose which middleware to run at runtime. This gives you control from both
+sides — from within a hook or from the middleware itself.
 
 **Example**: dynamic pipeline selection
 
@@ -524,7 +550,9 @@ function log(next: (name: string) => string, level: string, name: string) {
 const parent = new Parent();
 
 // attach middleware to concrete parent instance which will log operations from injected children
-attach(parent, "child_greet", (next, name) => log(next, "parent_instance", name));
+attach(parent, "child_greet", (next, name) =>
+  log(next, "parent_instance", name),
+);
 
 const child = new Child();
 child.greet("Alice");
@@ -578,7 +606,9 @@ const parent = new Parent();
 child.greet("John"); // "Hello, John"
 
 // attach middleware to concrete parent instance
-attach(parent, "greet", (next, name) => next(name.toUpperCase().split("").join("-")));
+attach(parent, "greet", (next, name) =>
+  next(name.toUpperCase().split("").join("-")),
+);
 // or Parent class to affect all Parent instances and all connected children
 // attach(Parent, "greet", (next, name) => next(name + " [parent_class]"));
 
@@ -595,13 +625,15 @@ child.greet("John"); // "Hello, J-O-H-N" - injected = affected
 
 ### Function hooks
 
-A hook wraps a function and gives you a place to run extra logic before, after, or around the original call.
+A hook wraps a function and gives you a place to run extra logic before, after,
+or around the original call.
 
 The basic idea is simple:
 
 - you create a hooked function,
 - you attach one or more middlewares,
-- each middleware can call `next()` to continue the chain (or not call it to short-circuit the chain),
+- each middleware can call `next()` to continue the chain (or not call it to
+  short-circuit the chain),
 - the middleware can also change arguments or the final result.
 
 #### `hook(fn)`
@@ -633,8 +665,9 @@ greet("Ada"); // Hello, ADA
 
 #### `hook(key, name, fn)`
 
-Uses an explicit key and a custom hook name. Thanks to the additional name, a single key can be used for many different
-hooks. This is used, among other things, in classes.
+Uses an explicit key and a custom hook name. Thanks to the additional name, a
+single key can be used for many different hooks. This is used, among other
+things, in classes.
 
 ```ts
 import { hook, attach } from "@neuronet/hooks";
@@ -646,8 +679,9 @@ attach(key, "customName", (next, name) => next(name.toUpperCase()));
 greet("Ada"); // Hello, ADA
 ```
 
-In most cases, the hook name should be unique within a given key. If there are multiple hooks with the same key and
-name, they will run the same middleware (which may be intended).
+In most cases, the hook name should be unique within a given key. If there are
+multiple hooks with the same key and name, they will run the same middleware
+(which may be intended).
 
 ```ts
 import { hook, attach } from "@neuronet/hooks";
@@ -665,10 +699,12 @@ greet2("John"); // Hi, JOHN
 
 #### `hook(argsProvider, fn)`
 
-Provides hardcoded arguments for the wrapped function via an `argsProvider`. The wrapped function will no longer accept
-arbitrary arguments at call time. This allows us to inject arguments into the middleware (from the very top), rather
-than only before the original function is called (from the bottom). You can simply think of it as injecting arguments
-into the middleware. This is useful for composition and for creating predefined functions.
+Provides hardcoded arguments for the wrapped function via an `argsProvider`. The
+wrapped function will no longer accept arbitrary arguments at call time. This
+allows us to inject arguments into the middleware (from the very top), rather
+than only before the original function is called (from the bottom). You can
+simply think of it as injecting arguments into the middleware. This is useful
+for composition and for creating predefined functions.
 
 ```ts
 import { hook, argsProvider } from "@neuronet/hooks";
@@ -685,7 +721,8 @@ attach(greet, (next, name) => next(name.toUpperCase()));
 greet(); // Hello, ADA
 ```
 
-Without injected arguments, the middleware would not have access to the `name` value in this case.
+Without injected arguments, the middleware would not have access to the `name`
+value in this case.
 
 ```ts
 import { hook } from "@neuronet/hooks";
@@ -707,7 +744,8 @@ attach(greet, (next) => {
 greet(); // Hello, Ada
 ```
 
-`argsProvider` can also accept a function that returns an array of arguments. For example:
+`argsProvider` can also accept a function that returns an array of arguments.
+For example:
 
 ```ts
 import { hook, argsProvider } from "@neuronet/hooks";
@@ -744,13 +782,18 @@ greet(); // Hello, ADA
 
 #### `hook(key, argsProvider, fn)`
 
-Uses a custom key and hardcoded arguments (injected into the middleware — look above).
+Uses a custom key and hardcoded arguments (injected into the middleware — look
+above).
 
 ```ts
 import { hook, attach, argsProvider } from "@neuronet/hooks";
 
 const key = Symbol("greet");
-const greet = hook(key, argsProvider(["Ada"]), (name: string) => `Hello, ${name}`);
+const greet = hook(
+  key,
+  argsProvider(["Ada"]),
+  (name: string) => `Hello, ${name}`,
+);
 
 attach(key, (next, name) => next(name.toUpperCase()));
 greet(); // Hello, ADA
@@ -758,14 +801,20 @@ greet(); // Hello, ADA
 
 #### `hook(key, name, argsProvider, fn)`
 
-The most explicit form: custom key, custom name, and hardcoded arguments (injected into the middleware — see
+The most explicit form: custom key, custom name, and hardcoded arguments
+(injected into the middleware — see
 [`hook(argsProvider, fn)`](#hookargsprovider-fn)).
 
 ```ts
 import { hook, attach, argsProvider } from "@neuronet/hooks";
 
 const key = Symbol("greet");
-const greet = hook(key, "custom", argsProvider(["Ada"]), (name: string) => `Hello, ${name}`);
+const greet = hook(
+  key,
+  "custom",
+  argsProvider(["Ada"]),
+  (name: string) => `Hello, ${name}`,
+);
 
 attach(key, "custom", (next, name) => next(name.toUpperCase()));
 greet(); // Hello, ADA
@@ -773,8 +822,9 @@ greet(); // Hello, ADA
 
 #### `hook(name, fn)`
 
-This overload can only be used inside another hook (hook inside hook). In that case it creates a sub-hook and inherits
-the hook key from the parent hook context. If there is no parent hook context, it throws an error.
+This overload can only be used inside another hook (hook inside hook). In that
+case it creates a sub-hook and inherits the hook key from the parent hook
+context. If there is no parent hook context, it throws an error.
 
 ```ts
 import { hook, attach } from "@neuronet/hooks";
@@ -800,7 +850,11 @@ import { hook, attach, argsProvider } from "@neuronet/hooks";
 
 const parentKey = Symbol("parent");
 const parent = hook(parentKey, "parent", () => {
-  const child = hook("child", argsProvider(["ok"]), (value: string) => `Child: ${value}`);
+  const child = hook(
+    "child",
+    argsProvider(["ok"]),
+    (value: string) => `Child: ${value}`,
+  );
   return child();
 });
 
@@ -814,25 +868,35 @@ parent(); // Child: OK
 
 ### Hooks for classes (builder-style)
 
-Hooks builder is useful when you want to decorate an already defined class without using the standard decorator syntax.
-The `Hooks(Class)` builder exposes a fluent API for enabling hooks on several members at once.
+Hooks builder is useful when you want to decorate an already defined class
+without using the standard decorator syntax. The `Hooks(Class)` builder exposes
+a fluent API for enabling hooks on several members at once.
 
-Note: builder methods accept a property name, an optional alternative hook name (string), or a dynamic key resolver
-created with `dynamicHookKey(...)`. You can also pass both a dynamic key and an alternative name when needed.
+Note: builder methods accept a property name, an optional alternative hook name
+(string), or a dynamic key resolver created with `dynamicHookKey(...)`. You can
+also pass both a dynamic key and an alternative name when needed.
 
 ##### method
 
-- `for("method <property>")` — enable hooks for a class method where `<property>` is the method name.
-- `for("method <property>", alternativeName)` — use `alternativeName` as the hook name.
-- `for("method <property>", dynamicKey)` — resolve hook key at runtime using `dynamicHookKey`.
-- `for("method <property>", alternativeName, dynamicKey)` — combine alternative name and dynamic key.
+- `for("method <property>")` — enable hooks for a class method where
+  `<property>` is the method name.
+- `for("method <property>", alternativeName)` — use `alternativeName` as the
+  hook name.
+- `for("method <property>", dynamicKey)` — resolve hook key at runtime using
+  `dynamicHookKey`.
+- `for("method <property>", alternativeName, dynamicKey)` — combine alternative
+  name and dynamic key.
 
 ##### static method
 
-- `for("static method <property>")` — enable hooks for a static method where `<property>` is the method name.
-- `for("static method <property>", alternativeName)` — use `alternativeName` as the hook name.
-- `for("static method <property>", dynamicKey)` — resolve hook key at runtime using `dynamicHookKey`.
-- `for("static method <property>", alternativeName, dynamicKey)` — combine alternative name and dynamic key.
+- `for("static method <property>")` — enable hooks for a static method where
+  `<property>` is the method name.
+- `for("static method <property>", alternativeName)` — use `alternativeName` as
+  the hook name.
+- `for("static method <property>", dynamicKey)` — resolve hook key at runtime
+  using `dynamicHookKey`.
+- `for("static method <property>", alternativeName, dynamicKey)` — combine
+  alternative name and dynamic key.
 
 ###### Method example
 
@@ -854,7 +918,9 @@ Hooks(MyService).for("method myMethod").for("static method myStaticMethod");
 
 // attach middleware to the hook
 attach(MyService, "method myMethod", (next, x) => next(x + ":mid"));
-attach(MyService, "static method myStaticMethod", (next, x) => next(x + ":static_mid"));
+attach(MyService, "static method myStaticMethod", (next, x) =>
+  next(x + ":static_mid"),
+);
 
 const service = new MyService();
 service.myMethod("test"); // "test:mid:orig"
@@ -863,12 +929,15 @@ MyService.myStaticMethod("test"); // "test:static_mid:orig_static"
 
 ###### Alternative name for methods
 
-If you don't want to use the original method name, or if for some reason a different, more descriptive hook name would
-be better (e.g., when you have a hierarchy of dynamically attached classes), you can use your own hook name. In this
-case, the original method name will not be used to invoke the hook; instead, the provided alternative name will be used.
+If you don't want to use the original method name, or if for some reason a
+different, more descriptive hook name would be better (e.g., when you have a
+hierarchy of dynamically attached classes), you can use your own hook name. In
+this case, the original method name will not be used to invoke the hook;
+instead, the provided alternative name will be used.
 
-When using TypeScript and you want to use an alternative name, you must disable type checking for these methods, because
-TypeScript will try to find a method with that name in the class. To do this, use an exclamation mark `!` before the
+When using TypeScript and you want to use an alternative name, you must disable
+type checking for these methods, because TypeScript will try to find a method
+with that name in the class. To do this, use an exclamation mark `!` before the
 method name in the `attach` function.
 
 ```ts
@@ -885,13 +954,17 @@ class MyService {
 }
 
 // enable hooks for the method `myMethod` and use `myMethodAlt` as the hook name
-Hooks(MyService).for("method myMethod", "myMethodAlt").for("static method myStaticMethod", "myStaticMethodAlt");
+Hooks(MyService)
+  .for("method myMethod", "myMethodAlt")
+  .for("static method myStaticMethod", "myStaticMethodAlt");
 
 // attach middleware to the alternative hook name
 // because typescript will try to find method `myMethodAlt` and `myStaticMethodAlt` on the class,
 // we need to use exclamation mark to turn off type checking here
 attach(MyService, "!method myMethodAlt", (next, x) => next(x + ":alt"));
-attach(MyService, "!static method myStaticMethodAlt", (next, x) => next(x + ":alt_static"));
+attach(MyService, "!static method myStaticMethodAlt", (next, x) =>
+  next(x + ":alt_static"),
+);
 
 const service = new MyService();
 
@@ -931,15 +1004,21 @@ const myDynamicKey = dynamicHookKey(() => {
   }
 });
 
-Hooks(MyService).for("method myMethod", myDynamicKey).for("static method myStaticMethod", myDynamicKey);
+Hooks(MyService)
+  .for("method myMethod", myDynamicKey)
+  .for("static method myStaticMethod", myDynamicKey);
 
 // middleware for key1
 attach(key1, "method myMethod", (next, x) => next(x + ":mid_1"));
-attach(key1, "static method myStaticMethod", (next, x) => next(x + ":mid_static_1"));
+attach(key1, "static method myStaticMethod", (next, x) =>
+  next(x + ":mid_static_1"),
+);
 
 // middleware for key2
 attach(key2, "method myMethod", (next, x) => next(x + ":mid_2"));
-attach(key2, "static method myStaticMethod", (next, x) => next(x + ":mid_static_2"));
+attach(key2, "static method myStaticMethod", (next, x) =>
+  next(x + ":mid_static_2"),
+);
 
 const service = new MyService();
 
@@ -996,10 +1075,14 @@ Hooks(MyService)
 
 // attach middleware
 attach(key1, "!method myMethodAlt", (next, x) => next(x + ":mid_1"));
-attach(key1, "!static method myStaticMethodAlt", (next, x) => next(x + ":mid_static_1"));
+attach(key1, "!static method myStaticMethodAlt", (next, x) =>
+  next(x + ":mid_static_1"),
+);
 
 attach(key2, "!method myMethodAlt", (next, x) => next(x + ":mid_2"));
-attach(key2, "!static method myStaticMethodAlt", (next, x) => next(x + ":mid_static_2"));
+attach(key2, "!static method myStaticMethodAlt", (next, x) =>
+  next(x + ":mid_static_2"),
+);
 
 const service = new Service();
 
@@ -1017,20 +1100,26 @@ MyService.myStaticMethod("test"); // "test:mid_static_2:orig_static"
 
 ##### getter
 
-In `@neuronet/hooks` you can also add middleware to getters. The syntax is similar to methods, but you use `get` instead
-of `method`.
+In `@neuronet/hooks` you can also add middleware to getters. The syntax is
+similar to methods, but you use `get` instead of `method`.
 
-- `for("get <property>")` — enable `get <property>` hook for getters using the member name.
-- `for("get <property>", alternativeName)` — use `alternativeName` as the public `get` hook name.
+- `for("get <property>")` — enable `get <property>` hook for getters using the
+  member name.
+- `for("get <property>", alternativeName)` — use `alternativeName` as the public
+  `get` hook name.
 - `for("get <property>", dynamicKey)` — resolve key dynamically.
-- `for("get <property>", alternativeName, dynamicKey)` — combine alternative name and dynamic key.
+- `for("get <property>", alternativeName, dynamicKey)` — combine alternative
+  name and dynamic key.
 
 ##### static getter
 
-- `for("static get <property>")` — enable `static get <property>` hook for getters using the member name.
-- `for("static get <property>", alternativeName)` — use `alternativeName` as the public `get` hook name.
+- `for("static get <property>")` — enable `static get <property>` hook for
+  getters using the member name.
+- `for("static get <property>", alternativeName)` — use `alternativeName` as the
+  public `get` hook name.
 - `for("static get <property>", dynamicKey)` — resolve key dynamically.
-- `for("static get <property>", alternativeName, dynamicKey)` — combine alternative name and dynamic key.
+- `for("static get <property>", alternativeName, dynamicKey)` — combine
+  alternative name and dynamic key.
 
 ###### Getter example
 
@@ -1067,7 +1156,8 @@ MyService.staticValue; // 6
 
 ###### Alternative name for getters
 
-Same as [Alternative name for methods](#alternative-name-for-methods) but for getters.
+Same as [Alternative name for methods](#alternative-name-for-methods) but for
+getters.
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -1082,7 +1172,9 @@ class MyService {
   }
 }
 
-Hooks(MyService).for("get value", "valueAlt").for("static get staticValue", "staticValueAlt");
+Hooks(MyService)
+  .for("get value", "valueAlt")
+  .for("static get staticValue", "staticValueAlt");
 
 // because typescript will try to find getter `valueAlt` and `staticValueAlt` on the class,
 // we need to use exclamation mark to turn off type checking here
@@ -1130,7 +1222,9 @@ const myDynamicKey = dynamicHookKey(() => {
 });
 
 // enable hooks for the getter `value` and `staticValue` with dynamic key
-Hooks(MyService).for("get value", myDynamicKey).for("static get staticValue", myDynamicKey);
+Hooks(MyService)
+  .for("get value", myDynamicKey)
+  .for("static get staticValue", myDynamicKey);
 
 // attach middleware to the hooks
 attach(key1, "get value", (next) => next() + 1);
@@ -1236,20 +1330,26 @@ MyService.staticValue; // 7
 
 ##### setter
 
-In `@neuronet/hooks` you can also add middleware to setters. The syntax is similar to methods, but you use `set` instead
-of `method`.
+In `@neuronet/hooks` you can also add middleware to setters. The syntax is
+similar to methods, but you use `set` instead of `method`.
 
-- `for("set <property>")` — enable `set <property>` hook for setters using the member name.
-- `for("set <property>", alternativeName)` — use `alternativeName` as the public `set` hook name.
+- `for("set <property>")` — enable `set <property>` hook for setters using the
+  member name.
+- `for("set <property>", alternativeName)` — use `alternativeName` as the public
+  `set` hook name.
 - `for("set <property>", dynamicKey)` — resolve key dynamically.
-- `for("set <property>", alternativeName, dynamicKey)` — combine alternative name and dynamic key.
+- `for("set <property>", alternativeName, dynamicKey)` — combine alternative
+  name and dynamic key.
 
 ##### static setter
 
-- `for("static set <property>")` — enable `static set <property>` hook for setters using the member name.
-- `for("static set <property>", alternativeName)` — use `alternativeName` as the public `set` hook name.
+- `for("static set <property>")` — enable `static set <property>` hook for
+  setters using the member name.
+- `for("static set <property>", alternativeName)` — use `alternativeName` as the
+  public `set` hook name.
 - `for("static set <property>", dynamicKey)` — resolve key dynamically.
-- `for("static set <property>", alternativeName, dynamicKey)` — combine alternative name and dynamic key.
+- `for("static set <property>", alternativeName, dynamicKey)` — combine
+  alternative name and dynamic key.
 
 ###### Setter example
 
@@ -1298,7 +1398,8 @@ MyService.staticValue; // 3
 
 ###### Alternative name for setters
 
-Same as [Alternative name for methods](#alternative-name-for-methods) but for setters.
+Same as [Alternative name for methods](#alternative-name-for-methods) but for
+setters.
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -1325,7 +1426,9 @@ class MyService {
   }
 }
 
-Hooks(MyService).for("set value", "valueAlt").for("static set staticValue", "staticValueAlt");
+Hooks(MyService)
+  .for("set value", "valueAlt")
+  .for("static set staticValue", "staticValueAlt");
 
 // because typescript will try to find setter `valueAlt` and `staticValueAlt` on the class,
 // we need to use exclamation mark to turn off type checking here
@@ -1384,7 +1487,9 @@ const myDynamicKey = dynamicHookKey(() => {
 });
 
 // enable hooks for the setter `value` and `staticValue` with dynamic key
-Hooks(MyService).for("set value", myDynamicKey).for("static set staticValue", myDynamicKey);
+Hooks(MyService)
+  .for("set value", myDynamicKey)
+  .for("static set staticValue", myDynamicKey);
 
 // attach middleware to the hooks
 attach(key1, "set value", (next, v) => next(v + 1));
@@ -1502,16 +1607,22 @@ MyService.staticValue; // 4
 
 ##### init
 
-`init` is used to initialize class fields and allows you to attach middleware that can modify the field's value during
-its initialization (inside the constructor).
+`init` is used to initialize class fields and allows you to attach middleware
+that can modify the field's value during its initialization (inside the
+constructor).
 
-- `for("init <property>")` — enable `init <property>` hook using the member name.
-- `for("init <property>", alternativeName: string)` — use `alternativeName` as the public `init` hook name.
-- `for("init <property>", dynamicKey: dynamicHookKey)` — resolve key dynamically.
-- `for("init <property>", dynamicKey, alternativeName)` — combine dynamic key and alternative name.
+- `for("init <property>")` — enable `init <property>` hook using the member
+  name.
+- `for("init <property>", alternativeName: string)` — use `alternativeName` as
+  the public `init` hook name.
+- `for("init <property>", dynamicKey: dynamicHookKey)` — resolve key
+  dynamically.
+- `for("init <property>", dynamicKey, alternativeName)` — combine dynamic key
+  and alternative name.
 
-To use middleware for initialization with builder-style class pattern, you need to call `hook.init(this)` in the class
-constructor to initialize all fields that have `init` hooks enabled.
+To use middleware for initialization with builder-style class pattern, you need
+to call `hook.init(this)` in the class constructor to initialize all fields that
+have `init` hooks enabled.
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -1535,9 +1646,10 @@ const service = new MyService();
 service.value; // "x:init_middleware"
 ```
 
-The `hook.init(this)` function can also serve another purpose: if you do `return hook.init(this)` in the constructor,
-you can use the returned object instead of the default class instance. In other words, you can replace the entire
-instance.
+The `hook.init(this)` function can also serve another purpose: if you do
+`return hook.init(this)` in the constructor, you can use the returned object
+instead of the default class instance. In other words, you can replace the
+entire instance.
 
 ```ts
 // file: MyService.js
@@ -1571,14 +1683,17 @@ service.value; // "different_value"
 
 ##### static init
 
-Using middleware for static initialization is, in a sense, impossible, because static fields are initialized only once,
-when the class is loaded (for example, when you import the file containing the class) and the key for the middleware is
-the class itself. For this reason, you cannot attach middleware to something that has not been defined yet, and once it
-has been defined (and you could retrieve the "key"), it is already too late (because the field has already been
+Using middleware for static initialization is, in a sense, impossible, because
+static fields are initialized only once, when the class is loaded (for example,
+when you import the file containing the class) and the key for the middleware is
+the class itself. For this reason, you cannot attach middleware to something
+that has not been defined yet, and once it has been defined (and you could
+retrieve the "key"), it is already too late (because the field has already been
 initialized). So, in a sense, we want to "have our cake and eat it too".
 
-Nevertheless, if you need to use middleware for the initial value of a static field, you can do so by using a different
-key defined in another file and taking care of the import order, so that the middleware is attached before the static
+Nevertheless, if you need to use middleware for the initial value of a static
+field, you can do so by using a different key defined in another file and taking
+care of the import order, so that the middleware is attached before the static
 field is initialized.
 
 ```ts
@@ -1591,8 +1706,12 @@ import { MY_SERVICE_INIT_KEY } from "./MyService.init-key.js";
 
 // We don't know what the MyService class looks like and we're working with a key,
 // so we must use the exclamation mark to disable TypeScript type checking.
-attach(MY_SERVICE_INIT_KEY, "!static init staticValue", (next, v) => next(v + 1));
-attach(MY_SERVICE_INIT_KEY, "!static init otherStaticValue", (next, v) => next(v + 2));
+attach(MY_SERVICE_INIT_KEY, "!static init staticValue", (next, v) =>
+  next(v + 1),
+);
+attach(MY_SERVICE_INIT_KEY, "!static init otherStaticValue", (next, v) =>
+  next(v + 2),
+);
 
 // file: MyService.ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -1601,8 +1720,16 @@ import { MY_SERVICE_INIT_KEY } from "./MyService.init-key.js";
 class MyService {
   // `(v) => v` function returns the value as is, so we can assign a result to the static field
   // `(1)` at the end is executing a hook right in place with the default initial value set to 1
-  static staticValue = hook(MY_SERVICE_INIT_KEY, "static init staticValue", (v) => v)(1);
-  static otherStaticValue = hook(MY_SERVICE_INIT_KEY, "static init otherStaticValue", (v) => v)(2);
+  static staticValue = hook(
+    MY_SERVICE_INIT_KEY,
+    "static init staticValue",
+    (v) => v,
+  )(1);
+  static otherStaticValue = hook(
+    MY_SERVICE_INIT_KEY,
+    "static init otherStaticValue",
+    (v) => v,
+  )(2);
 }
 
 // static field is already initialized, so we can retrieve its value
@@ -1610,8 +1737,9 @@ MyService.staticValue; // 2
 MyService.otherStaticValue; // 4
 ```
 
-WARNING: You cannot use `Symbol.for("...")` for the key here, because middleware registry uses `WeakMap` to store
-middleware, and `WeakMap` does not support global (`Symbol.for`) symbols.
+WARNING: You cannot use `Symbol.for("...")` for the key here, because middleware
+registry uses `WeakMap` to store middleware, and `WeakMap` does not support
+global (`Symbol.for`) symbols.
 
 Another way is to use a hook to register middleware for a given class.
 
@@ -1660,7 +1788,11 @@ export class MyService implements IMyService {
 // Run middleware that will register another middleware inside (for static field in our case)
 // In other words, emit an event indicating that MyService has already been created,
 // so that middleware can now be attached for its static fields.
-const attachInitMiddleware = hook(INIT_HOOK_KEY, "MyService", (MyService: MyServiceCtr) => MyService);
+const attachInitMiddleware = hook(
+  INIT_HOOK_KEY,
+  "MyService",
+  (MyService: MyServiceCtr) => MyService,
+);
 attachInitMiddleware(MyService);
 
 // `static init staticValue` middleware has not been run yet (we just registered them, so the value is still 1
@@ -1785,17 +1917,22 @@ service2.value; // "x:dynInit2"
 
 ##### accessor
 
-`accessor` is a convenient way to enable `init`, `get`, and `set` hooks for a property in one go. It is equivalent to
-calling `for("init <property>")`, `for("get <property>")`, and `for("set <property>")` separately. You can also provide
-an alternative name and/or a dynamic key for the hooks. An accessor can be set up in two ways: on a class instance field
-(without a getter and setter) or on a field together with its getter and setter (both must be defined in the class
-together).
+`accessor` is a convenient way to enable `init`, `get`, and `set` hooks for a
+property in one go. It is equivalent to calling `for("init <property>")`,
+`for("get <property>")`, and `for("set <property>")` separately. You can also
+provide an alternative name and/or a dynamic key for the hooks. An accessor can
+be set up in two ways: on a class instance field (without a getter and setter)
+or on a field together with its getter and setter (both must be defined in the
+class together).
 
-- `for("accessor <property>")` — enable `init <property>`, `get <property>`, and `set <property>` hooks using the member
-  name.
-- `for("accessor <property>", alternativeName: string)` — change the public base name used for the three hooks.
-- `for("accessor <property>", dynamicKey: dynamicHookKey)` — resolve key dynamically for accessor hooks.
-- `for("accessor <property>", dynamicKey, alternativeName)` — combine dynamic key and alternative name.
+- `for("accessor <property>")` — enable `init <property>`, `get <property>`, and
+  `set <property>` hooks using the member name.
+- `for("accessor <property>", alternativeName: string)` — change the public base
+  name used for the three hooks.
+- `for("accessor <property>", dynamicKey: dynamicHookKey)` — resolve key
+  dynamically for accessor hooks.
+- `for("accessor <property>", dynamicKey, alternativeName)` — combine dynamic
+  key and alternative name.
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
@@ -1824,27 +1961,26 @@ service.x; // "b:setMiddleware:getMiddleware"
 
 ##### static accessor
 
-Static accessors are problematic because of `init` (see [static init](#static-init) for more information). You can still
-use `get` and `set` hooks for static accessors, but `init` will not work as expected. If you need to use `init` for a
-static accessor, you can use a different key defined in another file and take care of the import order, so that the
-middleware is attached before the static field is initialized (see [static init](#static-init) for more information).
+Static accessors are problematic because of `init` (see
+[static init](#static-init) for more information). You can still use `get` and
+`set` hooks for static accessors, but `init` will not work as expected. If you
+need to use `init` for a static accessor, you can use a different key defined in
+another file and take care of the import order, so that the middleware is
+attached before the static field is initialized (see [static init](#static-init)
+for more information).
 
 ###### Alternative name
 
 ```ts
 import { Hooks, attach } from "@neuronet/hooks";
 
-const Service = Hooks(
-  class {
-    x: string = "a";
-  },
-)
-  .accessor("x", "xAlt")
-  .build();
+class MyService {
+  x: string = "a";
+}
 
-attach(Service, "init xAlt", (next, v) => next(v + ":initAlt"));
+attach(MyService, "init xAlt", (next, v) => next(v + ":initAlt"));
 
-const service = new Service();
+const service = new MyService();
 console.log(service.x); // "a:initAlt"
 ```
 
@@ -1899,8 +2035,9 @@ console.log(service.x); // "a:getAlt"
 
 #### Sub-hooks in the builder
 
-You can create sub-hooks inside hooked methods using the `hook(name, fn)` syntax. These sub-hooks inherit the parent
-hook key and can be attached separately.
+You can create sub-hooks inside hooked methods using the `hook(name, fn)`
+syntax. These sub-hooks inherit the parent hook key and can be attached
+separately.
 
 ```ts
 import { Hooks, attach, hook } from "@neuronet/hooks";
@@ -1908,7 +2045,9 @@ import { Hooks, attach, hook } from "@neuronet/hooks";
 const UserService = Hooks(
   class {
     greet(name: string) {
-      const formatName = hook("formatName", (name: string) => name.toUpperCase());
+      const formatName = hook("formatName", (name: string) =>
+        name.toUpperCase(),
+      );
       return `Hello, ${formatName(name)}`;
     }
   },
@@ -1930,7 +2069,9 @@ const subKey = Symbol("subKey");
 const UserService = Hooks(
   class {
     greet(name: string) {
-      const formatName = hook(subKey, "formatName", (name: string) => name.toUpperCase());
+      const formatName = hook(subKey, "formatName", (name: string) =>
+        name.toUpperCase(),
+      );
       return `Hello, ${formatName(name)}`;
     }
   },
@@ -1966,12 +2107,15 @@ new UserService().greet("Ada"); // Hello, ADA!!!
 
 ## ECMA decorators
 
-ECMA decorators are the most convenient option when you work directly with classes. To use hooks with ECMA decorators,
-you need to decorate the class with `@Hook`, which enables the `@hook()` decorator syntax for all members of the class.
+ECMA decorators are the most convenient option when you work directly with
+classes. To use hooks with ECMA decorators, you need to decorate the class with
+`@Hook`, which enables the `@hook()` decorator syntax for all members of the
+class.
 
 ### `@Hook`
 
-Enables ECMA decorator syntax for methods, getters, setters, fields, and accessors within the class.
+Enables ECMA decorator syntax for methods, getters, setters, fields, and
+accessors within the class.
 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
@@ -1987,7 +2131,9 @@ class UserService {
 const service = new UserService();
 service.greet("Ada"); // Hello, Ada
 
-const detach = attach(service, "greet", (next, name) => next(name.toUpperCase()));
+const detach = attach(service, "greet", (next, name) =>
+  next(name.toUpperCase()),
+);
 service.greet("Ada"); // Hello, ADA
 
 detach();
@@ -1996,7 +2142,8 @@ service.greet("Ada"); // Hello, Ada
 
 ### `@hook()` on methods
 
-Wraps a method and enables hooks for that method. Works with both public and private methods.
+Wraps a method and enables hooks for that method. Works with both public and
+private methods.
 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
@@ -2102,7 +2249,9 @@ class User {
 
 new User().status; // new
 
-const detach = attach(User, "init status", (next, value) => next(value.toUpperCase()));
+const detach = attach(User, "init status", (next, value) =>
+  next(value.toUpperCase()),
+);
 new User().status; // NEW
 
 detach();
@@ -2111,8 +2260,8 @@ new User().status; // new
 
 ### `@hook()` on accessors
 
-Wraps an accessor (auto-generated getter and setter from the `accessor` keyword) and enables `init`, `get`, and `set`
-hooks for it.
+Wraps an accessor (auto-generated getter and setter from the `accessor` keyword)
+and enables `init`, `get`, and `set` hooks for it.
 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
@@ -2123,7 +2272,9 @@ class Product {
   accessor price: number = 0;
 }
 
-const detachInit = attach(Product, "init price", (next, value) => next(value + 1));
+const detachInit = attach(Product, "init price", (next, value) =>
+  next(value + 1),
+);
 
 const product = new Product();
 
@@ -2133,7 +2284,9 @@ product.price = 2;
 console.log(product.price); // 2
 
 const detachGet = attach(Product, "get price", (next) => next() + 10);
-const detachSet = attach(Product, "set price", (next, value) => next(value + 2));
+const detachSet = attach(Product, "set price", (next, value) =>
+  next(value + 2),
+);
 product.price = 2;
 console.log(product.price); // 2 + 2 + 10 = 14
 
@@ -2161,7 +2314,9 @@ class UserService {
 const service = new UserService();
 service.greet("Ada"); // Hello, Ada
 
-const detach = attach(service, "greetCustom", (next, name) => next(name.toUpperCase()));
+const detach = attach(service, "greetCustom", (next, name) =>
+  next(name.toUpperCase()),
+);
 service.greet("Ada"); // Hello, ADA
 
 detach();
@@ -2170,11 +2325,17 @@ service.greet("Ada"); // Hello, Ada
 
 ### Dynamic keys in ECMA decorators
 
-You can resolve the hook key dynamically at runtime with `dynamicHookKey(...)`. This is useful when you need
-per-instance hook isolation or composition.
+You can resolve the hook key dynamically at runtime with `dynamicHookKey(...)`.
+This is useful when you need per-instance hook isolation or composition.
 
 ```ts
-import { Hook, hook, attach, dynamicHookKey, composeHookKeys } from "@neuronet/hooks";
+import {
+  Hook,
+  hook,
+  attach,
+  dynamicHookKey,
+  composeHookKeys,
+} from "@neuronet/hooks";
 
 @Hook()
 class UserService {
@@ -2209,7 +2370,13 @@ service.greet("Ada"); // Hello, ADA!
 You can combine both a custom name and a dynamic key.
 
 ```ts
-import { Hook, hook, attach, dynamicHookKey, composeHookKeys } from "@neuronet/hooks";
+import {
+  Hook,
+  hook,
+  attach,
+  dynamicHookKey,
+  composeHookKeys,
+} from "@neuronet/hooks";
 
 @Hook()
 class UserService {
@@ -2229,7 +2396,9 @@ class UserService {
 const service = new UserService();
 service.greet("Ada"); // Hello, Ada
 
-const detach = attach(service, "greetCustom", (next, name) => next(name.toUpperCase()));
+const detach = attach(service, "greetCustom", (next, name) =>
+  next(name.toUpperCase()),
+);
 service.greet("Ada"); // Hello, ADA
 
 detach();
@@ -2238,8 +2407,8 @@ service.greet("Ada"); // Hello, Ada
 
 ### Static methods, fields and accessors
 
-ECMA decorators work with static members (methods, fields, and accessors) using the same `@hook()` syntax as instance
-members.
+ECMA decorators work with static members (methods, fields, and accessors) using
+the same `@hook()` syntax as instance members.
 
 #### Static methods
 
@@ -2275,8 +2444,9 @@ MathService.add(2, 3); // still 5 because static methods are not affected by ins
 
 #### Static fields
 
-ECMA decorators work with static field initializers the same way as instance fields. Hooks are created under the name
-`init <property>`. Static initializers may be used to set up static state, when declaring a class.
+ECMA decorators work with static field initializers the same way as instance
+fields. Hooks are created under the name `init <property>`. Static initializers
+may be used to set up static state, when declaring a class.
 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
@@ -2302,7 +2472,8 @@ console.log(Config.version); // also 1.0.0-beta, because the static initializer 
 
 #### Static accessors
 
-ECMA decorators work with static accessors the same way as instance accessors, enabling `init`, `get`, and `set` hooks.
+ECMA decorators work with static accessors the same way as instance accessors,
+enabling `init`, `get`, and `set` hooks.
 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
@@ -2318,7 +2489,9 @@ console.log(Settings.theme); // light
 const detachGet = attach(Settings, "get theme", (next) => next() + ":modified");
 console.log(Settings.theme); // light:modified
 
-const detachSet = attach(Settings, "set theme", (next, value) => next(value.toUpperCase()));
+const detachSet = attach(Settings, "set theme", (next, value) =>
+  next(value.toUpperCase()),
+);
 Settings.theme = "dark";
 console.log(Settings.theme); // DARK:modified
 
@@ -2330,13 +2503,15 @@ console.log(Settings.theme); // auto
 
 ### Private members
 
-ECMA decorators work with private methods, getters, setters, fields, and accessors. Private members are hooked using
-their names with a `#` prefix. This is the only way to hook private members, since they are not accessible outside the
-class.
+ECMA decorators work with private methods, getters, setters, fields, and
+accessors. Private members are hooked using their names with a `#` prefix. This
+is the only way to hook private members, since they are not accessible outside
+the class.
 
 #### Private methods
 
-Private methods are hooked using the `@hook()` decorator and accessed via their `#` prefix.
+Private methods are hooked using the `@hook()` decorator and accessed via their
+`#` prefix.
 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
@@ -2368,7 +2543,8 @@ service.greet("Ada"); // Hello, ADA
 
 #### Private getters
 
-Private getters are hooked using the `@hook()` decorator and create a hook under the name `get #<property>`.
+Private getters are hooked using the `@hook()` decorator and create a hook under
+the name `get #<property>`.
 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
@@ -2399,7 +2575,8 @@ counter.getValue(); // 0
 
 #### Private setters
 
-Private setters are hooked using the `@hook()` decorator and create a hook under the name `set #<property>`.
+Private setters are hooked using the `@hook()` decorator and create a hook under
+the name `set #<property>`.
 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
@@ -2437,7 +2614,8 @@ counter.getValue(); // 5
 
 #### Private fields
 
-Private field initializers are hooked using the `@hook()` decorator and create a hook under the name `init #<property>`.
+Private field initializers are hooked using the `@hook()` decorator and create a
+hook under the name `init #<property>`.
 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
@@ -2455,7 +2633,9 @@ class User {
 const user = new User();
 user.getStatus(); // new
 
-const detach = attach(User, "init #status", (next, value) => next(value.toUpperCase()));
+const detach = attach(User, "init #status", (next, value) =>
+  next(value.toUpperCase()),
+);
 const user2 = new User();
 user2.getStatus(); // NEW
 
@@ -2466,8 +2646,9 @@ user3.getStatus(); // new
 
 #### Private accessors
 
-Private accessors are hooked using the `@hook()` decorator and enable `init`, `get`, and `set` hooks under the names
-`get #<property>`, `set #<property>`, and `init #<property>`.
+Private accessors are hooked using the `@hook()` decorator and enable `init`,
+`get`, and `set` hooks under the names `get #<property>`, `set #<property>`, and
+`init #<property>`.
 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
@@ -2492,7 +2673,9 @@ config.getTheme(); // light
 const detachGet = attach(Config, "get #theme", (next) => next() + ":modified");
 config.getTheme(); // light:modified
 
-const detachSet = attach(Config, "set #theme", (next, value) => next(value.toUpperCase()));
+const detachSet = attach(Config, "set #theme", (next, value) =>
+  next(value.toUpperCase()),
+);
 config.setTheme("dark");
 config.getTheme(); // DARK:modified
 
@@ -2504,7 +2687,8 @@ config.getTheme(); // auto
 
 #### Private static members
 
-Private static members (methods, getters, setters, fields, and accessors) work the same way as private instance members.
+Private static members (methods, getters, setters, fields, and accessors) work
+the same way as private instance members.
 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
@@ -2534,14 +2718,15 @@ Logger.log("test"); // [LOG] test
 
 ### Security considerations: private members with hooks
 
-When you add the `@hook()` decorator to a private member (method, getter, setter, field, or accessor), it creates a
-middleware access point. This means that although the member is not accessible through the public API of the class and
-TypeScript won't provide autocomplete for it, anyone with access to the class can intercept and read private data
-through middleware.
+When you add the `@hook()` decorator to a private member (method, getter,
+setter, field, or accessor), it creates a middleware access point. This means
+that although the member is not accessible through the public API of the class
+and TypeScript won't provide autocomplete for it, anyone with access to the
+class can intercept and read private data through middleware.
 
-By default, the class is used as the hook key for all its members. This means that **middleware attached to hooks on
-private members can access those specific private members**, making them effectively "internal" rather than truly
-private.
+By default, the class is used as the hook key for all its members. This means
+that **middleware attached to hooks on private members can access those specific
+private members**, making them effectively "internal" rather than truly private.
 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
@@ -2586,8 +2771,9 @@ detach2();
 
 ### Sub-hooks in ECMA decorators
 
-You can create sub-hooks inside hooked methods using the `hook(name, fn)` syntax. These sub-hooks inherit the parent
-hook key and can be attached separately.
+You can create sub-hooks inside hooked methods using the `hook(name, fn)`
+syntax. These sub-hooks inherit the parent hook key and can be attached
+separately.
 
 ```ts
 import { Hook, hook, attach } from "@neuronet/hooks";
