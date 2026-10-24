@@ -38,36 +38,4 @@ export default defineConfig([
     ],
     transform: { dropLabels: ["EXAMPLE", "PLAYGROUND"] },
   },
-
-  /*
-  // Playground build (you can put playground/src/index.ts to test how it will look like compiled with babel)
-  {
-    tsconfig: "tsconfig.json",
-    input: "playground/src/index.ts",
-    output: {
-      entryFileNames: "[name].js",
-      dir: "playground/dist",
-      cleanDir: true,
-      minify: false,
-      preserveModules: true,
-    },
-    plugins: [
-      dts({
-        tsgo: true,
-        tsconfig: "tsconfig.json",
-      }),
-      babel({
-        plugins: [
-          [
-            "@babel/plugin-proposal-decorators",
-            {
-              version: "2023-11",
-            },
-          ],
-        ],
-      }),
-    ],
-    transform: { dropLabels: ["EXAMPLE", "PLAYGROUND"] },
-  },
-  */
 ]);
