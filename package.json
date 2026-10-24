@@ -11,7 +11,8 @@
     "build": "rolldown -c",
     "typecheck": "tsc --noEmit",
     "test": "pnpm run typecheck && vitest run",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "play": "rolldown -c ./rolldown.play.js"
   },
   "devDependencies": {
     "@babel/plugin-proposal-decorators": "^8.0.2",
