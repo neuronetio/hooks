@@ -6,4 +6,12 @@ export default defineConfig({
   jsdoc: false,
   ignorePatterns: ["**/*.d.ts", "dist"],
   sortImports: true,
+  overrides: [
+    {
+      files: ["*.md", "**/*.md"],
+      options: {
+        printWidth: 80,
+      },
+    },
+  ],
 });
